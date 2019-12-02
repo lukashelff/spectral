@@ -359,8 +359,6 @@ def main():
                 pred += y_label_.tolist()
                 all_y += y.tolist()
 
-        print(all_y)
-        print(pred)
         valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
         valid_loss[epoch] = total_loss / n_samples
         valid_acc[epoch] = n_correct / n_samples * 100
