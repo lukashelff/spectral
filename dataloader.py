@@ -41,7 +41,8 @@ def load_labels():
         train.append((data[0], int(data[1])))
     return train, valid, train + valid
 
-#image loader
+
+# image loader
 # returns 4 Arrays labelIdS, labels, ImageIDs and the Image as a Tuple(String, mmemap) e.g. (3_Z2_1_0_1, memmap)
 def load_images_for_labels(root_path, labels, mode):
     # loads all the images have existing entry labels
@@ -120,6 +121,27 @@ def display_spec(img, transpose=True):
     # im = img[:, :, [24, 51, 118]]
     plt.imshow(im)
     plt.show()
+
+
+def get_trainable(model_params):
+    return (p for p in model_params if p.requires_grad)
+
+
+def get_frozen(model_params):
+    return (p for p in model_params if not p.requires_grad)
+
+
+def all_trainable(model_params):
+    return all(p.requires_grad for p in model_params)
+
+
+def all_frozen(model_params):
+    return all(not p.requires_grad for p in model_params)
+
+
+def freeze_all(model_params):
+    for param in model_params:
+        param.requires_grad = False
 
 
 class Spectralloader(Dataset):
@@ -240,15 +262,16 @@ def main():
     labels_ids, labels_raw, image_ids, images_raw = load_images_for_labels(root, valid_labels, mode=mode)
     val_ds = Spectralloader(labels_raw, labels_ids, images_raw, image_ids, root)
 
-    display_rgb(images_raw[0], 'raw')
-    batch_size = 10
+    batch_size = 20
     n_classes = 2
-    N_EPOCHS = 1
+    N_EPOCHS = 50
 
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
+    train_balanced_acc = np.zeros(N_EPOCHS)
     valid_loss = np.zeros(N_EPOCHS)
     valid_acc = np.zeros(N_EPOCHS)
+    valid_balanced_acc = np.zeros(N_EPOCHS)
 
     train_dl = DataLoader(
         train_ds,
@@ -263,22 +286,6 @@ def main():
         shuffle=False,
         num_workers=4,
     )
-
-    def get_trainable(model_params):
-        return (p for p in model_params if p.requires_grad)
-
-    def get_frozen(model_params):
-        return (p for p in model_params if not p.requires_grad)
-
-    def all_trainable(model_params):
-        return all(p.requires_grad for p in model_params)
-
-    def all_frozen(model_params):
-        return all(not p.requires_grad for p in model_params)
-
-    def freeze_all(model_params):
-        for param in model_params:
-            param.requires_grad = False
 
     def get_model():
         model = models.resnet18(pretrained=True)
@@ -300,10 +307,9 @@ def main():
         # Train
         model.train()
 
-        total_loss, n_correct, n_samples = 0.0, 0, 0
+        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
         for batch_i, (X, y) in enumerate(train_dl):
             X, y = X.to(DEVICE), y.to(DEVICE)
-            # X = X.reshape(-1, 3,  255, 213)
             optimizer.zero_grad()
             y_ = model(X)
             loss = criterion(y_, y)
@@ -320,24 +326,28 @@ def main():
             n_correct += (y_label_ == y).sum().item()
             total_loss += loss.item() * X.shape[0]
             n_samples += X.shape[0]
+            pred += y_label_.tolist()
+            all_y += y.tolist()
+
+        train_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
+        train_loss[epoch] = total_loss / n_samples
+        train_acc[epoch] = n_correct / n_samples * 100
 
         print(
             f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            f"  train loss: {total_loss / n_samples:9.3f} |"
-            f"  train acc:  {n_correct / n_samples * 100:9.3f}%"
+            f"  train loss: {train_loss[epoch]:9.3f} |"
+            f"  train acc:  {train_acc[epoch]:9.3f}% |"
+            f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
+
         )
-        train_loss[epoch] = total_loss / n_samples
-        train_acc[epoch] = n_correct / n_samples * 100
 
         # Eval
         model.eval()
 
-        total_loss, n_correct, n_samples = 0.0, 0, 0
+        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
         with torch.no_grad():
             for X, y in val_dl:
                 X, y = X.to(DEVICE), y.to(DEVICE)
-                # X = X.reshape(-1, 3, 255, 213)
-
                 y_ = model(X)
 
                 # Statistics
@@ -346,126 +356,131 @@ def main():
                 loss = criterion(y_, y)
                 total_loss += loss.item() * X.shape[0]
                 n_samples += X.shape[0]
+                pred += y_label_.tolist()
+                all_y += y.tolist()
 
-        print(
-            f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            f"  valid loss: {total_loss / n_samples:9.3f} |"
-            f"  valid acc:  {n_correct / n_samples * 100:9.3f}%"
-        )
+        print(all_y)
+        print(pred)
+        valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
         valid_loss[epoch] = total_loss / n_samples
         valid_acc[epoch] = n_correct / n_samples * 100
 
-        dataiter = iter(val_dl)
-        image1, label1 = next(dataiter)
+        print(
+            f"Epoch {epoch + 1}/{N_EPOCHS} |"
+            f"  valid loss: {valid_loss[epoch]:9.3f} |"
+            f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+            f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
+        )
 
-        # image1 = image1.reshape(batch_size, 3, 255, 213)
-        print(image1.shape)
+    dataiter = iter(val_dl)
+    image1, label1 = next(dataiter)
 
-        # print images
-        display_rgb_grid(torchvision.utils.make_grid(image1), 'loader')
+    # print images
+    display_rgb_grid(torchvision.utils.make_grid(image1), 'loader')
 
-        print('GroundTruth: ', ' '.join('%5s' % classes[label1[j]] for j in range(8)))
+    print('GroundTruth: ', ' '.join('%5s' % classes[label1[j]] for j in range(8)))
 
-        outputs = model(image1.to(DEVICE))
+    outputs = model(image1.to(DEVICE))
 
-        _, predicted = torch.max(outputs, 1)
+    _, predicted = torch.max(outputs, 1)
 
-        print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
-                                      for j in range(8)))
+    print('Predicted: ', ' '.join('%5s' % classes[predicted[j]] for j in range(8)))
 
-        ind = 1
-        input = image1[ind].unsqueeze(0)
-        input.requires_grad = True
-        model.eval()
+    ind = 1
+    input = image1[ind].unsqueeze(0)
+    input.requires_grad = True
+    model.eval()
 
-        def attribute_image_features(algorithm, input, **kwargs):
-            model.zero_grad()
-            tensor_attributions = algorithm.attribute(input,
-                                                      target=label1[ind],
-                                                      **kwargs
-                                                      )
+    def attribute_image_features(algorithm, input, **kwargs):
+        model.zero_grad()
+        tensor_attributions = algorithm.attribute(input,
+                                                  target=label1[ind],
+                                                  **kwargs
+                                                  )
 
-            return tensor_attributions
+        return tensor_attributions
 
-        # saliency
-        saliency = Saliency(model.to("cpu"))
-        grads = saliency.attribute(input, target=label1[ind].item())
-        grads = np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0))
+    # saliency
+    saliency = Saliency(model.to("cpu"))
+    grads = saliency.attribute(input, target=label1[ind].item())
+    grads = np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0))
 
-        # IntegratedGradients
-        ig = IntegratedGradients(model)
-        attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
-        attr_ig = np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0))
-        print('Approximation delta: ', abs(delta))
+    # IntegratedGradients
+    ig = IntegratedGradients(model)
+    attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
+    attr_ig = np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0))
+    print('Approximation delta: ', abs(delta))
 
-        # IntegratedGradients Noise Tunnel
-        ig = IntegratedGradients(model)
-        nt = NoiseTunnel(ig)
-        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                              # n_samples=100,
-                                              stdevs=0.2)
-        attr_ig_nt = np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+    # IntegratedGradients Noise Tunnel
+    ig = IntegratedGradients(model)
+    nt = NoiseTunnel(ig)
+    attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                          # n_samples=100,
+                                          stdevs=0.2)
+    attr_ig_nt = np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
 
-        # GuidedGradCam
-        gc = GuidedGradCam(model, model.layer4)
-        attr_gc = attribute_image_features(gc, input)
-        attr_gc = np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+    # GuidedGradCam
+    gc = GuidedGradCam(model, model.layer4)
+    attr_gc = attribute_image_features(gc, input)
+    attr_gc = np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
 
-        # # Deeplift
-        # dl = DeepLift(model)
-        # attr_dl = attribute_image_features(dl, input, baselines=input * 0)
-        # attr_dl = np.transpose(attr_dl.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+    # # Deeplift
+    # dl = DeepLift(model)
+    # attr_dl = attribute_image_features(dl, input, baselines=input * 0)
+    # attr_dl = np.transpose(attr_dl.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
 
-        print('Original Image')
-        print('Predicted:', classes[predicted[ind]],
-              ' Probability:', torch.max(F.softmax(outputs, 1)).item())
+    print('Original Image')
+    print('Predicted:', classes[predicted[ind]],
+          ' Probability:', torch.max(F.softmax(outputs, 1)).item())
 
-        original_image = np.transpose((image1[ind].cpu().detach().numpy() / 2) + 0.5, (1, 2, 0))
+    original_image = np.transpose(image1[ind].cpu().detach().numpy(), (1, 2, 0))
 
-        # plot acc train and train loss
-        plt.plot(train_acc, color='skyblue', label='train acc')
-        plt.plot(valid_acc, color='darkblue', label='valid_acc')
-        plt.ylabel('acc')
-        plt.xlabel('epoch')
-        plt.legend(loc='lower right')
-        plt.show()
-        plt.plot(train_loss, color='red', label='train_loss')
-        plt.plot(valid_loss, color='orange', label='valid_loss')
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.legend(loc='lower right')
-        plt.show()
+    # plot acc train and train loss
+    plt.plot(train_acc, color='skyblue', label='train acc')
+    plt.plot(valid_acc, color='orange', label='valid_acc')
+    plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
+    plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
+    plt.ylabel('acc')
+    plt.xlabel('epoch')
+    plt.legend(loc='lower right')
+    plt.show()
+    plt.plot(train_loss, color='red', label='train_loss')
+    plt.plot(valid_loss, color='orange', label='valid_loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(loc='lower right')
+    plt.show()
 
-        _ = viz.visualize_image_attr(None, original_image,
-                                     method="original_image", title="Original Image")
+    _ = viz.visualize_image_attr(None, original_image,
+                                 method="original_image", title="Original Image")
 
-        _ = viz.visualize_image_attr(grads, original_image, method="blended_heat_map", sign="absolute_value",
-                                     show_colorbar=True, title="Overlayed Gradient Magnitudes saliency")
+    _ = viz.visualize_image_attr(grads, original_image, method="blended_heat_map", sign="absolute_value",
+                                 show_colorbar=True, title="Overlayed Gradient Magnitudes saliency")
 
-        _ = viz.visualize_image_attr(attr_ig, original_image, method="blended_heat_map", sign="all",
-                                     show_colorbar=True, title="Overlayed Integrated Gradients")
-        #
-        _ = viz.visualize_image_attr(attr_ig_nt, original_image, method="blended_heat_map", sign="absolute_value",
-                                     outlier_perc=10, show_colorbar=True,
-                                     title="Overlayed Noise Tunnel \n with SmoothGrad Squared")
+    _ = viz.visualize_image_attr(attr_ig, original_image, method="blended_heat_map", sign="all",
+                                 show_colorbar=True, title="Overlayed Integrated Gradients")
+    #
+    _ = viz.visualize_image_attr(attr_ig_nt, original_image, method="blended_heat_map", sign="absolute_value",
+                                 outlier_perc=10, show_colorbar=True,
+                                 title="Overlayed Noise Tunnel \n with SmoothGrad Squared")
 
-        # default_cmap = LinearSegmentedColormap.from_list('custom blue',
-        #                                                  [(0, '#ffffff'),
-        #                                                   (0.25, '#000000'),
-        #                                                   (1, '#000000')], N=256)
-        #
-        # _ = viz.visualize_image_attr_multiple((attr_ig_nt.squeeze()),
-        #                                       np.transpose(input.squeeze().cpu().detach().numpy(), (1,2,0)),
-        #                                       ["original_image", "heat_map"],
-        #                                       ["all", "positive"],
-        #                                       cmap=default_cmap,
-        #                                       show_colorbar=True)
+    # default_cmap = LinearSegmentedColormap.from_list('custom blue',
+    #                                                  [(0, '#ffffff'),
+    #                                                   (0.25, '#000000'),
+    #                                                   (1, '#000000')], N=256)
+    #
+    # _ = viz.visualize_image_attr_multiple((attr_ig_nt.squeeze()),
+    #                                       np.transpose(input.squeeze().cpu().detach().numpy(), (1,2,0)),
+    #                                       ["original_image", "heat_map"],
+    #                                       ["all", "positive"],
+    #                                       cmap=default_cmap,
+    #                                       show_colorbar=True)
 
-        _ = viz.visualize_image_attr(attr_gc, original_image, method="blended_heat_map", sign="absolute_value",
-                                     show_colorbar=True, title="Overlayed GuidedGradCam")
+    _ = viz.visualize_image_attr(attr_gc, original_image, method="blended_heat_map", sign="absolute_value",
+                                 show_colorbar=True, title="Overlayed GuidedGradCam")
 
-        # _ = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map",sign="all",show_colorbar=True,
-        #                           title="Overlayed DeepLift")
+    # _ = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map",sign="all",show_colorbar=True,
+    #                           title="Overlayed DeepLift")
 
 
 main()
