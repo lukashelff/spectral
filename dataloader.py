@@ -2,6 +2,7 @@ import pickle
 from os import listdir
 from typing import List, Any
 
+import torchvision
 from PIL import Image as PImage
 from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets.folder import ImageFolder, default_loader
@@ -9,12 +10,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from numpy.lib.format import open_memmap
 from torchvision import models
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 from sklearn import preprocessing
 from utils import *
+from captum.attr import IntegratedGradients, NoiseTunnel, DeepLift
+from captum.attr import Saliency
+from captum.attr import visualization as viz
+from captum.attr import GuidedGradCam
 
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
@@ -35,10 +41,10 @@ def load_labels():
         train.append((data[0], int(data[1])))
     return train, valid, train + valid
 
-
-# returns Array of tuples(String, (213, 255, 328)) with ID and memmap image data e.g. (3_Z2_1_0_1, memmap)
+#image loader
+# returns 4 Arrays labelIdS, labels, ImageIDs and the Image as a Tuple(String, mmemap) e.g. (3_Z2_1_0_1, memmap)
 def load_images_for_labels(root_path, labels, mode):
-    # loads a single image if the label entry exists
+    # loads all the images have existing entry labels
     def load_image(path):
         ids, ims = [], []
         dict = pickle.load(open(path + '/data.p', 'rb'))
@@ -50,14 +56,17 @@ def load_images_for_labels(root_path, labels, mode):
             # only add if we have a label for the image
             if i['id'].replace(',', '_') in labels_ids:
                 if mode == 'rgb':
-                    ims.append(data_all[k][:, :, [50, 88, 151]])
-                    # ims.append(data_all[k][:, :, [24, 51, 118]])
-                else:
+                    # ims.append(data_all[k][:, :, [50, 88, 151]].reshape(3, 255, 213))
+                    # ims.append(data_all[k][:, :, [50, 88, 151]])
+                    data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
+                    ims.append(data)
+                elif mode == 'spec':
+                    # ims.append(data_all[k].reshape(3, 255, 213))
                     ims.append(data_all[k])
                 ids.append(i['id'].replace(',', '_'))
         return ids, ims
 
-    # removes entries from labels where we dont have the image
+    # removes label entries with no existing image
     def sync_labels(im_ids):
         labs = labels
         for (k, i) in labels:
@@ -73,13 +82,11 @@ def load_images_for_labels(root_path, labels, mode):
         if i == 1:
 
             for k in range(1, 14):
-                print("disk : " + str(i) + '_Z' + str(k))
                 ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
                 loaded_images += im
                 loaded_image_ids += ids
         else:
             for k in range(1, 19):
-                print("disk : " + str(i) + '_Z' + str(k))
                 if not (k == 16 and i == 4):
                     ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
                     loaded_images += im
@@ -87,6 +94,32 @@ def load_images_for_labels(root_path, labels, mode):
     label_ids, label_raw = sync_labels(loaded_image_ids)
     print("all images loaded")
     return label_ids, label_raw, loaded_image_ids, loaded_images
+
+
+# transpose image to display learned images
+def display_rgb_grid(img, title):
+    print(title + ' image displayed with shape ' + str(img.shape))
+    plt.title(title)
+    npimg = img.numpy()
+    # plt.imshow(img)
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+
+# display rgb image
+def display_rgb(img, title):
+    plt.title(title)
+    plt.imshow(np.transpose(img, (1, 2, 0)))
+    plt.show()
+
+
+# display spectral image
+def display_spec(img, transpose=True):
+    import spectral
+    im = img[:, :, [50, 88, 151]]
+    # im = img[:, :, [24, 51, 118]]
+    plt.imshow(im)
+    plt.show()
 
 
 class Spectralloader(Dataset):
@@ -141,7 +174,19 @@ class Spectralloader(Dataset):
                 Beispiel für ein Blatt:
                 1_Z3_2_0_1;0
                     2_0_1 id des Blattes
-                    0 steht für gesund; 1 für Krank
+                    0 steht für gesund; 1 für krank
+
+                Image format
+                (213, 255, 328)
+                RGB format
+                (213, 255, 3)
+                learning format
+                (3, 255, 213)
+                RGB channels
+                [50, 88, 151]
+                SWIR
+                [24, 51, 118]
+
         """
 
     def __init__(self, label, labels_ids, data, data_ids, root, transform=None):
@@ -182,21 +227,23 @@ def main():
     shuffle_dataset = True
     random_seed = 42
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
+    classes = ('healthy', 'disease')
 
     print('loading training data')
     # load train dataset
-    trainLabels, validLabels, all_labels = load_labels()
-    labels_ids, labels_raw, image_ids, images_raw = load_images_for_labels(root, trainLabels, mode=mode)
+    train_labels, valid_labels, all_labels = load_labels()
+    labels_ids, labels_raw, image_ids, images_raw = load_images_for_labels(root, train_labels, mode=mode)
     train_ds = Spectralloader(labels_raw, labels_ids, images_raw, image_ids, root)
 
     print('loading validation data')
     # load valid dataset
-    labels_ids, labels_raw, image_ids, images_raw = load_images_for_labels(root, validLabels, mode=mode)
+    labels_ids, labels_raw, image_ids, images_raw = load_images_for_labels(root, valid_labels, mode=mode)
     val_ds = Spectralloader(labels_raw, labels_ids, images_raw, image_ids, root)
 
-    batch_size = 2
+    display_rgb(images_raw[0], 'raw')
+    batch_size = 10
     n_classes = 2
-    N_EPOCHS = 2
+    N_EPOCHS = 1
 
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
@@ -244,7 +291,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         get_trainable(model.parameters()),
-        lr=0.0001,
+        lr=0.0005,
         # momentum=0.9,
     )
 
@@ -256,7 +303,7 @@ def main():
         total_loss, n_correct, n_samples = 0.0, 0, 0
         for batch_i, (X, y) in enumerate(train_dl):
             X, y = X.to(DEVICE), y.to(DEVICE)
-            print(X.shape)
+            # X = X.reshape(-1, 3,  255, 213)
             optimizer.zero_grad()
             y_ = model(X)
             loss = criterion(y_, y)
@@ -289,6 +336,7 @@ def main():
         with torch.no_grad():
             for X, y in val_dl:
                 X, y = X.to(DEVICE), y.to(DEVICE)
+                # X = X.reshape(-1, 3, 255, 213)
 
                 y_ = model(X)
 
@@ -307,20 +355,117 @@ def main():
         valid_loss[epoch] = total_loss / n_samples
         valid_acc[epoch] = n_correct / n_samples * 100
 
-    # display rgb image
-    def display_rgb(img):
-        plt.imshow(img)
+        dataiter = iter(val_dl)
+        image1, label1 = next(dataiter)
+
+        # image1 = image1.reshape(batch_size, 3, 255, 213)
+        print(image1.shape)
+
+        # print images
+        display_rgb_grid(torchvision.utils.make_grid(image1), 'loader')
+
+        print('GroundTruth: ', ' '.join('%5s' % classes[label1[j]] for j in range(8)))
+
+        outputs = model(image1.to(DEVICE))
+
+        _, predicted = torch.max(outputs, 1)
+
+        print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
+                                      for j in range(8)))
+
+        ind = 1
+        input = image1[ind].unsqueeze(0)
+        input.requires_grad = True
+        model.eval()
+
+        def attribute_image_features(algorithm, input, **kwargs):
+            model.zero_grad()
+            tensor_attributions = algorithm.attribute(input,
+                                                      target=label1[ind],
+                                                      **kwargs
+                                                      )
+
+            return tensor_attributions
+
+        # saliency
+        saliency = Saliency(model.to("cpu"))
+        grads = saliency.attribute(input, target=label1[ind].item())
+        grads = np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0))
+
+        # IntegratedGradients
+        ig = IntegratedGradients(model)
+        attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
+        attr_ig = np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0))
+        print('Approximation delta: ', abs(delta))
+
+        # IntegratedGradients Noise Tunnel
+        ig = IntegratedGradients(model)
+        nt = NoiseTunnel(ig)
+        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                              # n_samples=100,
+                                              stdevs=0.2)
+        attr_ig_nt = np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+
+        # GuidedGradCam
+        gc = GuidedGradCam(model, model.layer4)
+        attr_gc = attribute_image_features(gc, input)
+        attr_gc = np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+
+        # # Deeplift
+        # dl = DeepLift(model)
+        # attr_dl = attribute_image_features(dl, input, baselines=input * 0)
+        # attr_dl = np.transpose(attr_dl.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+
+        print('Original Image')
+        print('Predicted:', classes[predicted[ind]],
+              ' Probability:', torch.max(F.softmax(outputs, 1)).item())
+
+        original_image = np.transpose((image1[ind].cpu().detach().numpy() / 2) + 0.5, (1, 2, 0))
+
+        # plot acc train and train loss
+        plt.plot(train_acc, color='skyblue', label='train acc')
+        plt.plot(valid_acc, color='darkblue', label='valid_acc')
+        plt.ylabel('acc')
+        plt.xlabel('epoch')
+        plt.legend(loc='lower right')
+        plt.show()
+        plt.plot(train_loss, color='red', label='train_loss')
+        plt.plot(valid_loss, color='orange', label='valid_loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(loc='lower right')
         plt.show()
 
-    # display spectral image
-    def display_spec(img, transpose=True):
-        import spectral
-        im = img[:, :, [50, 88, 151]]
-        # im = img[:, :, [24, 51, 118]]
-        plt.imshow(im)
-        plt.show()
+        _ = viz.visualize_image_attr(None, original_image,
+                                     method="original_image", title="Original Image")
 
-    display_rgb(images_raw[0])
+        _ = viz.visualize_image_attr(grads, original_image, method="blended_heat_map", sign="absolute_value",
+                                     show_colorbar=True, title="Overlayed Gradient Magnitudes saliency")
+
+        _ = viz.visualize_image_attr(attr_ig, original_image, method="blended_heat_map", sign="all",
+                                     show_colorbar=True, title="Overlayed Integrated Gradients")
+        #
+        _ = viz.visualize_image_attr(attr_ig_nt, original_image, method="blended_heat_map", sign="absolute_value",
+                                     outlier_perc=10, show_colorbar=True,
+                                     title="Overlayed Noise Tunnel \n with SmoothGrad Squared")
+
+        # default_cmap = LinearSegmentedColormap.from_list('custom blue',
+        #                                                  [(0, '#ffffff'),
+        #                                                   (0.25, '#000000'),
+        #                                                   (1, '#000000')], N=256)
+        #
+        # _ = viz.visualize_image_attr_multiple((attr_ig_nt.squeeze()),
+        #                                       np.transpose(input.squeeze().cpu().detach().numpy(), (1,2,0)),
+        #                                       ["original_image", "heat_map"],
+        #                                       ["all", "positive"],
+        #                                       cmap=default_cmap,
+        #                                       show_colorbar=True)
+
+        _ = viz.visualize_image_attr(attr_gc, original_image, method="blended_heat_map", sign="absolute_value",
+                                     show_colorbar=True, title="Overlayed GuidedGradCam")
+
+        # _ = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map",sign="all",show_colorbar=True,
+        #                           title="Overlayed DeepLift")
 
 
 main()
