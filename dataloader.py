@@ -22,7 +22,7 @@ from captum.attr import Saliency
 from captum.attr import visualization as viz
 from captum.attr import GuidedGradCam
 
-DEVICE = torch.device("cpu" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 # transpose image to display learned images
@@ -401,7 +401,6 @@ def main():
 
     # print images of first batch
     display_rgb_grid(torchvision.utils.make_grid(image1), 'loader')
-    print("abc")
 
     print('GroundTruth: ', ' '.join('%5s' % classes[label1[j]] for j in range(batch_size)))
 
@@ -468,7 +467,7 @@ def main():
     _ = viz.visualize_image_attr(attr_ig, original_image, sign="all", method="blended_heat_map",
                                  show_colorbar=True, title="Overlayed Integrated Gradients", use_pyplot=False)
     #
-    _ = viz.visualize_image_attr(attr_ig_nt, original_image, sign="absolute_value",
+    f2, a2 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="absolute_value",
                                  outlier_perc=10, show_colorbar=True, method="blended_heat_map",
                                  title="Overlayed Noise Tunnel \n with SmoothGrad Squared", use_pyplot=False)
 
@@ -484,14 +483,9 @@ def main():
     #                                       cmap=default_cmap,
     #                                       show_colorbar=True)
 
-    a1, f1 = viz.visualize_image_attr(attr_gc, original_image, sign="absolute_value", method="blended_heat_map",
+    f1, a1 = viz.visualize_image_attr(attr_gc, original_image, sign="absolute_value", method="blended_heat_map",
                                       show_colorbar=True, title="Overlayed GuidedGradCam", use_pyplot=False)
 
-    # fig = plt.figure()
-    # ax = fig.add_axes(a1)
-    #
-    # fig.show()
-    # plt.show()
 
     def show_figure(fig, ax):
 
@@ -505,11 +499,10 @@ def main():
         fig.add_axes(ax)
 
     show_figure(f1, a1)
-    plt.show()
+    f1.show()
 
     # fig, ax = plt.subplots(111)
     # ax = a1
-    # ax.set_title("GuidedGradCam")
 
     # fig3, (ax3, ax4) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(10, 5))
 
