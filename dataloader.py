@@ -22,7 +22,7 @@ from captum.attr import Saliency
 from captum.attr import visualization as viz
 from captum.attr import GuidedGradCam
 
-DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cpu" if torch.cuda.is_available() else "cpu")
 
 
 # transpose image to display learned images
@@ -199,6 +199,7 @@ def load_labels():
         train.append((data[0], int(data[1])))
     return train, valid, train + valid
 
+
 class Spectralloader(Dataset):
     """
         The spektral dataset can be found in folder
@@ -287,6 +288,7 @@ class Spectralloader(Dataset):
         return len(self.labels)
 
         # image loader
+
     # returns 4 Arrays labelIdS, labels, ImageIDs and the Image as a Tuple(String, mmemap) e.g. (3_Z2_1_0_1, memmap)
     def load_images_for_labels(self, root_path, labels, mode):
         # loads all the images have existing entry labels
@@ -340,6 +342,7 @@ class Spectralloader(Dataset):
         print("all images loaded")
         return label_ids, label_raw, loaded_image_ids, loaded_images
 
+
 def is_float(string):
     try:
         return float(string)
@@ -347,10 +350,8 @@ def is_float(string):
         return False
 
 
-
 def main():
     mode = 'rgb'
-    # validation_split = .2
     shuffle_dataset = True
     random_seed = 42
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
@@ -400,6 +401,7 @@ def main():
 
     # print images of first batch
     display_rgb_grid(torchvision.utils.make_grid(image1), 'loader')
+    print("abc")
 
     print('GroundTruth: ', ' '.join('%5s' % classes[label1[j]] for j in range(batch_size)))
 
@@ -433,7 +435,6 @@ def main():
     ig = IntegratedGradients(model)
     attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
     attr_ig = np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0))
-    print('Approximation delta: ', abs(delta))
 
     # IntegratedGradients Noise Tunnel
     ig = IntegratedGradients(model)
@@ -453,24 +454,23 @@ def main():
     # attr_dl = attribute_image_features(dl, input, baselines=input * 0)
     # attr_dl = np.transpose(attr_dl.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
 
-    print('Original Image')
     print('Predicted:', classes[predicted[ind]],
           ' Probability:', torch.max(F.softmax(outputs, 1)).item())
 
     original_image = np.transpose(image1[ind].cpu().detach().numpy(), (1, 2, 0))
 
     _ = viz.visualize_image_attr(None, original_image,
-                                 method="original_image", title="Original Image")
+                                 method="original_image", title="Original Image", use_pyplot=False)
 
     _ = viz.visualize_image_attr(grads, original_image, sign="absolute_value", method="blended_heat_map",
-                                 show_colorbar=True, title="Overlayed Gradient Magnitudes saliency")
+                                 show_colorbar=True, title="Overlayed Gradient Magnitudes saliency", use_pyplot=False)
 
     _ = viz.visualize_image_attr(attr_ig, original_image, sign="all", method="blended_heat_map",
-                                 show_colorbar=True, title="Overlayed Integrated Gradients")
+                                 show_colorbar=True, title="Overlayed Integrated Gradients", use_pyplot=False)
     #
     _ = viz.visualize_image_attr(attr_ig_nt, original_image, sign="absolute_value",
                                  outlier_perc=10, show_colorbar=True, method="blended_heat_map",
-                                 title="Overlayed Noise Tunnel \n with SmoothGrad Squared")
+                                 title="Overlayed Noise Tunnel \n with SmoothGrad Squared", use_pyplot=False)
 
     # default_cmap = LinearSegmentedColormap.from_list('custom blue',
     #                                                  [(0, '#ffffff'),
@@ -484,8 +484,34 @@ def main():
     #                                       cmap=default_cmap,
     #                                       show_colorbar=True)
 
-    _ = viz.visualize_image_attr(attr_gc, original_image, sign="absolute_value", method="blended_heat_map",
-                                 show_colorbar=True, title="Overlayed GuidedGradCam")
+    a1, f1 = viz.visualize_image_attr(attr_gc, original_image, sign="absolute_value", method="blended_heat_map",
+                                      show_colorbar=True, title="Overlayed GuidedGradCam", use_pyplot=False)
+
+    # fig = plt.figure()
+    # ax = fig.add_axes(a1)
+    #
+    # fig.show()
+    # plt.show()
+
+    def show_figure(fig, ax):
+
+        # create a dummy figure and use its
+        # manager to display the original figure
+        dummy = plt.figure()
+        new_manager = dummy.canvas.manager
+        new_manager.canvas.figure = fig
+        # new_manager.canvas.axes = ax
+        fig.set_canvas(new_manager.canvas)
+        fig.add_axes(ax)
+
+    show_figure(f1, a1)
+    plt.show()
+
+    # fig, ax = plt.subplots(111)
+    # ax = a1
+    # ax.set_title("GuidedGradCam")
+
+    # fig3, (ax3, ax4) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(10, 5))
 
     # _ = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map",sign="all",show_colorbar=True,
     #                           title="Overlayed DeepLift")
