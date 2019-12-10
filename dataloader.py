@@ -26,7 +26,7 @@ from captum.attr import visualization as viz
 from captum.attr import GuidedGradCam
 from captum.attr._core.guided_grad_cam import LayerGradCam
 
-DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 
 # transpose image to display learned images
@@ -193,6 +193,7 @@ def explain(model, image, label):
     input = image.unsqueeze(0)
     input.requires_grad = True
     model.eval()
+    c, w, h = image.shape
 
     def attribute_image_features(algorithm, input, **kwargs):
         model.zero_grad()
@@ -228,8 +229,13 @@ def explain(model, image, label):
 
     # GradCam
     gco = LayerGradCam(model, model.layer4)
+
     attr_gco = attribute_image_features(gco, input)
+
     attr_gco = np.transpose(attr_gco.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+
+    gradcam = PImage.fromarray((attr_gco * 255).astype(np.uint8))\
+                  # .resize((w, h), PImage.ANTIALIAS) / 255
 
     # # Deeplift
     # dl = DeepLift(model)
@@ -268,7 +274,7 @@ def explain(model, image, label):
                                       show_colorbar=False, use_pyplot=False)
 
     # GradCam
-    f7, a7 = viz.visualize_image_attr(attr_gco, original_image, sign="absolute_value", method="blended_heat_map",
+    f7, a7 = viz.visualize_image_attr(gradcam, original_image, sign="absolute_value", method="blended_heat_map",
                                       show_colorbar=False, use_pyplot=False)
 
     return [f1, f2, f3, f4, f6, f7]
@@ -278,12 +284,8 @@ def plotexplainer(pathroot, explainers, imageclass, numdis):
     # compare images between classes
     classnum = len(imageclass)
     exnum = len(explainers)
-    print('Ä')
-    print(classnum)
-    print(exnum)
     fig = plt.figure(figsize=(6 * exnum, 6 * classnum))
     # fig.set_title('Class comparison TP, FP, TN, FN plant images')
-    print("hallo")
     for k in range(0, classnum):
         for i in range(0, exnum):
             img = mpimg.imread(pathroot + explainers[i] + imageclass[k] + '.png')
@@ -298,11 +300,11 @@ def plotexplainer(pathroot, explainers, imageclass, numdis):
                 if imageclass[k] == 'tp':
                     ax.set_ylabel('TP:\n Truth: healthy\n Prediction: healthy', fontsize=25)
                 if imageclass[k] == 'fp':
-                    ax.set_ylabel('FP:\n Truth: diseased\n Prediction: healthy', fontsize=25)
+                    ax.set_ylabel('FP:\n Truth: healthy\n Prediction: diseased', fontsize=25)
                 if imageclass[k] == 'tn':
                     ax.set_ylabel('TN:\n Truth: diseased\n Prediction: diseased', fontsize=25)
                 if imageclass[k] == 'fn':
-                    ax.set_ylabel('FN:\n Truth: healthy\n Prediction: diseased', fontsize=25)
+                    ax.set_ylabel('FN:\n Truth: diseased\n Prediction: healthy', fontsize=25)
     fig.tight_layout()
     fig.savefig(pathroot + 'conclusion' + '.png')
     plt.show()
@@ -342,7 +344,7 @@ def plotexplainer(pathroot, explainers, imageclass, numdis):
             if i == 0:
                 ax.set_ylabel('diseased image ' + str(k), fontsize=25)
     fig.tight_layout()
-    fig.savefig(pathroot + 'notdetecteddiseasedims/' + 'conclusion' + '.png')
+    fig.savefig(pathroot + 'diseasedimsnotdetected/' + 'conclusion' + '.png')
     plt.show()
 
 
@@ -544,8 +546,8 @@ def main():
     n_classes = 2
     N_EPOCHS = 50
     lr = 0.00025
-    retrain = False
-    reexplain = False
+    retrain = True
+    reexplain = True
     filename = 'data/trained_model.sav'
 
     # dataloader
@@ -632,7 +634,7 @@ def main():
 
     # save the explainer images of the figures
     pathroot = './data/exp/'
-    imageclass = []
+    imageclass = ['tp', 'fp', 'tn', 'fn']
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam']
     numdis = min(len(inddetdis), len(indnotdetdis))
 
