@@ -231,11 +231,14 @@ def explain(model, image, label):
     gco = LayerGradCam(model, model.layer4)
 
     attr_gco = attribute_image_features(gco, input)
+    print(attr_gco.shape)
 
     attr_gco = np.transpose(attr_gco.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
-
-    gradcam = PImage.fromarray((attr_gco * 255).astype(np.uint8))\
-                  # .resize((w, h), PImage.ANTIALIAS) / 255
+    gco_int = (attr_gco * 255).astype(np.uint8)
+    print(image.shape)
+    print(type(gco_int))
+    print(gco_int.shape)
+    gradcam = PImage.fromarray(gco_int).resize((w, h), PImage.ANTIALIAS) / 255
 
     # # Deeplift
     # dl = DeepLift(model)
@@ -280,7 +283,7 @@ def explain(model, image, label):
     return [f1, f2, f3, f4, f6, f7]
 
 
-def plotexplainer(pathroot, explainers, imageclass, numdis):
+def plot_explainer(pathroot, explainers, imageclass, numdis):
     # compare images between classes
     classnum = len(imageclass)
     exnum = len(explainers)
@@ -437,21 +440,31 @@ class Spectralloader(Dataset):
         self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
         self.transform = transform
         self.path = root
+        self.index_data = []
+        # index of the position of the images for corresponding label in labels_ids
+        for k in self.labels_ids:
+            for i, s in enumerate(self.data_ids):
+                if k[0] == s:
+                    self.index_data += [i]
+                    break
 
     def __getitem__(self, index):
         # return only 1 sample and label (according to "Index")
         # get label for ID
         label = self.labels[index]
-        ID = self.labels_ids[index]
-        # get Image Index for Id of Label
-        index_im = [i for i, s in enumerate(self.data_ids) if ID[0] == s]
-        image = self.data[index_im[0]]
+        # ID = self.labels_ids[index]
+        # # get Image Index for Id of Label
+        # index_im = [i for i, s in enumerate(self.data_ids) if ID[0] == s]
+        # image = self.data[index_im[0]]
+        image = self.data[self.index_data[index]]
 
         return image, label
 
     def __len__(self):
         return len(self.labels)
 
+    def get_id(self, index):
+        return self.labels_ids[index]
         # image loader
 
     # returns 4 Arrays labelIdS, labels, ImageIDs and the Image as a Tuple(String, mmemap) e.g. (3_Z2_1_0_1, memmap)
@@ -546,7 +559,7 @@ def main():
     n_classes = 2
     N_EPOCHS = 50
     lr = 0.00025
-    retrain = True
+    retrain = False
     reexplain = True
     filename = 'data/trained_model.sav'
 
@@ -640,7 +653,6 @@ def main():
 
     # create explainer Image and save it in files
     if reexplain:
-
         # save images of explainer in data
         # save num diseased images which got detected
         for k in range(0, len(inddetdis)):
@@ -662,7 +674,7 @@ def main():
                 indclassesIM[k][i].savefig(pathroot + explainers[i] + imageclass[k] + '.png', bbox_inches='tight')
 
     # plot created explainer
-    plotexplainer(pathroot, explainers, imageclass, numdis)
+    plot_explainer(pathroot, explainers, imageclass, numdis)
 
 
 main()
