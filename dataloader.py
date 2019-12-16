@@ -1,9 +1,11 @@
+import os
 import pickle
 from os import listdir
 from typing import List, Any
 
 import torchvision
 from PIL import Image as PImage
+from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets.folder import ImageFolder, default_loader
 import matplotlib.pyplot as plt
@@ -25,8 +27,30 @@ from captum.attr import Saliency
 from captum.attr import visualization as viz
 from captum.attr import GuidedGradCam
 from captum.attr._core.guided_grad_cam import LayerGradCam
+from matplotlib.colors import LinearSegmentedColormap
+from scipy import ndimage as ndi
+from skimage import feature
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+# cuda:1
+
+# returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
+def load_labels():
+    path_test = 'data/test_fileids.txt'
+    path_train = 'data/train_fileids.txt'
+    valid = []
+    train = []
+    valid_s = open(path_test, 'r').readlines()
+    train_s = open(path_train, 'r').readlines()
+    for i in valid_s:
+        data = i.split(';')
+        valid.append((data[0], int(data[1])))
+    for i in train_s:
+        data = i.split(';')
+        train.append((data[0], int(data[1])))
+    return train, valid, train + valid
 
 
 # transpose image to display learned images
@@ -189,11 +213,13 @@ def train(batch_size, n_classes, N_EPOCHS, learning_rate, train_dl, val_dl):
     return model
 
 
+# create explainers for given image
 def explain(model, image, label):
+    print("creating images")
     input = image.unsqueeze(0)
     input.requires_grad = True
     model.eval()
-    c, w, h = image.shape
+    c, h, w = image.shape
 
     def attribute_image_features(algorithm, input, **kwargs):
         model.zero_grad()
@@ -203,6 +229,24 @@ def explain(model, image, label):
                                                   )
 
         return tensor_attributions
+
+    def detect_edge():
+        org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+        org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+        org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+        # Compute the Canny filter for two values of sigma
+        org_img_edged = feature.canny(org_img_edged, sigma=3)
+        fig, ax = plt.subplots()
+        ax.imshow(org_img_edged, cmap=plt.cm.binary)
+        # ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
+        #           alpha=0.4)
+        plt.show()
+        return org_img_edged
+
+    default_cmap = LinearSegmentedColormap.from_list('custom blue',
+                                                     [(0, '#ffffff'),
+                                                      (0.25, '#000000'),
+                                                      (1, '#000000')], N=256)
 
     # saliency
     saliency = Saliency(model)
@@ -215,30 +259,30 @@ def explain(model, image, label):
     attr_ig = np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0))
 
     # IntegratedGradients Noise Tunnel
-    ig = IntegratedGradients(model)
     nt = NoiseTunnel(ig)
     attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                          # n_samples=100,
-                                          stdevs=0.2)
+                                          n_samples=10,
+                                          # stdevs=0.2
+                                          )
     attr_ig_nt = np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+
 
     # GuidedGradCam
     gc = GuidedGradCam(model, model.layer4)
     attr_gc = attribute_image_features(gc, input)
     attr_gc = np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
 
-    # GradCam
+
+    # GradCam Original Layer 4
     gco = LayerGradCam(model, model.layer4)
-
     attr_gco = attribute_image_features(gco, input)
-    print(attr_gco.shape)
+    gradcam_orig = np.transpose(attr_gco.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
 
-    attr_gco = np.transpose(attr_gco.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
-    gco_int = (attr_gco * 255).astype(np.uint8)
-    print(image.shape)
-    print(type(gco_int))
-    print(gco_int.shape)
-    gradcam = PImage.fromarray(gco_int).resize((w, h), PImage.ANTIALIAS) / 255
+    # GradCam
+    att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
+    # gco_int = (att * 255).astype(np.uint8)
+    gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
+    np_gradcam = np.asarray(gradcam)[:, :, np.newaxis]
 
     # # Deeplift
     # dl = DeepLift(model)
@@ -248,124 +292,183 @@ def explain(model, image, label):
     # print('Leaf is ', classes[predicted[ind]],
     #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item())
 
-    original_image = np.transpose(image.cpu().detach().numpy(), (1, 2, 0))
+    original_image = detect_edge()
     # Original Image
     f1, a1 = viz.visualize_image_attr(None, original_image,
                                       method="original_image",
                                       # title="Original Image",
                                       use_pyplot=False)
     # Overlayed Gradient Magnitudes saliency
-    f2, a2 = viz.visualize_image_attr(grads, original_image, sign="absolute_value", method="blended_heat_map",
+    f2, a2 = viz.visualize_image_attr(grads, original_image, sign="positive", method="blended_heat_map",
                                       # show_colorbar=True, title="Overlayed Gradient Magnitudes saliency",
                                       use_pyplot=False)
     # Overlayed Integrated Gradients
-    f3, a3 = viz.visualize_image_attr(attr_ig, original_image, sign="all", method="blended_heat_map",
+    f3, a3 = viz.visualize_image_attr(attr_ig, original_image, sign="positive", method="blended_heat_map",
                                       # show_colorbar=True, title="Overlayed Integrated Gradients",
                                       use_pyplot=False)
     # Overlayed Noise Tunnel
-    f4, a4 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="absolute_value",
-                                      outlier_perc=10, method="blended_heat_map", use_pyplot=False,
+    f4, a4 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="positive",
+                                      method="blended_heat_map", use_pyplot=False
                                       # title="Overlayed Noise Tunnel \n with SmoothGrad Squared", show_colorbar=True
                                       )
+
     # # DeepLift
     # f5, a5 = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map", sign="all",
     #                                   # show_colorbar=True, title="Overlayed DeepLift"
     #                                   )
+    # f5 = detect_edge(attr_dl)
 
     # GuidedGradCam
-    f6, a6 = viz.visualize_image_attr(attr_gc, original_image, sign="absolute_value", method="blended_heat_map",
+    f6, a6 = viz.visualize_image_attr(attr_gc, original_image, sign="positive", method="blended_heat_map",
                                       show_colorbar=False, use_pyplot=False)
 
     # GradCam
-    f7, a7 = viz.visualize_image_attr(gradcam, original_image, sign="absolute_value", method="blended_heat_map",
+    f7, a7 = viz.visualize_image_attr(np_gradcam, original_image, sign="positive", method="blended_heat_map",
                                       show_colorbar=False, use_pyplot=False)
 
-    return [f1, f2, f3, f4, f6, f7]
+    # GradCam original image
+    f8, a8 = viz.visualize_image_attr(gradcam_orig, original_image, sign="absolute_value", method="blended_heat_map",
+                                      show_colorbar=False, use_pyplot=False)
+
+    return [f1, f2, f3, f4, f6, f7, f8]
 
 
-def plot_explainer(pathroot, explainers, imageclass, numdis):
-    # compare images between classes
-    classnum = len(imageclass)
+def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healthy, subpath_diseased,
+             subpath_classification):
+    # get index for each class
+    # actual: healthy prediction: healthy, true positive
+    # actual: diseased prediction: healthy, false positive
+    # actual: diseased prediction: diseased, true negative
+    # actual: healthy prediction: diseased, false negative
+    index_classes = [-1, -1, -1, -1]
+    index_classes_image = [0, 0, 0, 0]
+    # 6 images of plants with detected diseased TP
+    index_diseased = []
+    index_diseased_image = []
+    # 6 images of healthy plants TN
+    index_healthy = []
+    index_healthy_image = []
+    # Predict val dataset with final trained resnet, 1 = disease, 0 = no disease
+    model.to(DEVICE)
+    model.eval()
+    pred, labels = [], []
+    with torch.no_grad():
+        for X, y in val_dl:
+            X, y = X.to(DEVICE), y.to(DEVICE)
+            y_ = model(X)
+            _, y_label_ = torch.max(y_, 1)
+            pred += y_label_.tolist()
+            labels += y.tolist()
+            ydata, preddata = y.tolist(), y_label_.tolist()
+            # get images and labels for images which get displayed
+            for i in range(0, len(y)):
+                if len(index_diseased) < k and preddata[i] == 1 and ydata[i] == 1:
+                    index_diseased += [ydata[i]]
+                    index_diseased_image.append(explain(model, X[i], ydata[i]))
+                if len(index_healthy) < k and preddata[i] == 0 and y[i] == 0:
+                    index_healthy += [ydata[i]]
+                    index_healthy_image.append(explain(model, X[i], ydata[i]))
+                if index_classes[2] == -1 and preddata[i] == 1 and ydata[i] == 1:
+                    index_classes[2] = ydata[i]
+                    index_classes_image[2] = explain(model, X[i], ydata[i])
+                if index_classes[3] == -1 and preddata[i] == 0 and ydata[i] == 1:
+                    index_classes[3] = ydata[i]
+                    index_classes_image[3] = explain(model, X[i], ydata[i])
+                if index_classes[0] == -1 and preddata[i] == 0 and ydata[i] == 0:
+                    index_classes[0] = ydata[i]
+                    index_classes_image[0] = explain(model, X[i], ydata[i])
+                if index_classes[1] == -1 and preddata[i] == 1 and ydata[i] == 0:
+                    index_classes[1] = ydata[i]
+                    index_classes_image[1] = explain(model, X[i], ydata[i])
+
+    # save images of explainer in data
+    # save healthy images which got detected
+    for k in range(0, len(index_healthy)):
+        for i in range(0, len(explainers)):
+            index_diseased_image[k][i].savefig(
+                path_root + subpath_healthy + explainers[i] + str(k) + '.png',
+                bbox_inches='tight')
+
+    # save images of explainer in data
+    # save diseased images which got detected
+    for k in range(0, len(index_diseased)):
+        for i in range(0, len(explainers)):
+            index_healthy_image[k][i].savefig(
+                path_root + subpath_diseased + explainers[i] + str(k) + '.png',
+                bbox_inches='tight')
+
+    # save images of every class to compare
+    for k in range(0, len(image_class)):
+        for i in range(0, len(explainers)):
+            index_classes_image[k][i].savefig(
+                path_root + subpath_classification + explainers[i] + image_class[k] + '.png', bbox_inches='tight')
+
+
+def evaluate_id(image_id, ds, model, explainers, path_root, subpath):
+    # evaluate predictions with model and create Images from explainers
+    # # get first batch for evaluation
+    # dataiter = iter(val_dl)
+    # image1, label1 = next(dataiter)
+    #
+    # # print images of first batch
+    # display_rgb_grid(torchvision.utils.make_grid(image1), 'images of batch 1')
+    # # predict images of first batch
+    # print('GroundTruth: ', ' '.join('%5s' % classes[label1[j]] for j in range(batch_size)))
+    #
+    # outputs1 = model(image1.to(DEVICE))
+    #
+    # _, predicted1 = torch.max(outputs1, 1)
+    #
+    # print('Predicted: ', ' '.join('%5s' % classes[predicted1[j]] for j in range(batch_size)))
+    if not os.path.exists(path_root + subpath):
+        os.makedirs(path_root + subpath)
+    image, label = ds.get_by_id(image_id)
+    if image is not None:
+        explained = explain(model, torch.from_numpy(image), label)
+        for i in range(0, len(explainers)):
+            directory = path_root + subpath + explainers[i] + image_id + '.png'
+            explained[i].savefig(directory, bbox_inches='tight')
+
+
+# compare given images of plantes in a plot
+def plot_single_explainer(pathroot, subpath, explainers, image_names, title):
     exnum = len(explainers)
-    fig = plt.figure(figsize=(6 * exnum, 6 * classnum))
-    # fig.set_title('Class comparison TP, FP, TN, FN plant images')
-    for k in range(0, classnum):
+    number_images = len(image_names)
+    images = []
+    for k in range(0, number_images):
         for i in range(0, exnum):
-            img = mpimg.imread(pathroot + explainers[i] + imageclass[k] + '.png')
-            ax = fig.add_subplot(classnum, exnum, (i + 1) + k * exnum)
-            plt.imshow(img)
+            try:
+                images.append(mpimg.imread(pathroot + subpath + explainers[i] + image_names[k] + '.png'))
+            except FileNotFoundError:
+                print('image could not be loaded')
+    number_images = len(images) // exnum
+    fig = plt.figure(figsize=(6 * exnum + 2, 7 * number_images + 5))
+    fig.suptitle(title, fontsize=40)
+    for k in range(0, len(images) // exnum):
+        for i in range(0, exnum):
+            ax = fig.add_subplot(number_images, exnum, (i + 1) + k * exnum)
+            plt.imshow(images[i + k * exnum])
             ax.tick_params(axis='both', which='both', length=0)
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), visible=False)
             if k == 0:
                 ax.set_title(explainers[i], fontsize=25)
             if i == 0:
-                if imageclass[k] == 'tp':
-                    ax.set_ylabel('TP:\n Truth: healthy\n Prediction: healthy', fontsize=25)
-                if imageclass[k] == 'fp':
-                    ax.set_ylabel('FP:\n Truth: healthy\n Prediction: diseased', fontsize=25)
-                if imageclass[k] == 'tn':
-                    ax.set_ylabel('TN:\n Truth: diseased\n Prediction: diseased', fontsize=25)
-                if imageclass[k] == 'fn':
-                    ax.set_ylabel('FN:\n Truth: diseased\n Prediction: healthy', fontsize=25)
+                if subpath == 'classification/':
+                    if image_names[k] == 'tp':
+                        ax.set_ylabel('TP:\n Truth: healthy\n Prediction: healthy', fontsize=25)
+                    if image_names[k] == 'fp':
+                        ax.set_ylabel('FP:\n Truth: healthy\n Prediction: diseased', fontsize=25)
+                    if image_names[k] == 'tn':
+                        ax.set_ylabel('TN:\n Truth: diseased\n Prediction: diseased', fontsize=25)
+                    if image_names[k] == 'fn':
+                        ax.set_ylabel('FN:\n Truth: diseased\n Prediction: healthy', fontsize=25)
+                else:
+                    ax.set_ylabel('image ' + image_names[k], fontsize=25)
+
     fig.tight_layout()
-    fig.savefig(pathroot + 'conclusion' + '.png')
+    fig.savefig(pathroot + subpath + 'conclusion' + '.png')
     plt.show()
-
-    # compare detected diseased images of plantes
-    fig = plt.figure(figsize=(6 * exnum, 6 * numdis))
-    # fig.set_title('comparison between detected diseases')
-    for k in range(0, numdis):
-        for i in range(0, exnum):
-            img = mpimg.imread(pathroot + 'diseasedims/' + explainers[i] + 'diseased' + str(k) + '.png')
-            ax = fig.add_subplot(numdis, exnum, (i + 1) + k * exnum)
-            plt.imshow(img)
-            ax.tick_params(axis='both', which='both', length=0)
-            plt.setp(ax.get_xticklabels(), visible=False)
-            plt.setp(ax.get_yticklabels(), visible=False)
-            if k == 0:
-                ax.set_title(explainers[i], fontsize=25)
-            if i == 0:
-                ax.set_ylabel('diseased image ' + str(k), fontsize=25)
-    fig.tight_layout()
-    fig.savefig(pathroot + 'diseasedims/' + 'conclusion' + '.png')
-    plt.show()
-
-    # compare detected diseased images of plantes
-    fig = plt.figure(figsize=(6 * exnum, 6 * numdis))
-    # fig.set_title('comparison between not detected diseases')
-    for k in range(0, numdis):
-        for i in range(0, exnum):
-            img = mpimg.imread(pathroot + 'diseasedimsnotdetected/' + explainers[i] + 'diseased' + str(k) + '.png')
-            ax = fig.add_subplot(numdis, exnum, (i + 1) + k * exnum)
-            plt.imshow(img)
-            ax.tick_params(axis='both', which='both', length=0)
-            plt.setp(ax.get_xticklabels(), visible=False)
-            plt.setp(ax.get_yticklabels(), visible=False)
-            if k == 0:
-                ax.set_title(explainers[i], fontsize=25)
-            if i == 0:
-                ax.set_ylabel('diseased image ' + str(k), fontsize=25)
-    fig.tight_layout()
-    fig.savefig(pathroot + 'diseasedimsnotdetected/' + 'conclusion' + '.png')
-    plt.show()
-
-
-# returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
-def load_labels():
-    path_test = 'data/test_fileids.txt'
-    path_train = 'data/train_fileids.txt'
-    valid = []
-    train = []
-    valid_s = open(path_test, 'r').readlines()
-    train_s = open(path_train, 'r').readlines()
-    for i in valid_s:
-        data = i.split(';')
-        valid.append((data[0], int(data[1])))
-    for i in train_s:
-        data = i.split(';')
-        train.append((data[0], int(data[1])))
-    return train, valid, train + valid
 
 
 class Spectralloader(Dataset):
@@ -437,12 +540,21 @@ class Spectralloader(Dataset):
 
     def __init__(self, labels, root, mode, transform=None):
         # load data for given labels
+        # labels: list of all labels
+        # labels_ids: list of all labels with corresponding IDs as [[label, Id]...]
+        # data: list of all images
+        # data: list of all images with corresponding IDs as [[image, ID]...]
+        # index_data: Pointer to image index in order of label Indecies
+        # e.g. label with index i has its image data at Index index_data[i]
+        # ids: list of all ids in order of labels
         self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
         self.transform = transform
         self.path = root
         self.index_data = []
+        self.ids = []
         # index of the position of the images for corresponding label in labels_ids
         for k in self.labels_ids:
+            self.ids.append(k[0])
             for i, s in enumerate(self.data_ids):
                 if k[0] == s:
                     self.index_data += [i]
@@ -452,20 +564,27 @@ class Spectralloader(Dataset):
         # return only 1 sample and label (according to "Index")
         # get label for ID
         label = self.labels[index]
-        # ID = self.labels_ids[index]
-        # # get Image Index for Id of Label
-        # index_im = [i for i, s in enumerate(self.data_ids) if ID[0] == s]
-        # image = self.data[index_im[0]]
+        # # get corresponding Image for Index
         image = self.data[self.index_data[index]]
-
         return image, label
 
     def __len__(self):
         return len(self.labels)
 
-    def get_id(self, index):
-        return self.labels_ids[index]
-        # image loader
+    def get_id_by_index(self, index):
+        try:
+            return self.ids[index]
+        except ValueError:
+            print('No image in Dataset with id: ' + str(index))
+            return None, None
+
+    def get_by_id(self, ID):
+        try:
+            index = self.ids.index(ID)
+            return self.__getitem__(index)
+        except ValueError:
+            print('image with id: ' + ID + ' not in dataset')
+            return None, None
 
     # returns 4 Arrays labelIdS, labels, ImageIDs and the Image as a Tuple(String, mmemap) e.g. (3_Z2_1_0_1, memmap)
     def load_images_for_labels(self, root_path, labels, mode):
@@ -505,7 +624,6 @@ class Spectralloader(Dataset):
         for i in range(1, 5):
             print("loading images of day: " + str(i))
             if i == 1:
-
                 for k in range(1, 14):
                     ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
                     loaded_images += im
@@ -545,136 +663,106 @@ def main():
     random_seed = 42
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     classes = ('healthy', 'diseased')
-
-    print('loading training data')
-    # load train dataset
-    train_labels, valid_labels, all_labels = load_labels()
-    train_ds = Spectralloader(train_labels, root, mode)
-
-    print('loading validation data')
-    # load valid dataset
-    val_ds = Spectralloader(valid_labels, root, mode)
-
     batch_size = 20
     n_classes = 2
     N_EPOCHS = 50
     lr = 0.00025
     retrain = False
     reexplain = True
+    plot_for_image_id, plot_classes, plot_healthy, plot_diseased = False, True, False, False
     filename = 'data/trained_model.sav'
+    train_labels, valid_labels, all_labels = load_labels()
 
-    # dataloader
-    train_dl = DataLoader(
-        train_ds,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=4,
-    )
-
-    val_dl = DataLoader(
-        val_ds,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=4,
-    )
+    # loaded needed data
+    if retrain:
+        print('loading training data')
+        # load train dataset
+        train_ds = Spectralloader(train_labels, root, mode)
+        # dataloader
+        train_dl = DataLoader(
+            train_ds,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=4,
+        )
+        print('loading validation data')
+        # load valid dataset
+        val_ds = Spectralloader(valid_labels, root, mode)
+        val_dl = DataLoader(
+            val_ds,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=4,
+        )
+    if reexplain:
+        print('loading complete data')
+        # Dataset with all data
+        all_ds = Spectralloader(all_labels, root, mode)
+        all_dl = DataLoader(
+            all_ds,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=4,
+        )
 
     # train model or use trained model from last execution
     if retrain:
         model = train(batch_size, n_classes, N_EPOCHS, lr, train_dl, val_dl)
         pickle.dump(model, open(filename, 'wb'))
+        print('trained model saved')
     else:
         model = pickle.load(open(filename, 'rb'))
 
-    # get index for each class
-    # actual: healthy prediction: healthy, true positive, image 8 of sixth batch
-    # actual: diseased prediction: healthy, false positive, image 12 of sixth batch
-    # actual: diseased prediction: diseased, true negative, image 0 of first batch
-    # actual: healthy prediction: diseased, false negative, image 7 of first batch
-    indclasses = [-1, -1, -1, -1]
-    indclassesIM = [0, 0, 0, 0]
-    # 6 images of plants with detected diseased
-    inddetdis = []
-    inddetdisIM = []
-    # 6 images of plants with not detected diseased
-    indnotdetdis = []
-    indnotdetdisIM = []
-    # Predict val dataset with final trained resnet, 1 = disease, 0 = no disease
-    model.eval()
-    pred, labels = [], []
-    with torch.no_grad():
-        for X, y in val_dl:
-            X, y = X.to(DEVICE), y.to(DEVICE)
-            y_ = model(X)
-            _, y_label_ = torch.max(y_, 1)
-            pred += y_label_.tolist()
-            labels += y.tolist()
-            Xdata, ydata, preddata = X, y.tolist(), y_label_.tolist()
-            # get images and labels for images which get displayed
-            for i in range(0, len(y)):
-                if len(inddetdis) < 6 and preddata[i] == 1 and ydata[i] == 1:
-                    inddetdis += [ydata[i]]
-                    inddetdisIM.append(explain(model, Xdata[i], ydata[i]))
-                if len(indnotdetdis) < 6 and preddata[i] == 0 and y[i] == 1:
-                    indnotdetdis += [ydata[i]]
-                    indnotdetdisIM.append(explain(model, Xdata[i], ydata[i]))
-                if indclasses[2] == -1 and preddata[i] == 1 and ydata[i] == 1:
-                    indclasses[2] = ydata[i]
-                    indclassesIM[2] = explain(model, Xdata[i], ydata[i])
-                if indclasses[3] == -1 and preddata[i] == 0 and ydata[i] == 1:
-                    indclasses[3] = ydata[i]
-                    indclassesIM[3] = explain(model, Xdata[i], ydata[i])
-                if indclasses[0] == -1 and preddata[i] == 0 and ydata[i] == 0:
-                    indclasses[0] = ydata[i]
-                    indclassesIM[0] = explain(model, Xdata[i], ydata[i])
-                if indclasses[1] == -1 and preddata[i] == 1 and ydata[i] == 0:
-                    indclasses[1] = ydata[i]
-                    indclassesIM[1] = explain(model, Xdata[i], ydata[i])
-
-    # # get first batch for evaluation
-    # dataiter = iter(val_dl)
-    # image1, label1 = next(dataiter)
-    #
-    # # print images of first batch
-    # display_rgb_grid(torchvision.utils.make_grid(image1), 'images of batch 1')
-    # # predict images of first batch
-    # print('GroundTruth: ', ' '.join('%5s' % classes[label1[j]] for j in range(batch_size)))
-    #
-    # outputs1 = model(image1.to(DEVICE))
-    #
-    # _, predicted1 = torch.max(outputs1, 1)
-    #
-    # print('Predicted: ', ' '.join('%5s' % classes[predicted1[j]] for j in range(batch_size)))
-
     # save the explainer images of the figures
-    pathroot = './data/exp/'
-    imageclass = ['tp', 'fp', 'tn', 'fn']
-    explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam']
-    numdis = min(len(inddetdis), len(indnotdetdis))
+    path_root = './data/exp/'
+    subpath_healthy = 'healthy/'
+    subpath_diseased = 'diseased/'
+    subpath_classification = 'classification/'
+    subpath_single_image = 'single_image/'
+    image_class = ['tp', 'fp', 'tn', 'fn']
+    explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
+                  'GradCam Layer 4 Output']
+    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+    image_labels = []
+    image_pred = []
+    number_images = 6
+    image_indexed = []
+    for i in range(1, number_images + 1):
+        image_indexed.append(str(i))
 
-    # create explainer Image and save it in files
+    # save the created explainer Image
     if reexplain:
-        # save images of explainer in data
-        # save num diseased images which got detected
-        for k in range(0, len(inddetdis)):
-            for i in range(0, len(explainers)):
-                inddetdisIM[k][i].savefig(pathroot + 'diseasedims/' + explainers[i] + 'diseased' + str(k) + '.png',
-                                          bbox_inches='tight')
+        if plot_healthy or plot_diseased or plot_classes:
+            # evaluate images and their classification
+            print('creating explainer plots')
+            evaluate(model, all_dl, number_images, explainers, image_class, path_root, subpath_healthy,
+                     subpath_diseased,
+                     subpath_classification)
+        if plot_for_image_id:
+            print('creating explainer plots for specified images')
+            # evaluate for specific Image IDs
+            for i in image_ids:
+                for k in range(1, 5):
+                    evaluate_id(str(k) + '_' + i, all_ds, model, explainers, path_root, subpath_single_image + i + '/')
 
-        # save images of explainer in data
-        # save num diseased images which got not detected
-        for k in range(0, len(inddetdis)):
-            for i in range(0, len(explainers)):
-                indnotdetdisIM[k][i].savefig(
-                    pathroot + 'diseasedimsnotdetected/' + explainers[i] + 'diseased' + str(k) + '.png',
-                    bbox_inches='tight')
-
-        # save images of every class to compare
-        for k in range(0, len(imageclass)):
-            for i in range(0, len(explainers)):
-                indclassesIM[k][i].savefig(pathroot + explainers[i] + imageclass[k] + '.png', bbox_inches='tight')
-
-    # plot created explainer
-    plot_explainer(pathroot, explainers, imageclass, numdis)
+    print('creating comparator of explainer plots')
+    if plot_for_image_id:
+        # plot created explainer
+        for i in image_ids:
+            image_names = []
+            for k in range(1, 5):
+                image_names.append(str(k) + '_' + i)
+            plot_single_explainer(path_root, subpath_single_image + i + '/', explainers, image_names,
+                                  'Plant comparison over days of ID: ' + i)
+    if plot_classes:
+        plot_single_explainer(path_root, 'classification/', explainers, image_class,
+                              'Class comparison TP, FP, TN, FN on plant diseases')
+    if plot_diseased:
+        plot_single_explainer(path_root, 'diseased/', explainers, image_indexed,
+                              'comparison between detected diseased images')
+    if plot_healthy:
+        plot_single_explainer(path_root, 'healthy/', explainers, image_indexed,
+                              'comparison between detected healthy images')
 
 
 main()
