@@ -31,7 +31,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 
 # cuda:1
@@ -220,28 +220,27 @@ def explain(model, image, label):
     input.requires_grad = True
     model.eval()
     c, h, w = image.shape
+    # Edge detection of original input image
+    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+    # Compute the Canny filter for two values of sigma
+    org_img_edged = feature.canny(org_img_edged, sigma=3)
 
     def attribute_image_features(algorithm, input, **kwargs):
         model.zero_grad()
-        tensor_attributions = algorithm.attribute(input,
-                                                  target=label,
-                                                  **kwargs
-                                                  )
-
+        tensor_attributions = algorithm.attribute(input, target=label, **kwargs)
         return tensor_attributions
 
-    def detect_edge():
-        org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-        org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
-        org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-        # Compute the Canny filter for two values of sigma
-        org_img_edged = feature.canny(org_img_edged, sigma=3)
+    def detect_edge(activation_map):
+        # org = np.zeros((h, w), dtype=float) + org_img_edged
+        # org = np.asarray(org_img_edged)[:, :, np.newaxis]
         fig, ax = plt.subplots()
         ax.imshow(org_img_edged, cmap=plt.cm.binary)
-        # ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
-        #           alpha=0.4)
+        ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
+                  alpha=0.4)
         plt.show()
-        return org_img_edged
+        return fig
 
     default_cmap = LinearSegmentedColormap.from_list('custom blue',
                                                      [(0, '#ffffff'),
@@ -261,17 +260,15 @@ def explain(model, image, label):
     # IntegratedGradients Noise Tunnel
     nt = NoiseTunnel(ig)
     attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                          n_samples=10,
+                                          n_samples=5,
                                           # stdevs=0.2
                                           )
     attr_ig_nt = np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
-
 
     # GuidedGradCam
     gc = GuidedGradCam(model, model.layer4)
     attr_gc = attribute_image_features(gc, input)
     attr_gc = np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
-
 
     # GradCam Original Layer 4
     gco = LayerGradCam(model, model.layer4)
@@ -282,8 +279,43 @@ def explain(model, image, label):
     att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
     # gco_int = (att * 255).astype(np.uint8)
     gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
-    np_gradcam = np.asarray(gradcam)[:, :, np.newaxis]
+    np_gradcam = np.asarray(gradcam)
 
+    print(grads.shape)
+    print(attr_ig)
+    print(np_gradcam.shape)
+
+    f2 = detect_edge(grads)
+    f3 = detect_edge(attr_ig)
+    f4 = detect_edge(attr_ig_nt)
+    f6 = detect_edge(attr_gc)
+    f7 = f8 = detect_edge(np_gradcam)
+
+    # original_image = detect_edge()
+    # # Original Image
+    f1, a1 = viz.visualize_image_attr(None, np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                      method="original_image", use_pyplot=False)
+    # # Overlayed Gradient Magnitudes saliency
+    # f2, a2 = viz.visualize_image_attr(grads, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
+    # # Overlayed Integrated Gradients
+    # f3, a3 = viz.visualize_image_attr(attr_ig, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
+    # # Overlayed Noise Tunnel
+    # f4, a4 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="positive",method="blended_heat_map", use_pyplot=False)
+    #
+    # # # DeepLift
+    # # f5, a5 = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map", sign="all",
+    # #                                   # show_colorbar=True, title="Overlayed DeepLift"
+    # #                                   )
+    # # f5 = detect_edge(attr_dl)
+    #
+    # # GuidedGradCam
+    # f6, a6 = viz.visualize_image_attr(attr_gc, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
+    #
+    # # GradCam
+    # f7, a7 = viz.visualize_image_attr(np_gradcam, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
+    #
+    # # GradCam original image
+    # f8, a8 = viz.visualize_image_attr(gradcam_orig, original_image, sign="absolute_value", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
     # # Deeplift
     # dl = DeepLift(model)
     # attr_dl = attribute_image_features(dl, input)
@@ -291,45 +323,6 @@ def explain(model, image, label):
 
     # print('Leaf is ', classes[predicted[ind]],
     #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item())
-
-    original_image = detect_edge()
-    # Original Image
-    f1, a1 = viz.visualize_image_attr(None, original_image,
-                                      method="original_image",
-                                      # title="Original Image",
-                                      use_pyplot=False)
-    # Overlayed Gradient Magnitudes saliency
-    f2, a2 = viz.visualize_image_attr(grads, original_image, sign="positive", method="blended_heat_map",
-                                      # show_colorbar=True, title="Overlayed Gradient Magnitudes saliency",
-                                      use_pyplot=False)
-    # Overlayed Integrated Gradients
-    f3, a3 = viz.visualize_image_attr(attr_ig, original_image, sign="positive", method="blended_heat_map",
-                                      # show_colorbar=True, title="Overlayed Integrated Gradients",
-                                      use_pyplot=False)
-    # Overlayed Noise Tunnel
-    f4, a4 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="positive",
-                                      method="blended_heat_map", use_pyplot=False
-                                      # title="Overlayed Noise Tunnel \n with SmoothGrad Squared", show_colorbar=True
-                                      )
-
-    # # DeepLift
-    # f5, a5 = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map", sign="all",
-    #                                   # show_colorbar=True, title="Overlayed DeepLift"
-    #                                   )
-    # f5 = detect_edge(attr_dl)
-
-    # GuidedGradCam
-    f6, a6 = viz.visualize_image_attr(attr_gc, original_image, sign="positive", method="blended_heat_map",
-                                      show_colorbar=False, use_pyplot=False)
-
-    # GradCam
-    f7, a7 = viz.visualize_image_attr(np_gradcam, original_image, sign="positive", method="blended_heat_map",
-                                      show_colorbar=False, use_pyplot=False)
-
-    # GradCam original image
-    f8, a8 = viz.visualize_image_attr(gradcam_orig, original_image, sign="absolute_value", method="blended_heat_map",
-                                      show_colorbar=False, use_pyplot=False)
-
     return [f1, f2, f3, f4, f6, f7, f8]
 
 
