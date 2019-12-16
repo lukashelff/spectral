@@ -31,7 +31,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cpu" if torch.cuda.is_available() else "cpu")
 
 
 # cuda:1
@@ -239,8 +239,32 @@ def explain(model, image, label):
         ax.imshow(org_img_edged, cmap=plt.cm.binary)
         ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
                   alpha=0.4)
-        plt.show()
+        ax.tick_params(axis='both', which='both', length=0)
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        plt.close('all')
         return fig
+
+    def normalize(data):
+        # consider only the positive values
+        for i in range(h):
+            for k in range(w):
+                for j in range(c):
+                    if data[i][k][j] < 0:
+                        data[i][k][j] = 0
+        # reshape to hxw
+        d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
+        max = np.max(d_img)
+        print(max)
+        min = 0
+        # normalize
+        for i in range(h):
+            for k in range(w):
+                if d_img[i][k] < 0:
+                    d_img[i][k] = 0
+                else:
+                    d_img[i][k] = (d_img[i][k] - min) / (max - min)
+        return d_img
 
     default_cmap = LinearSegmentedColormap.from_list('custom blue',
                                                      [(0, '#ffffff'),
@@ -250,12 +274,12 @@ def explain(model, image, label):
     # saliency
     saliency = Saliency(model)
     grads = saliency.attribute(input, target=label)
-    grads = np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0))
+    grads = normalize(np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0)))
 
     # IntegratedGradients
     ig = IntegratedGradients(model)
     attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
-    attr_ig = np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0))
+    attr_ig = normalize(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
 
     # IntegratedGradients Noise Tunnel
     nt = NoiseTunnel(ig)
@@ -263,27 +287,23 @@ def explain(model, image, label):
                                           n_samples=5,
                                           # stdevs=0.2
                                           )
-    attr_ig_nt = np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+
+    attr_ig_nt = normalize(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
     # GuidedGradCam
     gc = GuidedGradCam(model, model.layer4)
     attr_gc = attribute_image_features(gc, input)
-    attr_gc = np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+    attr_gc = normalize(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
     # GradCam Original Layer 4
     gco = LayerGradCam(model, model.layer4)
     attr_gco = attribute_image_features(gco, input)
-    gradcam_orig = np.transpose(attr_gco.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
 
     # GradCam
     att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
     # gco_int = (att * 255).astype(np.uint8)
     gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
     np_gradcam = np.asarray(gradcam)
-
-    print(grads.shape)
-    print(attr_ig)
-    print(np_gradcam.shape)
 
     f2 = detect_edge(grads)
     f3 = detect_edge(attr_ig)
@@ -378,7 +398,7 @@ def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healt
     # save healthy images which got detected
     for k in range(0, len(index_healthy)):
         for i in range(0, len(explainers)):
-            index_diseased_image[k][i].savefig(
+            index_healthy_image[k][i].savefig(
                 path_root + subpath_healthy + explainers[i] + str(k) + '.png',
                 bbox_inches='tight')
 
@@ -386,7 +406,7 @@ def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healt
     # save diseased images which got detected
     for k in range(0, len(index_diseased)):
         for i in range(0, len(explainers)):
-            index_healthy_image[k][i].savefig(
+            index_diseased_image[k][i].savefig(
                 path_root + subpath_diseased + explainers[i] + str(k) + '.png',
                 bbox_inches='tight')
 
@@ -413,11 +433,12 @@ def evaluate_id(image_id, ds, model, explainers, path_root, subpath):
     # _, predicted1 = torch.max(outputs1, 1)
     #
     # print('Predicted: ', ' '.join('%5s' % classes[predicted1[j]] for j in range(batch_size)))
+
     if not os.path.exists(path_root + subpath):
         os.makedirs(path_root + subpath)
     image, label = ds.get_by_id(image_id)
     if image is not None:
-        explained = explain(model, torch.from_numpy(image), label)
+        explained = explain(model.to(DEVICE), torch.from_numpy(image).to(DEVICE), label)
         for i in range(0, len(explainers)):
             directory = path_root + subpath + explainers[i] + image_id + '.png'
             explained[i].savefig(directory, bbox_inches='tight')
@@ -678,7 +699,7 @@ def main():
             shuffle=True,
             num_workers=4,
         )
-        print('loading validation data')
+        print('loading validation dataset')
         # load valid dataset
         val_ds = Spectralloader(valid_labels, root, mode)
         val_dl = DataLoader(
@@ -688,7 +709,7 @@ def main():
             num_workers=4,
         )
     if reexplain:
-        print('loading complete data')
+        print('loading complete dataset')
         # Dataset with all data
         all_ds = Spectralloader(all_labels, root, mode)
         all_dl = DataLoader(
@@ -697,6 +718,14 @@ def main():
             shuffle=False,
             num_workers=4,
         )
+        if plot_classes or plot_healthy or plot_diseased:
+            val_ds = Spectralloader(valid_labels, root, mode)
+            val_dl = DataLoader(
+                val_ds,
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=4,
+            )
 
     # train model or use trained model from last execution
     if retrain:
@@ -728,7 +757,7 @@ def main():
         if plot_healthy or plot_diseased or plot_classes:
             # evaluate images and their classification
             print('creating explainer plots')
-            evaluate(model, all_dl, number_images, explainers, image_class, path_root, subpath_healthy,
+            evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
                      subpath_diseased,
                      subpath_classification)
         if plot_for_image_id:
@@ -748,13 +777,13 @@ def main():
             plot_single_explainer(path_root, subpath_single_image + i + '/', explainers, image_names,
                                   'Plant comparison over days of ID: ' + i)
     if plot_classes:
-        plot_single_explainer(path_root, 'classification/', explainers, image_class,
+        plot_single_explainer(path_root, subpath_classification, explainers, image_class,
                               'Class comparison TP, FP, TN, FN on plant diseases')
     if plot_diseased:
-        plot_single_explainer(path_root, 'diseased/', explainers, image_indexed,
+        plot_single_explainer(path_root, subpath_diseased, explainers, image_indexed,
                               'comparison between detected diseased images')
     if plot_healthy:
-        plot_single_explainer(path_root, 'healthy/', explainers, image_indexed,
+        plot_single_explainer(path_root, subpath_healthy, explainers, image_indexed,
                               'comparison between detected healthy images')
 
 
