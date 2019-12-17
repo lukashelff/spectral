@@ -32,7 +32,9 @@ from scipy import ndimage as ndi
 from skimage import feature
 
 DEVICE = torch.device("cpu" if torch.cuda.is_available() else "cpu")
-
+retrain = False
+reexplain = True
+plot_for_image_id, plot_classes, plot_healthy, plot_diseased = False, False, False, True
 
 # cuda:1
 
@@ -255,15 +257,11 @@ def explain(model, image, label):
         # reshape to hxw
         d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
         max = np.max(d_img)
-        print(max)
         min = 0
         # normalize
         for i in range(h):
             for k in range(w):
-                if d_img[i][k] < 0:
-                    d_img[i][k] = 0
-                else:
-                    d_img[i][k] = (d_img[i][k] - min) / (max - min)
+                d_img[i][k] = (d_img[i][k] - min) / (max - min)
         return d_img
 
     default_cmap = LinearSegmentedColormap.from_list('custom blue',
@@ -304,6 +302,9 @@ def explain(model, image, label):
     # gco_int = (att * 255).astype(np.uint8)
     gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
     np_gradcam = np.asarray(gradcam)
+    print(np.max(np_gradcam))
+    print(np.min(np_gradcam))
+
 
     f2 = detect_edge(grads)
     f3 = detect_edge(attr_ig)
@@ -375,46 +376,49 @@ def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healt
             ydata, preddata = y.tolist(), y_label_.tolist()
             # get images and labels for images which get displayed
             for i in range(0, len(y)):
-                if len(index_diseased) < k and preddata[i] == 1 and ydata[i] == 1:
+                if plot_diseased and len(index_diseased) < k and preddata[i] == 1 and ydata[i] == 1:
                     index_diseased += [ydata[i]]
                     index_diseased_image.append(explain(model, X[i], ydata[i]))
-                if len(index_healthy) < k and preddata[i] == 0 and y[i] == 0:
+                if plot_healthy and len(index_healthy) < k and preddata[i] == 0 and y[i] == 0:
                     index_healthy += [ydata[i]]
                     index_healthy_image.append(explain(model, X[i], ydata[i]))
-                if index_classes[2] == -1 and preddata[i] == 1 and ydata[i] == 1:
+                if plot_classes and index_classes[2] == -1 and preddata[i] == 1 and ydata[i] == 1:
                     index_classes[2] = ydata[i]
                     index_classes_image[2] = explain(model, X[i], ydata[i])
-                if index_classes[3] == -1 and preddata[i] == 0 and ydata[i] == 1:
+                if plot_classes and index_classes[3] == -1 and preddata[i] == 0 and ydata[i] == 1:
                     index_classes[3] = ydata[i]
                     index_classes_image[3] = explain(model, X[i], ydata[i])
-                if index_classes[0] == -1 and preddata[i] == 0 and ydata[i] == 0:
+                if plot_classes and index_classes[0] == -1 and preddata[i] == 0 and ydata[i] == 0:
                     index_classes[0] = ydata[i]
                     index_classes_image[0] = explain(model, X[i], ydata[i])
-                if index_classes[1] == -1 and preddata[i] == 1 and ydata[i] == 0:
+                if plot_classes and index_classes[1] == -1 and preddata[i] == 1 and ydata[i] == 0:
                     index_classes[1] = ydata[i]
                     index_classes_image[1] = explain(model, X[i], ydata[i])
 
-    # save images of explainer in data
-    # save healthy images which got detected
-    for k in range(0, len(index_healthy)):
-        for i in range(0, len(explainers)):
-            index_healthy_image[k][i].savefig(
-                path_root + subpath_healthy + explainers[i] + str(k) + '.png',
-                bbox_inches='tight')
+    if plot_healthy:
+        # save images of explainer in data
+        # save healthy images which got detected
+        for k in range(0, len(index_healthy)):
+            for i in range(0, len(explainers)):
+                index_healthy_image[k][i].savefig(
+                    path_root + subpath_healthy + explainers[i] + str(k) + '.png',
+                    bbox_inches='tight')
 
-    # save images of explainer in data
-    # save diseased images which got detected
-    for k in range(0, len(index_diseased)):
-        for i in range(0, len(explainers)):
-            index_diseased_image[k][i].savefig(
-                path_root + subpath_diseased + explainers[i] + str(k) + '.png',
-                bbox_inches='tight')
+    if plot_diseased:
+        # save images of explainer in data
+        # save diseased images which got detected
+        for k in range(0, len(index_diseased)):
+            for i in range(0, len(explainers)):
+                index_diseased_image[k][i].savefig(
+                    path_root + subpath_diseased + explainers[i] + str(k) + '.png',
+                    bbox_inches='tight')
 
-    # save images of every class to compare
-    for k in range(0, len(image_class)):
-        for i in range(0, len(explainers)):
-            index_classes_image[k][i].savefig(
-                path_root + subpath_classification + explainers[i] + image_class[k] + '.png', bbox_inches='tight')
+    if plot_classes:
+        # save images of every class to compare
+        for k in range(0, len(image_class)):
+            for i in range(0, len(explainers)):
+                index_classes_image[k][i].savefig(
+                    path_root + subpath_classification + explainers[i] + image_class[k] + '.png', bbox_inches='tight')
 
 
 def evaluate_id(image_id, ds, model, explainers, path_root, subpath):
@@ -681,9 +685,6 @@ def main():
     n_classes = 2
     N_EPOCHS = 50
     lr = 0.00025
-    retrain = False
-    reexplain = True
-    plot_for_image_id, plot_classes, plot_healthy, plot_diseased = False, True, False, False
     filename = 'data/trained_model.sav'
     train_labels, valid_labels, all_labels = load_labels()
 
