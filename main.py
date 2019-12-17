@@ -30,6 +30,8 @@ from captum.attr._core.guided_grad_cam import LayerGradCam
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
+from spectralloader import Spectralloader
+from cnn import train
 
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = True
@@ -82,138 +84,22 @@ def display_spec(img, transpose=True):
     plt.show()
 
 
-def get_trainable(model_params):
-    return (p for p in model_params if p.requires_grad)
+def is_float(string):
+    try:
+        return float(string)
+    except ValueError:
+        return False
 
 
-def get_frozen(model_params):
-    return (p for p in model_params if not p.requires_grad)
-
-
-def all_trainable(model_params):
-    return all(p.requires_grad for p in model_params)
-
-
-def all_frozen(model_params):
-    return all(not p.requires_grad for p in model_params)
-
-
-def freeze_all(model_params):
-    for param in model_params:
-        param.requires_grad = False
-
-
-# trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
-def train(batch_size, n_classes, N_EPOCHS, learning_rate, train_dl, val_dl):
-    train_loss = np.zeros(N_EPOCHS)
-    train_acc = np.zeros(N_EPOCHS)
-    train_balanced_acc = np.zeros(N_EPOCHS)
-    valid_loss = np.zeros(N_EPOCHS)
-    valid_acc = np.zeros(N_EPOCHS)
-    valid_balanced_acc = np.zeros(N_EPOCHS)
-
-    def get_model():
-        model = models.resnet18(pretrained=True)
-        freeze_all(model.parameters())
-        model.fc = nn.Linear(512, n_classes)
-        model = model.to(DEVICE)
-        return model
-
-    model = get_model()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(
-        get_trainable(model.parameters()),
-        lr=learning_rate,
-        # momentum=0.9,
-    )
-
-    for epoch in range(N_EPOCHS):
-
-        # Train
-        model.train()
-
-        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-        for batch_i, (X, y) in enumerate(train_dl):
-            X, y = X.to(DEVICE), y.to(DEVICE)
-            optimizer.zero_grad()
-            y_ = model(X)
-            loss = criterion(y_, y)
-            loss.backward()
-            optimizer.step()
-
-            # Statistics
-            # print(
-            #     f"Epoch {epoch+1}/{N_EPOCHS} |"
-            #     f"  batch: {batch_i} |"
-            #     f"  batch loss:   {loss.item():0.3f}"
-            # )
-            _, y_label_ = torch.max(y_, 1)
-            n_correct += (y_label_ == y).sum().item()
-            total_loss += loss.item() * X.shape[0]
-            n_samples += X.shape[0]
-            pred += y_label_.tolist()
-            all_y += y.tolist()
-
-        train_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-        train_loss[epoch] = total_loss / n_samples
-        train_acc[epoch] = n_correct / n_samples * 100
-
-        print(
-            f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            f"  train loss: {train_loss[epoch]:9.3f} |"
-            f"  train acc:  {train_acc[epoch]:9.3f}% |"
-            f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
-
-        )
-
-        # Eval
-        model.eval()
-
-        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-        with torch.no_grad():
-            for X, y in val_dl:
-                X, y = X.to(DEVICE), y.to(DEVICE)
-                y_ = model(X)
-
-                # Statistics
-                _, y_label_ = torch.max(y_, 1)
-                n_correct += (y_label_ == y).sum().item()
-                loss = criterion(y_, y)
-                total_loss += loss.item() * X.shape[0]
-                n_samples += X.shape[0]
-                pred += y_label_.tolist()
-                all_y += y.tolist()
-
-        valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-        valid_loss[epoch] = total_loss / n_samples
-        valid_acc[epoch] = n_correct / n_samples * 100
-
-        print(
-            f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            f"  valid loss: {valid_loss[epoch]:9.3f} |"
-            f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-            f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-        )
-
-    # plot acc, balanced acc and loss
-    plt.plot(train_acc, color='skyblue', label='train acc')
-    plt.plot(valid_acc, color='orange', label='valid_acc')
-    plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
-    plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.ylabel('acc')
-    plt.xlabel('epoch')
-    plt.legend(loc='lower right')
-    plt.savefig('./data/plots/accuracy.png')
-    plt.show()
-    plt.plot(train_loss, color='red', label='train_loss')
-    plt.plot(valid_loss, color='orange', label='valid_loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(loc='lower right')
-    plt.savefig('./data/plots/loss.png')
-    plt.show()
-
-    return model
+# create canvas man to show saved figures
+def show_figure(fig, ax):
+    # create a dummy figure and use its
+    # manager to display the original figure
+    dummy = plt.figure()
+    new_manager = dummy.canvas.manager
+    new_manager.canvas.figure = fig
+    # new_manager.canvas.axes = ax
+    fig.set_canvas(new_manager.canvas)
 
 
 # create explainers for given image
@@ -492,192 +378,6 @@ def plot_single_explainer(pathroot, subpath, explainers, image_names, title):
     fig.tight_layout()
     fig.savefig(pathroot + subpath + 'conclusion' + '.png')
     plt.show()
-
-
-class Spectralloader(Dataset):
-    """
-        The spektral dataset can be found in folder
-
-        /home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/
-
-        The folder structure of the dataset is as follows::
-
-            └── VNIR
-                ├── 1_Z1
-                │   └── segmented_leafs
-                │       ├── data.p
-                │       └── memmap.dat
-                ├── 1_Z2
-                │   └── segmented_leafs
-                │       ├── data.p
-                │       └── memmap.dat
-                ├──
-                 ...
-                ├──
-                ├── 1_Z13
-                │   └── segmented_leafs
-                │       ├── data.p
-                │       └── memmap.dat
-                ├── 2_Z1
-                │   └── segmented_leafs
-                │       ├── data.p
-                │       └── memmap.dat
-                ├──
-                ├──
-                ├── 4_Z18
-                │   └── segmented_leafs
-                │       ├── data.p
-                │       └── memmap.dat
-
-
-                Platte Z1 - Z18
-                Tag der Aufnahme: 1
-                1_Z1 - 1_Z13
-                Tag der Aufnahme: 2
-                2_Z1 - 2_Z18
-                Tag der Aufnahme: 3
-                3_Z1 - 3_Z18
-                Tag der Aufnahme: 4
-                4_Z1 - 4_Z18
-
-
-                train and valid Dataset
-
-                Beispiel für ein Blatt:
-                1_Z3_2_0_1;0
-                    2_0_1 id des Blattes
-                    0 steht für gesund; 1 für krank
-
-                Image format
-                (213, 255, 328)
-                RGB format
-                (213, 255, 3)
-                learning format
-                (3, 255, 213)
-                RGB channels
-                [50, 88, 151]
-                SWIR
-                [24, 51, 118]
-
-        """
-
-    def __init__(self, labels, root, mode, transform=None):
-        # load data for given labels
-        # labels: list of all labels
-        # labels_ids: list of all labels with corresponding IDs as [[label, Id]...]
-        # data: list of all images
-        # data: list of all images with corresponding IDs as [[image, ID]...]
-        # index_data: Pointer to image index in order of label Indecies
-        # e.g. label with index i has its image data at Index index_data[i]
-        # ids: list of all ids in order of labels
-        self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
-        self.transform = transform
-        self.path = root
-        self.index_data = []
-        self.ids = []
-        # index of the position of the images for corresponding label in labels_ids
-        for k in self.labels_ids:
-            self.ids.append(k[0])
-            for i, s in enumerate(self.data_ids):
-                if k[0] == s:
-                    self.index_data += [i]
-                    break
-
-    def __getitem__(self, index):
-        # return only 1 sample and label (according to "Index")
-        # get label for ID
-        label = self.labels[index]
-        # # get corresponding Image for Index
-        image = self.data[self.index_data[index]]
-        return image, label
-
-    def __len__(self):
-        return len(self.labels)
-
-    def get_id_by_index(self, index):
-        try:
-            return self.ids[index]
-        except ValueError:
-            print('No image in Dataset with id: ' + str(index))
-            return None, None
-
-    def get_by_id(self, ID):
-        try:
-            index = self.ids.index(ID)
-            return self.__getitem__(index)
-        except ValueError:
-            print('image with id: ' + ID + ' not in dataset')
-            return None, None
-
-    # returns 4 Arrays labelIdS, labels, ImageIDs and the Image as a Tuple(String, mmemap) e.g. (3_Z2_1_0_1, memmap)
-    def load_images_for_labels(self, root_path, labels, mode):
-        # loads all the images have existing entry labels
-        def load_image(path):
-            ids, ims = [], []
-            dict = pickle.load(open(path + '/data.p', 'rb'))
-            shape = dict['memmap_shape']
-            samples = dict['samples']
-            data_all = np.memmap(path + '/memmap.dat', mode='r', shape=shape, dtype='float32')
-            labels_ids = [i[0] for i in labels]
-            for k, i in enumerate(samples):
-                # only add if we have a label for the image
-                if i['id'].replace(',', '_') in labels_ids:
-                    if mode == 'rgb':
-                        # ims.append(data_all[k][:, :, [50, 88, 151]].reshape(3, 255, 213))
-                        # ims.append(data_all[k][:, :, [50, 88, 151]])
-                        data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
-                        ims.append(data)
-                    elif mode == 'spec':
-                        # ims.append(data_all[k].reshape(3, 255, 213))
-                        ims.append(data_all[k])
-                    ids.append(i['id'].replace(',', '_'))
-            return ids, ims
-
-        # removes label entries with no existing image
-        def sync_labels(im_ids):
-            labs = labels
-            for (k, i) in labels:
-                if k not in im_ids:
-                    labs.remove((k, i))
-            lab_raw = [i[1] for i in labs]
-            return labs, lab_raw
-
-        loaded_images = []
-        loaded_image_ids = []
-        for i in range(1, 5):
-            print("loading images of day: " + str(i))
-            if i == 1:
-                for k in range(1, 14):
-                    ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
-                    loaded_images += im
-                    loaded_image_ids += ids
-            else:
-                for k in range(1, 19):
-                    if not (k == 16 and i == 4):
-                        ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
-                        loaded_images += im
-                        loaded_image_ids += ids
-        label_ids, label_raw = sync_labels(loaded_image_ids)
-        print("all images loaded")
-        return label_ids, label_raw, loaded_image_ids, loaded_images
-
-
-def is_float(string):
-    try:
-        return float(string)
-    except ValueError:
-        return False
-
-
-# create canvas man to show saved figures
-def show_figure(fig, ax):
-    # create a dummy figure and use its
-    # manager to display the original figure
-    dummy = plt.figure()
-    new_manager = dummy.canvas.manager
-    new_manager.canvas.figure = fig
-    # new_manager.canvas.axes = ax
-    fig.set_canvas(new_manager.canvas)
 
 
 def main():
