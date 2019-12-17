@@ -31,10 +31,11 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 
-DEVICE = torch.device("cpu" if torch.cuda.is_available() else "cpu")
-retrain = False
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+retrain = True
 reexplain = True
-plot_for_image_id, plot_classes, plot_healthy, plot_diseased = False, False, False, True
+plot_for_image_id, plot_classes, plot_healthy, plot_diseased = True, True, True, True
+
 
 # cuda:1
 
@@ -257,11 +258,18 @@ def explain(model, image, label):
         # reshape to hxw
         d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
         max = np.max(d_img)
+        mean = np.mean(d_img)
         min = 0
+        designated_mean = 0.25
+        factor = (designated_mean * max) / mean
+        print('max val: ' + str(max) + ' mean val: ' + str(mean) + ' faktor: ' + str(factor))
         # normalize
         for i in range(h):
             for k in range(w):
-                d_img[i][k] = (d_img[i][k] - min) / (max - min)
+                d_img[i][k] = factor * (d_img[i][k] - min) / (max - min)
+                if d_img[i][k] > 1:
+                    d_img[i][k] = 1
+
         return d_img
 
     default_cmap = LinearSegmentedColormap.from_list('custom blue',
@@ -302,9 +310,6 @@ def explain(model, image, label):
     # gco_int = (att * 255).astype(np.uint8)
     gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
     np_gradcam = np.asarray(gradcam)
-    print(np.max(np_gradcam))
-    print(np.min(np_gradcam))
-
 
     f2 = detect_edge(grads)
     f3 = detect_edge(attr_ig)
