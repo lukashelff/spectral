@@ -34,9 +34,9 @@ from spectralloader import Spectralloader
 from cnn import train
 
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-retrain = True
+retrain = False
 reexplain = True
-plot_for_image_id, plot_classes, plot_healthy, plot_diseased = True, True, True, True
+plot_for_image_id, plot_classes, plot_healthy, plot_diseased = True, False, False, False
 
 
 # cuda:1
@@ -148,7 +148,7 @@ def explain(model, image, label):
         min = 0
         designated_mean = 0.25
         factor = (designated_mean * max) / mean
-        print('max val: ' + str(max) + ' mean val: ' + str(mean) + ' faktor: ' + str(factor))
+        # print('max val: ' + str(max) + ' mean val: ' + str(mean) + ' faktor: ' + str(factor))
         # normalize
         for i in range(h):
             for k in range(w):
@@ -333,10 +333,21 @@ def evaluate_id(image_id, ds, model, explainers, path_root, subpath):
         os.makedirs(path_root + subpath)
     image, label = ds.get_by_id(image_id)
     if image is not None:
-        explained = explain(model.to(DEVICE), torch.from_numpy(image).to(DEVICE), label)
+        model.to(DEVICE)
+        image = torch.from_numpy(image).to(DEVICE)
+        explained = explain(model, image, label)
         for i in range(0, len(explainers)):
             directory = path_root + subpath + explainers[i] + image_id + '.png'
             explained[i].savefig(directory, bbox_inches='tight')
+        image = image[None]
+        image = image.type('torch.FloatTensor').to(DEVICE)
+        # print(model.get_device())
+        output = model(image)
+        _, pred = torch.max(output, 1)
+        prob = torch.max(F.softmax(output, 1)).item()
+        return label, pred.item(), prob
+    else:
+        return -1, -1, -1
 
 
 # compare given images of plantes in a plot
@@ -450,9 +461,11 @@ def main():
     image_class = ['tp', 'fp', 'tn', 'fn']
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'GradCam Layer 4 Output']
-    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
-    image_labels = []
-    image_pred = []
+    image_ids = ['Z18_4_1_1']
+    # image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+    image_labels = np.zeros((len(image_ids), 4))
+    image_pred = np.zeros((len(image_ids), 4))
+    image_prob = np.zeros((len(image_ids), 4))
     number_images = 6
     image_indexed = []
     for i in range(1, number_images + 1):
@@ -469,19 +482,35 @@ def main():
         if plot_for_image_id:
             print('creating explainer plots for specified images')
             # evaluate for specific Image IDs
-            for i in image_ids:
+            for i, id in enumerate(image_ids):
                 for k in range(1, 5):
-                    evaluate_id(str(k) + '_' + i, all_ds, model, explainers, path_root, subpath_single_image + i + '/')
+                    label, pred, prob = evaluate_id(str(k) + '_' + id, all_ds, model, explainers, path_root,
+                                                    subpath_single_image + id + '/')
+                    image_labels[i, k - 1] = label
+                    image_pred[i, k - 1] = pred
+                    image_prob[i, k - 1] = prob
 
     print('creating comparator of explainer plots')
     if plot_for_image_id:
         # plot created explainer
-        for i in image_ids:
+        for i, id in enumerate(image_ids):
             image_names = []
             for k in range(1, 5):
-                image_names.append(str(k) + '_' + i)
-            plot_single_explainer(path_root, subpath_single_image + i + '/', explainers, image_names,
-                                  'Plant comparison over days of ID: ' + i)
+                image_names.append(str(k) + '_' + id)
+            prediction = ''
+            c1 = 'Truth for each day: '
+            c2 = 'Prediction for each day: '
+            prob = 'Probability of the prediction: '
+            for k in range(0, 4):
+                if image_pred[i, k] != -1:
+                    c1 = c1 + 'Day ' + str(k) + ': ' + classes[int(image_labels[i, k])] + ' '
+                    c2 = c2 + 'Day ' + str(k) + ': ' + classes[int(image_pred[i, k])] + ' '
+                    prob = prob + 'Day ' + str(k) + ': ' + str(round(image_prob[i, k] * 100, 2))
+            prediction = c1 + '\n' + c2 + '\n' + prob
+            plot_single_explainer(path_root, subpath_single_image + id + '/', explainers, image_names,
+                                  'Plant comparison over days of ID: ' + id + '\n' + prediction)
+            # 'Leaf is ', classes[predicted[ind]],
+            #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item()
     if plot_classes:
         plot_single_explainer(path_root, subpath_classification, explainers, image_class,
                               'Class comparison TP, FP, TN, FN on plant diseases')

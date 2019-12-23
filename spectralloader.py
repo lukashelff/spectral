@@ -2,6 +2,7 @@ from torch.utils.data import Dataset, DataLoader
 import pickle
 import numpy as np
 
+
 class Spectralloader(Dataset):
     """
         The spektral dataset can be found in folder
