@@ -22,16 +22,12 @@ from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 from sklearn import preprocessing
 from utils import *
-from captum.attr import IntegratedGradients, NoiseTunnel, DeepLift
-from captum.attr import Saliency
-from captum.attr import visualization as viz
-from captum.attr import GuidedGradCam
-from captum.attr._core.guided_grad_cam import LayerGradCam
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 from spectralloader import Spectralloader
 from cnn import train
+from explainer import explain
 
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = False
@@ -100,142 +96,6 @@ def show_figure(fig, ax):
     new_manager.canvas.figure = fig
     # new_manager.canvas.axes = ax
     fig.set_canvas(new_manager.canvas)
-
-
-# create explainers for given image
-def explain(model, image, label):
-    print("creating images")
-    input = image.unsqueeze(0)
-    input.requires_grad = True
-    model.eval()
-    c, h, w = image.shape
-    # Edge detection of original input image
-    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
-    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-    # Compute the Canny filter for two values of sigma
-    org_img_edged = feature.canny(org_img_edged, sigma=3)
-
-    def attribute_image_features(algorithm, input, **kwargs):
-        model.zero_grad()
-        tensor_attributions = algorithm.attribute(input, target=label, **kwargs)
-        return tensor_attributions
-
-    def detect_edge(activation_map):
-        # org = np.zeros((h, w), dtype=float) + org_img_edged
-        # org = np.asarray(org_img_edged)[:, :, np.newaxis]
-        fig, ax = plt.subplots()
-        ax.imshow(org_img_edged, cmap=plt.cm.binary)
-        ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
-                  alpha=0.4)
-        ax.tick_params(axis='both', which='both', length=0)
-        plt.setp(ax.get_xticklabels(), visible=False)
-        plt.setp(ax.get_yticklabels(), visible=False)
-        plt.close('all')
-        return fig
-
-    def normalize(data):
-        # consider only the positive values
-        for i in range(h):
-            for k in range(w):
-                for j in range(c):
-                    if data[i][k][j] < 0:
-                        data[i][k][j] = 0
-        # reshape to hxw
-        d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
-        max = np.max(d_img)
-        mean = np.mean(d_img)
-        min = 0
-        designated_mean = 0.25
-        factor = (designated_mean * max) / mean
-        # print('max val: ' + str(max) + ' mean val: ' + str(mean) + ' faktor: ' + str(factor))
-        # normalize
-        for i in range(h):
-            for k in range(w):
-                d_img[i][k] = factor * (d_img[i][k] - min) / (max - min)
-                if d_img[i][k] > 1:
-                    d_img[i][k] = 1
-
-        return d_img
-
-    default_cmap = LinearSegmentedColormap.from_list('custom blue',
-                                                     [(0, '#ffffff'),
-                                                      (0.25, '#000000'),
-                                                      (1, '#000000')], N=256)
-
-    # saliency
-    saliency = Saliency(model)
-    grads = saliency.attribute(input, target=label)
-    grads = normalize(np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0)))
-
-    # IntegratedGradients
-    ig = IntegratedGradients(model)
-    attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
-    attr_ig = normalize(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
-
-    # IntegratedGradients Noise Tunnel
-    nt = NoiseTunnel(ig)
-    attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                          n_samples=5,
-                                          # stdevs=0.2
-                                          )
-
-    attr_ig_nt = normalize(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-
-    # GuidedGradCam
-    gc = GuidedGradCam(model, model.layer4)
-    attr_gc = attribute_image_features(gc, input)
-    attr_gc = normalize(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-
-    # GradCam Original Layer 4
-    gco = LayerGradCam(model, model.layer4)
-    attr_gco = attribute_image_features(gco, input)
-
-    # GradCam
-    att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
-    # gco_int = (att * 255).astype(np.uint8)
-    gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
-    np_gradcam = np.asarray(gradcam)
-
-    f2 = detect_edge(grads)
-    f3 = detect_edge(attr_ig)
-    f4 = detect_edge(attr_ig_nt)
-    f6 = detect_edge(attr_gc)
-    f7 = f8 = detect_edge(np_gradcam)
-
-    # original_image = detect_edge()
-    # # Original Image
-    f1, a1 = viz.visualize_image_attr(None, np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
-                                      method="original_image", use_pyplot=False)
-    # # Overlayed Gradient Magnitudes saliency
-    # f2, a2 = viz.visualize_image_attr(grads, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
-    # # Overlayed Integrated Gradients
-    # f3, a3 = viz.visualize_image_attr(attr_ig, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
-    # # Overlayed Noise Tunnel
-    # f4, a4 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="positive",method="blended_heat_map", use_pyplot=False)
-    #
-    # # # DeepLift
-    # # f5, a5 = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map", sign="all",
-    # #                                   # show_colorbar=True, title="Overlayed DeepLift"
-    # #                                   )
-    # # f5 = detect_edge(attr_dl)
-    #
-    # # GuidedGradCam
-    # f6, a6 = viz.visualize_image_attr(attr_gc, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
-    #
-    # # GradCam
-    # f7, a7 = viz.visualize_image_attr(np_gradcam, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
-    #
-    # # GradCam original image
-    # f8, a8 = viz.visualize_image_attr(gradcam_orig, original_image, sign="absolute_value", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
-    # # Deeplift
-    # dl = DeepLift(model)
-    # attr_dl = attribute_image_features(dl, input)
-    # attr_dl = np.transpose(attr_dl.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
-
-    # print('Leaf is ', classes[predicted[ind]],
-    #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item())
-    return [f1, f2, f3, f4, f6, f7, f8]
 
 
 def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healthy, subpath_diseased,
@@ -362,7 +222,7 @@ def plot_single_explainer(pathroot, subpath, explainers, image_names, title):
             except FileNotFoundError:
                 print('image could not be loaded')
     number_images = len(images) // exnum
-    fig = plt.figure(figsize=(6 * exnum + 2, 7 * number_images + 5))
+    fig = plt.figure(figsize=(6 * exnum + 2, 7 * number_images + 8))
     fig.suptitle(title, fontsize=40)
     for k in range(0, len(images) // exnum):
         for i in range(0, exnum):
@@ -505,7 +365,7 @@ def main():
                 if image_pred[i, k] != -1:
                     c1 = c1 + 'Day ' + str(k) + ': ' + classes[int(image_labels[i, k])] + ' '
                     c2 = c2 + 'Day ' + str(k) + ': ' + classes[int(image_pred[i, k])] + ' '
-                    prob = prob + 'Day ' + str(k) + ': ' + str(round(image_prob[i, k] * 100, 2))
+                    prob = prob + 'Day ' + str(k) + ': ' + str(round(image_prob[i, k] * 100, 2)) + ' '
             prediction = c1 + '\n' + c2 + '\n' + prob
             plot_single_explainer(path_root, subpath_single_image + id + '/', explainers, image_names,
                                   'Plant comparison over days of ID: ' + id + '\n' + prediction)
