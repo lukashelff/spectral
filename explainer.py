@@ -50,8 +50,15 @@ def explain(model, image, label):
         for i in range(h):
             for k in range(w):
                 for j in range(c):
+                    # if label == 1:
                     if data[i][k][j] < 0:
                         data[i][k][j] = 0
+                    # else:
+                    #     if data[i][k][j] > 0:
+                    #         data[i][k][j] = 0
+                    #     else:
+                    #         data[i][k][j] = abs(data[i][k][j])
+
         # reshape to hxw
         d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
         max = np.max(d_img)
@@ -66,7 +73,7 @@ def explain(model, image, label):
                 d_img[i][k] = (d_img[i][k] - min) / (max - min)
                 if d_img[i][k] > 1:
                     d_img[i][k] = 1
-        d_img = ndi.gaussian_filter(d_img, 8)
+        d_img = ndi.gaussian_filter(d_img, 7)
 
         return d_img
 

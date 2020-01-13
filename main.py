@@ -30,10 +30,10 @@ from cnn import train
 from explainer import explain
 from plots import *
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-retrain = False
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+retrain = True
 reexplain = True
-plot_for_image_id, plot_classes, plot_healthy, plot_diseased = True, False, False, False
+plot_for_image_id, plot_classes, plot_healthy, plot_diseased = True, True, True, True
 
 
 # cuda:1
@@ -107,8 +107,8 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
-    N_EPOCHS = 500
-    lr = 0.0001
+    N_EPOCHS = 1500
+    lr = 0.00005
     filename = 'data/trained_model.sav'
     train_labels, valid_labels, all_labels = load_labels()
 
