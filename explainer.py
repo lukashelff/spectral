@@ -13,7 +13,6 @@ from skimage import feature
 from spectralloader import Spectralloader
 
 
-
 # create explainers for given image
 def explain(model, image, label):
     print("creating images")
@@ -95,6 +94,14 @@ def explain(model, image, label):
 
     attr_ig_nt = normalize(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
+    # IntegratedGradients Noise Tunnel
+    attr_ig_nt2 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                           n_samples=5,
+                                           stdevs=2.0
+                                           )
+
+    attr_ig_nt2 = normalize(np.transpose(attr_ig_nt2.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+
     # GuidedGradCam
     gc = GuidedGradCam(model, model.layer4)
     attr_gc = attribute_image_features(gc, input)
@@ -114,7 +121,8 @@ def explain(model, image, label):
     f3 = detect_edge(attr_ig)
     f4 = detect_edge(attr_ig_nt)
     f6 = detect_edge(attr_gc)
-    f7 = f8 = detect_edge(np_gradcam)
+    f7 = detect_edge(np_gradcam)
+    f8 = detect_edge(attr_ig_nt2)
 
     # original_image = detect_edge()
     # # Original Image

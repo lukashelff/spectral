@@ -257,10 +257,10 @@ def main():
     random_seed = 42
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     classes = ('healthy', 'diseased')
-    batch_size = 20
+    batch_size = 30
     n_classes = 2
-    N_EPOCHS = 50
-    lr = 0.00025
+    N_EPOCHS = 500
+    lr = 0.0001
     filename = 'data/trained_model.sav'
     train_labels, valid_labels, all_labels = load_labels()
 
@@ -306,7 +306,7 @@ def main():
 
     # train model or use trained model from last execution
     if retrain:
-        model = train(batch_size, n_classes, N_EPOCHS, lr, train_dl, val_dl)
+        model = train(batch_size, n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE)
         pickle.dump(model, open(filename, 'wb'))
         print('trained model saved')
     else:
@@ -320,9 +320,9 @@ def main():
     subpath_single_image = 'single_image/'
     image_class = ['tp', 'fp', 'tn', 'fn']
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
-                  'GradCam Layer 4 Output']
-    image_ids = ['Z18_4_1_1']
-    # image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+                  'Noise Tunnel stev 2']
+    # image_ids = ['Z18_4_1_1']
+    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_labels = np.zeros((len(image_ids), 4))
     image_pred = np.zeros((len(image_ids), 4))
     image_prob = np.zeros((len(image_ids), 4))
