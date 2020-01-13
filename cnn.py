@@ -28,7 +28,6 @@ def freeze_all(model_params):
         param.requires_grad = False
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(batch_size, n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE):
-    DEVICE = DEVICE
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
     train_balanced_acc = np.zeros(N_EPOCHS)

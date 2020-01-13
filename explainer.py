@@ -67,7 +67,7 @@ def explain(model, image, label):
                 d_img[i][k] = (d_img[i][k] - min) / (max - min)
                 if d_img[i][k] > 1:
                     d_img[i][k] = 1
-        d_img = ndi.gaussian_filter(d_img, 6)
+        d_img = ndi.gaussian_filter(d_img, 8)
 
         return d_img
 
@@ -76,45 +76,87 @@ def explain(model, image, label):
                                                       (0.25, '#000000'),
                                                       (1, '#000000')], N=256)
 
-    # saliency
-    saliency = Saliency(model)
-    grads = saliency.attribute(input, target=label)
-    grads = normalize(np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0)))
-
-    # IntegratedGradients
+    # # saliency
+    # saliency = Saliency(model)
+    # grads = saliency.attribute(input, target=label)
+    # grads = normalize(np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+    #
+    # # IntegratedGradients
     ig = IntegratedGradients(model)
-    attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
-    attr_ig = normalize(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+    # attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
+    # attr_ig = normalize(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+    #
+    # # IntegratedGradients Noise Tunnel
+    # nt = NoiseTunnel(ig)
+    # attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+    #                                       n_samples=5,
+    #                                       # stdevs=0.2
+    #                                       )
+    #
+    # attr_ig_nt = normalize(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+    #
+    # # GuidedGradCam
+    # gc = GuidedGradCam(model, model.layer4)
+    # attr_gc = attribute_image_features(gc, input)
+    # attr_gc = normalize(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+    #
+    # # GradCam Original Layer 4
+    # gco = LayerGradCam(model, model.layer4)
+    # attr_gco = attribute_image_features(gco, input)
+    #
+    # # GradCam
+    # att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
+    # # gco_int = (att * 255).astype(np.uint8)
+    # gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
+    # np_gradcam = np.asarray(gradcam)
+    #
+    # f2 = detect_edge(grads)
+    # f3 = detect_edge(attr_ig)
+    # f4 = detect_edge(attr_ig_nt)
+    # f6 = detect_edge(attr_gc)
+    # f7 = f8 = detect_edge(np_gradcam)
 
     # IntegratedGradients Noise Tunnel
     nt = NoiseTunnel(ig)
-    attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+    attr_ig_nt1 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
                                           n_samples=5,
                                           # stdevs=0.2
                                           )
 
-    attr_ig_nt = normalize(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+    # IntegratedGradients Noise Tunnel
+    attr_ig_nt2 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                          n_samples=3,
+                                          # stdevs=0.2
+                                          )
+    # IntegratedGradients Noise Tunnel
+    attr_ig_nt3 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                          n_samples=5,
+                                          # stdevs=0.2
+                                          )
+    # IntegratedGradients Noise Tunnel
+    attr_ig_nt4 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                          n_samples=8,
+                                          # stdevs=0.2
+                                          )
+    # IntegratedGradients Noise Tunnel
+    attr_ig_nt5 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                          n_samples=5,
+                                          stdevs=0.5
+                                          )
+    # IntegratedGradients Noise Tunnel
+    attr_ig_nt6 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                          n_samples=5,
+                                          stdevs=1.0
+                                          )
+    f2 = detect_edge(attr_ig_nt1)
+    f3 = detect_edge(attr_ig_nt2)
+    f4 = detect_edge(attr_ig_nt3)
+    f6 = detect_edge(attr_ig_nt4)
+    f7 = detect_edge(attr_ig_nt5)
+    f8 = detect_edge(attr_ig_nt6)
 
-    # GuidedGradCam
-    gc = GuidedGradCam(model, model.layer4)
-    attr_gc = attribute_image_features(gc, input)
-    attr_gc = normalize(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
-    # GradCam Original Layer 4
-    gco = LayerGradCam(model, model.layer4)
-    attr_gco = attribute_image_features(gco, input)
 
-    # GradCam
-    att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
-    # gco_int = (att * 255).astype(np.uint8)
-    gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
-    np_gradcam = np.asarray(gradcam)
-
-    f2 = detect_edge(grads)
-    f3 = detect_edge(attr_ig)
-    f4 = detect_edge(attr_ig_nt)
-    f6 = detect_edge(attr_gc)
-    f7 = f8 = detect_edge(np_gradcam)
 
     # original_image = detect_edge()
     # # Original Image

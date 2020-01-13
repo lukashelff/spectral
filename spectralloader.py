@@ -167,5 +167,5 @@ class Spectralloader(Dataset):
                         loaded_images += im
                         loaded_image_ids += ids
         label_ids, label_raw = sync_labels(loaded_image_ids)
-        print("all images loaded")
+        print("images loaded")
         return label_ids, label_raw, loaded_image_ids, loaded_images
