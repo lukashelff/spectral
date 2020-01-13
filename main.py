@@ -107,7 +107,7 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
-    N_EPOCHS = 200
+    N_EPOCHS = 500
     lr = 0.0001
     filename = 'data/trained_model.sav'
     train_labels, valid_labels, all_labels = load_labels()
@@ -137,7 +137,12 @@ def main():
         print('loading complete dataset')
         # whole Dataset
         all_ds = Spectralloader(all_labels, root, mode)
-
+        # all_dl = DataLoader(
+        #     all_ds,
+        #     batch_size=batch_size,
+        #     shuffle=False,
+        #     num_workers=4,
+        # )
         if plot_classes or plot_healthy or plot_diseased:
             val_ds = Spectralloader(valid_labels, root, mode)
             val_dl = DataLoader(
@@ -163,13 +168,13 @@ def main():
     subpath_single_image = 'single_image/'
     image_class = ['tp', 'fp', 'tn', 'fn']
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
-                  'GradCam Layer 4 Output']
-    image_ids = ['Z18_4_1_1']
-    # image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+                  'Noise Tunnel stev 2']
+    # image_ids = ['Z18_4_1_1']
+    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_labels = np.zeros((len(image_ids), 4))
     image_pred = np.zeros((len(image_ids), 4))
     image_prob = np.zeros((len(image_ids), 4))
-    number_images = 6  
+    number_images = 6
     image_indexed = []
     for i in range(1, number_images + 1):
         image_indexed.append(str(i))
