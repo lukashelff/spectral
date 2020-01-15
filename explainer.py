@@ -1,3 +1,6 @@
+import os
+
+import torch
 from PIL import Image as PImage
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,10 +13,11 @@ from captum.attr._core.guided_grad_cam import LayerGradCam
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
+import pickle
 from spectralloader import Spectralloader
 
 
-# create explainers for given image
+# create all explainers for a given image
 def explain(model, image, label):
     print("creating images")
     input = image.unsqueeze(0)
@@ -164,3 +168,39 @@ def explain(model, image, label):
     # print('Leaf is ', classes[predicted[ind]],
     #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item())
     return [f1, f2, f3, f4, f6, f7, f8]
+
+
+# create single explainer for given image
+def explain_single(model, image, label):
+    input = image.unsqueeze(0)
+    input.requires_grad = True
+    model.eval()
+    c, h, w = image.shape
+
+    def attribute_image_features(algorithm, input, **kwargs):
+        model.zero_grad()
+        tensor_attributions = algorithm.attribute(input, target=label, **kwargs)
+        return tensor_attributions
+
+    # GradCam
+    gco = LayerGradCam(model, model.layer4)
+    attr_gco = attribute_image_features(gco, input)
+    att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
+    # gco_int = (att * 255).astype(np.uint8)
+    gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
+    np_gradcam = np.asarray(gradcam)
+
+    return np_gradcam
+
+
+def create_mask(model, dataset, path, subpath, DEVICE):
+    d_length = dataset.__len__()
+    heapmaps = {}
+    for i in range(0, d_length):
+        image, label = dataset.__getitem__(i)
+        model.to(DEVICE)
+        image = torch.from_numpy(image).to(DEVICE)
+        heapmaps[dataset.get_id_by_index(i)] = explain_single(model, image, label)
+    if not os.path.exists(path + '/heapmaps'):
+        os.makedirs(path + '/heapmaps')
+    pickle.dump(heapmaps, open(path + subpath, 'wb'))

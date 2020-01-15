@@ -27,13 +27,15 @@ from scipy import ndimage as ndi
 from skimage import feature
 from spectralloader import Spectralloader
 from cnn import train
-from explainer import explain
+from explainer import *
 from plots import *
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-retrain = True
-reexplain = True
-plot_for_image_id, plot_classes, plot_healthy, plot_diseased = True, True, True, True
+retrain = False
+reexplain = False
+plot_for_image_id, plot_classes = False, False
+roar_create_mask = True
+roar_train = False
 
 
 # cuda:1
@@ -107,13 +109,13 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
-    N_EPOCHS = 1500
-    lr = 0.00005
+    N_EPOCHS = 200
+    lr = 0.0001
     filename = 'data/trained_model.sav'
     train_labels, valid_labels, all_labels = load_labels()
 
     # loaded needed data
-    if retrain:
+    if retrain or roar_train:
         print('loading training data')
         # load train dataset
         train_ds = Spectralloader(train_labels, root, mode)
@@ -133,7 +135,7 @@ def main():
             shuffle=False,
             num_workers=4,
         )
-    if reexplain:
+    if reexplain or roar_create_mask:
         print('loading complete dataset')
         # whole Dataset
         all_ds = Spectralloader(all_labels, root, mode)
@@ -143,7 +145,7 @@ def main():
         #     shuffle=False,
         #     num_workers=4,
         # )
-        if plot_classes or plot_healthy or plot_diseased:
+        if plot_classes or plot_classes or plot_classes:
             val_ds = Spectralloader(valid_labels, root, mode)
             val_dl = DataLoader(
                 val_ds,
@@ -162,6 +164,7 @@ def main():
 
     # save the explainer images of the figures
     path_root = './data/exp/'
+    subpath_heapmaps = 'heapmaps/heapmaps.pkl'
     subpath_healthy = 'healthy/'
     subpath_diseased = 'diseased/'
     subpath_classification = 'classification/'
@@ -180,24 +183,22 @@ def main():
         image_indexed.append(str(i))
 
     # save the created explainer Image
-    if reexplain:
-        if plot_healthy or plot_diseased or plot_classes:
-            # evaluate images and their classification
-            print('creating explainer plots')
-            evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
-                     subpath_diseased, subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes)
-        if plot_for_image_id:
-            print('creating explainer plots for specified images')
-            # evaluate for specific Image IDs
-            for i, id in enumerate(image_ids):
-                for k in range(1, 5):
-                    label, pred, prob = evaluate_id(str(k) + '_' + id, all_ds, model, explainers, path_root,
-                                                    subpath_single_image + id + '/', DEVICE)
-                    image_labels[i, k - 1] = label
-                    image_pred[i, k - 1] = pred
-                    image_prob[i, k - 1] = prob
+    if plot_classes:
+        # evaluate images and their classification
+        print('creating explainer plots for specific classes')
+        evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
+                 subpath_diseased, subpath_classification, DEVICE, plot_classes, plot_classes, plot_classes)
+    if plot_for_image_id:
+        print('creating explainer plots for specified images')
+        # evaluate for specific Image IDs
+        for i, id in enumerate(image_ids):
+            for k in range(1, 5):
+                label, pred, prob = evaluate_id(str(k) + '_' + id, all_ds, model, explainers, path_root,
+                                                subpath_single_image + id + '/', DEVICE)
+                image_labels[i, k - 1] = label
+                image_pred[i, k - 1] = pred
+                image_prob[i, k - 1] = prob
 
-    print('creating comparator of explainer plots')
     if plot_for_image_id:
         # plot created explainer
         for i, id in enumerate(image_ids):
@@ -221,12 +222,17 @@ def main():
     if plot_classes:
         plot_single_explainer(path_root, subpath_classification, explainers, image_class,
                               'Class comparison TP, FP, TN, FN on plant diseases')
-    if plot_diseased:
         plot_single_explainer(path_root, subpath_diseased, explainers, image_indexed,
                               'comparison between detected diseased images')
-    if plot_healthy:
         plot_single_explainer(path_root, subpath_healthy, explainers, image_indexed,
                               'comparison between detected healthy images')
+    if roar_create_mask:
+        create_mask(model, all_ds, path_root, subpath_heapmaps, DEVICE)
+    if roar_train:
+        with open(path_root + subpath_heapmaps, 'rb') as f:
+            mask = pickle.load(f)
+            train_ds.apply_roar(10, mask)
+            val_ds.apply_roar(10, mask)
 
 
 main()

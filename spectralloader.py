@@ -75,8 +75,8 @@ class Spectralloader(Dataset):
         # labels: list of all labels
         # labels_ids: list of all labels with corresponding IDs as [[label, Id]...]
         # data: list of all images
-        # data: list of all images with corresponding IDs as [[image, ID]...]
-        # index_data: Pointer to image index in order of label Indecies
+        # data_ids: list of all images with corresponding IDs as [[image, ID]...]
+        # index_data: Pointer to image index in order of label Indices
         # e.g. label with index i has its image data at Index index_data[i]
         # ids: list of all ids in order of labels
         self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
@@ -169,3 +169,9 @@ class Spectralloader(Dataset):
         label_ids, label_raw = sync_labels(loaded_image_ids)
         print("images loaded")
         return label_ids, label_raw, loaded_image_ids, loaded_images
+
+    # apply the specified % of the mask to the dataset
+    def apply_roar(self, percentage, mask):
+        for d in self.data_ids:
+
+            d[0] = d[0] - mask[d[1]]
