@@ -103,6 +103,13 @@ class Spectralloader(Dataset):
     def __len__(self):
         return len(self.labels)
 
+    # update value in dataset with the new specified value
+    def update_data(self, id, val):
+        for c, value in enumerate(self.data_ids):
+            if value[1] == id:
+                self.data[c] = val
+                self.data_ids[c][0] = val
+
     def get_id_by_index(self, index):
         try:
             return self.ids[index]
@@ -170,8 +177,21 @@ class Spectralloader(Dataset):
         print("images loaded")
         return label_ids, label_raw, loaded_image_ids, loaded_images
 
-    # apply the specified % of the mask to the dataset
-    def apply_roar(self, percentage, mask):
+    # apply the roar to the dataset
+    # given percentage of the values get removed from the dataset
+    def apply_roar(self, percentage, masks):
         for d in self.data_ids:
+            id = d[1]
+            im = d[0]
+            mean = np.mean(im)
+            percentile = np.percentile(masks[id], 1 - percentage)
+            h, w = d.shape
+            val = im
+            for i in range(0, w):
+                for j in range(0, h):
+                    if masks[id][j][i] > percentile:
+                        val[j][i][0] = mean
+                        val[j][i][1] = mean
+                        val[j][i][2] = mean
+            self.update_data(id, val)
 
-            d[0] = d[0] - mask[d[1]]

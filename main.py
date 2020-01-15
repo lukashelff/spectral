@@ -34,8 +34,8 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 retrain = False
 reexplain = False
 plot_for_image_id, plot_classes = False, False
-roar_create_mask = True
-roar_train = False
+roar_create_mask = False
+roar_train = True
 
 
 # cuda:1
@@ -233,7 +233,6 @@ def main():
             mask = pickle.load(f)
             train_ds.apply_roar(10, mask)
             val_ds.apply_roar(10, mask)
-
 
 main()
 
