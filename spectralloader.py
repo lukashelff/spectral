@@ -80,7 +80,7 @@ class Spectralloader(Dataset):
         # e.g. label with index i has its image data at Index index_data[i]
         # ids: list of all ids in order of labels
         self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
-        # , self.dict_data
+        self.dict_data = []
         self.transform = transform
         self.path = root
         self.index_data = []
@@ -188,14 +188,18 @@ class Spectralloader(Dataset):
             id = self.get_id_by_index(d)
             mask = masks[id]
             mean = np.mean(im)
-            percentile = np.percentile(masks[id], 100 - percentage)
-            c, h, w = im.shape
-            val = im
-            for i in range(0, w):
-                for j in range(0, h):
-                    if mask[j][i] > percentile:
-                        val[0][j][i] = mean
-                        val[1][j][i] = mean
-                        val[2][j][i] = mean
-            self.update_data(id, val)
+            try:
+                percentile = np.percentile(masks[id], 100 - percentage)
+                c, h, w = im.shape
+                val = im
+                for i in range(0, w):
+                    for j in range(0, h):
+                        if mask[j][i] > percentile:
+                            val[0][j][i] = mean
+                            val[1][j][i] = mean
+                            val[2][j][i] = mean
+                self.update_data(id, val)
+            except ValueError:
+                print('No roar img for id: ' + id)
+
 

@@ -31,11 +31,12 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 retrain = True
-plot_for_image_id, plot_classes = False, False
-roar_create_mask = False
+plot_for_image_id, plot_classes = True, True
+roar_create_mask = True
 roar_train = True
+roar_plot = True
 N_EPOCHS = 120
 lr = 0.00015
 
@@ -80,31 +81,16 @@ def main():
     # loaded needed data
     print('loading training data')
     train_ds = Spectralloader(train_labels, root, mode)
-    train_dl = DataLoader(
-        train_ds,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=4,
-    )
+    train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
     print('loading validation dataset')
     val_ds = Spectralloader(valid_labels, root, mode)
-    val_dl = DataLoader(
-        val_ds,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=4,
-    )
-    print('loading complete dataset')
+    val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
+    print('loading whole dataset')
     all_ds = Spectralloader(all_labels, root, mode)
-    all_dl = DataLoader(
-        all_ds,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=4,
-    )
 
     # train model or use trained model from last execution
     if retrain:
+        # train on original data
         model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original")
         pickle.dump(model, open(filename_ori, 'wb'))
         print('trained model saved')
@@ -118,7 +104,7 @@ def main():
         plot_explained_categories(model, val_dl, DEVICE, plot_classes, plot_classes, plot_classes, explainers)
     if plot_for_image_id:
         print('creating explainer plots for specified images')
-        plot_explained_images(model, all_ds, DEVICE, explainers, image_ids)
+        plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, 'original')
 
     if roar_create_mask:
         create_mask(model, all_ds, path_root, subpath_heapmaps, DEVICE)
@@ -127,23 +113,20 @@ def main():
             mask = pickle.load(f)
             print('applying ROAR to training DS')
             train_ds.apply_roar(10, mask)
-            train_dl = DataLoader(
-                train_ds,
-                batch_size=batch_size,
-                shuffle=True,
-                num_workers=4,
-            )
+            train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
             print('applying ROAR to validation DS')
             val_ds.apply_roar(10, mask)
-            val_dl = DataLoader(
-                val_ds,
-                batch_size=batch_size,
-                shuffle=False,
-                num_workers=4,
-            )
+            val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
+            print('training with roar dataset')
             model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "10%removed")
+            print('saving roar model')
             pickle.dump(model, open(filename_roar_10, 'wb'))
-            print('trained model saved')
+            print('explaining roar model')
+    if roar_plot:
+        print('applying ROAR to whole DS')
+        all_ds.apply_roar(10, mask)
+        model = pickle.load(open(filename_roar_10, 'rb'))
+        plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, "10%removed")
 
 
 main()

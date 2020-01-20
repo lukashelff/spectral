@@ -194,7 +194,6 @@ def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy
     for i in range(1, number_images + 1):
         image_indexed.append(str(i))
     # evaluate images and their classification
-    print('creating explainer plots for specific classes')
     evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
              subpath_diseased, subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes)
     if plot_classes:
@@ -207,7 +206,8 @@ def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy
         plot_single_explainer(path_root, subpath_healthy, explainers, image_indexed,
                               'comparison between detected healthy images')
 
-def plot_explained_images(model, all_ds, DEVICE, explainers,image_ids):
+
+def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
     classes = ('healthy', 'diseased')
     path_root = './data/exp/'
     subpath_single_image = 'single_image/'
@@ -241,4 +241,4 @@ def plot_explained_images(model, all_ds, DEVICE, explainers,image_ids):
                 prob = prob + 'Day ' + str(k) + ': ' + str(round(image_prob[i, k] * 100, 2)) + ' '
         prediction = c1 + '\n' + c2 + '\n' + prob
         plot_single_explainer(path_root, subpath_single_image + id + '/', explainers, image_names,
-                              'Plant comparison over days of ID: ' + id + '\n' + prediction)
+                              'Plant comparison over days of ID: ' + id + ', roar method: ' + roar + '\n' + prediction)
