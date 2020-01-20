@@ -27,7 +27,7 @@ def freeze_all(model_params):
     for param in model_params:
         param.requires_grad = False
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
-def train(batch_size, n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE):
+def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
     train_balanced_acc = np.zeros(N_EPOCHS)
@@ -123,17 +123,19 @@ def train(batch_size, n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVI
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
+    plt.title('model accuracy ' + roar + ', final balanced accuracy: ' + str(valid_balanced_acc[N_EPOCHS - 1]))
     plt.ylabel('acc')
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
-    plt.savefig('./data/plots/accuracy.png')
+    plt.savefig('./data/plots/accuracy' + roar + '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
     plt.plot(valid_loss, color='orange', label='valid_loss')
+    plt.title('model loss ' + roar)
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
-    plt.savefig('./data/plots/loss.png')
+    plt.savefig('./data/plots/loss' + roar + '.png')
     plt.show()
 
     return model

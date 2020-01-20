@@ -29,17 +29,19 @@ from spectralloader import Spectralloader
 from cnn import train
 from explainer import *
 from plots import *
+from helpfunctions import *
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-retrain = False
-reexplain = False
+retrain = True
 plot_for_image_id, plot_classes = False, False
 roar_create_mask = False
 roar_train = True
+N_EPOCHS = 120
+lr = 0.00015
 
 
 # cuda:1
-
+#
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
 def load_labels():
     path_test = 'data/test_fileids.txt'
@@ -57,182 +59,92 @@ def load_labels():
     return train, valid, train + valid
 
 
-# transpose image to display learned images
-def display_rgb_grid(img, title):
-    print(title + ' image displayed with shape ' + str(img.shape))
-    plt.title(title)
-    npimg = img.numpy()
-    # plt.imshow(img)
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
-
-
-# display rgb image
-def display_rgb(img, title):
-    plt.title(title)
-    plt.imshow(np.transpose(img, (1, 2, 0)))
-    plt.show()
-
-
-# display spectral image
-def display_spec(img, transpose=True):
-    import spectral
-    im = img[:, :, [50, 88, 151]]
-    # im = img[:, :, [24, 51, 118]]
-    plt.imshow(im)
-    plt.show()
-
-
-def is_float(string):
-    try:
-        return float(string)
-    except ValueError:
-        return False
-
-
-# create canvas man to show saved figures
-def show_figure(fig, ax):
-    # create a dummy figure and use its
-    # manager to display the original figure
-    dummy = plt.figure()
-    new_manager = dummy.canvas.manager
-    new_manager.canvas.figure = fig
-    # new_manager.canvas.axes = ax
-    fig.set_canvas(new_manager.canvas)
-
-
 def main():
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
-    root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
-    N_EPOCHS = 200
-    lr = 0.0001
-    filename = 'data/trained_model.sav'
+    filename_roar_10 = 'data/trained_model_roar10.sav'
+    filename_ori = 'data/trained_model_original.sav'
     train_labels, valid_labels, all_labels = load_labels()
+    # save the explainer images of the figures
+    root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
+    path_root = './data/exp/'
+    subpath_heapmaps = 'heapmaps/heapmaps.pkl'
+    explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
+                  'Noise Tunnel stev 2']
+    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
     # loaded needed data
-    if retrain or roar_train:
-        print('loading training data')
-        # load train dataset
-        train_ds = Spectralloader(train_labels, root, mode)
-        # dataloader
-        train_dl = DataLoader(
-            train_ds,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=4,
-        )
-        print('loading validation dataset')
-        # load valid dataset
-        val_ds = Spectralloader(valid_labels, root, mode)
-        val_dl = DataLoader(
-            val_ds,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=4,
-        )
-    if reexplain or roar_create_mask:
-        print('loading complete dataset')
-        # whole Dataset
-        all_ds = Spectralloader(all_labels, root, mode)
-        # all_dl = DataLoader(
-        #     all_ds,
-        #     batch_size=batch_size,
-        #     shuffle=False,
-        #     num_workers=4,
-        # )
-        if plot_classes or plot_classes or plot_classes:
-            val_ds = Spectralloader(valid_labels, root, mode)
+    print('loading training data')
+    train_ds = Spectralloader(train_labels, root, mode)
+    train_dl = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=4,
+    )
+    print('loading validation dataset')
+    val_ds = Spectralloader(valid_labels, root, mode)
+    val_dl = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4,
+    )
+    print('loading complete dataset')
+    all_ds = Spectralloader(all_labels, root, mode)
+    all_dl = DataLoader(
+        all_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4,
+    )
+
+    # train model or use trained model from last execution
+    if retrain:
+        model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original")
+        pickle.dump(model, open(filename_ori, 'wb'))
+        print('trained model saved')
+    else:
+        model = pickle.load(open(filename_ori, 'rb'))
+
+    # save the created explainer Image
+    if plot_classes:
+        # evaluate images and their classification
+        print('creating explainer plots for specific classes')
+        plot_explained_categories(model, val_dl, DEVICE, plot_classes, plot_classes, plot_classes, explainers)
+    if plot_for_image_id:
+        print('creating explainer plots for specified images')
+        plot_explained_images(model, all_ds, DEVICE, explainers, image_ids)
+
+    if roar_create_mask:
+        create_mask(model, all_ds, path_root, subpath_heapmaps, DEVICE)
+    if roar_train:
+        with open(path_root + subpath_heapmaps, 'rb') as f:
+            mask = pickle.load(f)
+            print('applying ROAR to training DS')
+            train_ds.apply_roar(10, mask)
+            train_dl = DataLoader(
+                train_ds,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=4,
+            )
+            print('applying ROAR to validation DS')
+            val_ds.apply_roar(10, mask)
             val_dl = DataLoader(
                 val_ds,
                 batch_size=batch_size,
                 shuffle=False,
                 num_workers=4,
             )
+            model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "10%removed")
+            pickle.dump(model, open(filename_roar_10, 'wb'))
+            print('trained model saved')
 
-    # train model or use trained model from last execution
-    if retrain:
-        model = train(batch_size, n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE)
-        pickle.dump(model, open(filename, 'wb'))
-        print('trained model saved')
-    else:
-        model = pickle.load(open(filename, 'rb'))
-
-    # save the explainer images of the figures
-    path_root = './data/exp/'
-    subpath_heapmaps = 'heapmaps/heapmaps.pkl'
-    subpath_healthy = 'healthy/'
-    subpath_diseased = 'diseased/'
-    subpath_classification = 'classification/'
-    subpath_single_image = 'single_image/'
-    image_class = ['tp', 'fp', 'tn', 'fn']
-    explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
-                  'Noise Tunnel stev 2']
-    # image_ids = ['Z18_4_1_1']
-    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
-    image_labels = np.zeros((len(image_ids), 4))
-    image_pred = np.zeros((len(image_ids), 4))
-    image_prob = np.zeros((len(image_ids), 4))
-    number_images = 6
-    image_indexed = []
-    for i in range(1, number_images + 1):
-        image_indexed.append(str(i))
-
-    # save the created explainer Image
-    if plot_classes:
-        # evaluate images and their classification
-        print('creating explainer plots for specific classes')
-        evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
-                 subpath_diseased, subpath_classification, DEVICE, plot_classes, plot_classes, plot_classes)
-    if plot_for_image_id:
-        print('creating explainer plots for specified images')
-        # evaluate for specific Image IDs
-        for i, id in enumerate(image_ids):
-            for k in range(1, 5):
-                label, pred, prob = evaluate_id(str(k) + '_' + id, all_ds, model, explainers, path_root,
-                                                subpath_single_image + id + '/', DEVICE)
-                image_labels[i, k - 1] = label
-                image_pred[i, k - 1] = pred
-                image_prob[i, k - 1] = prob
-
-    if plot_for_image_id:
-        # plot created explainer
-        for i, id in enumerate(image_ids):
-            image_names = []
-            for k in range(1, 5):
-                image_names.append(str(k) + '_' + id)
-            prediction = ''
-            c1 = 'Truth for each day: '
-            c2 = 'Prediction for each day: '
-            prob = 'Probability of the prediction: '
-            for k in range(0, 4):
-                if image_pred[i, k] != -1:
-                    c1 = c1 + 'Day ' + str(k) + ': ' + classes[int(image_labels[i, k])] + ' '
-                    c2 = c2 + 'Day ' + str(k) + ': ' + classes[int(image_pred[i, k])] + ' '
-                    prob = prob + 'Day ' + str(k) + ': ' + str(round(image_prob[i, k] * 100, 2)) + ' '
-            prediction = c1 + '\n' + c2 + '\n' + prob
-            plot_single_explainer(path_root, subpath_single_image + id + '/', explainers, image_names,
-                                  'Plant comparison over days of ID: ' + id + '\n' + prediction)
-            # 'Leaf is ', classes[predicted[ind]],
-            #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item()
-    if plot_classes:
-        plot_single_explainer(path_root, subpath_classification, explainers, image_class,
-                              'Class comparison TP, FP, TN, FN on plant diseases')
-        plot_single_explainer(path_root, subpath_diseased, explainers, image_indexed,
-                              'comparison between detected diseased images')
-        plot_single_explainer(path_root, subpath_healthy, explainers, image_indexed,
-                              'comparison between detected healthy images')
-    if roar_create_mask:
-        create_mask(model, all_ds, path_root, subpath_heapmaps, DEVICE)
-    if roar_train:
-        with open(path_root + subpath_heapmaps, 'rb') as f:
-            mask = pickle.load(f)
-            train_ds.apply_roar(10, mask)
-            val_ds.apply_roar(10, mask)
 
 main()
 

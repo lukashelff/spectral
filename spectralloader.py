@@ -80,6 +80,7 @@ class Spectralloader(Dataset):
         # e.g. label with index i has its image data at Index index_data[i]
         # ids: list of all ids in order of labels
         self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
+        # , self.dict_data
         self.transform = transform
         self.path = root
         self.index_data = []
@@ -91,6 +92,7 @@ class Spectralloader(Dataset):
                 if k[0] == s:
                     self.index_data += [i]
                     break
+
 
     def __getitem__(self, index):
         # return only 1 sample and label (according to "Index")
@@ -180,18 +182,20 @@ class Spectralloader(Dataset):
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
     def apply_roar(self, percentage, masks):
-        for d in self.data_ids:
-            id = d[1]
-            im = d[0]
+        for d in range(0, self.__len__()):
+            print('modified images: ' + str(d) + "/" + str(self.__len__()))
+            im, label = self.__getitem__(d)
+            id = self.get_id_by_index(d)
+            mask = masks[id]
             mean = np.mean(im)
-            percentile = np.percentile(masks[id], 1 - percentage)
-            h, w = d.shape
+            percentile = np.percentile(masks[id], 100 - percentage)
+            c, h, w = im.shape
             val = im
             for i in range(0, w):
                 for j in range(0, h):
-                    if masks[id][j][i] > percentile:
-                        val[j][i][0] = mean
-                        val[j][i][1] = mean
-                        val[j][i][2] = mean
+                    if mask[j][i] > percentile:
+                        val[0][j][i] = mean
+                        val[1][j][i] = mean
+                        val[2][j][i] = mean
             self.update_data(id, val)
 

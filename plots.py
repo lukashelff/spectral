@@ -181,3 +181,64 @@ def plot_single_explainer(pathroot, subpath, explainers, image_names, title):
     fig.tight_layout()
     fig.savefig(pathroot + subpath + 'conclusion' + '.png')
     plt.show()
+
+
+def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy, plot_classes, explainers):
+    path_root = './data/exp/'
+    subpath_healthy = 'healthy/'
+    subpath_diseased = 'diseased/'
+    subpath_classification = 'classification/'
+    image_class = ['tp', 'fp', 'tn', 'fn']
+    number_images = 6
+    image_indexed = []
+    for i in range(1, number_images + 1):
+        image_indexed.append(str(i))
+    # evaluate images and their classification
+    print('creating explainer plots for specific classes')
+    evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
+             subpath_diseased, subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes)
+    if plot_classes:
+        plot_single_explainer(path_root, subpath_classification, explainers, image_class,
+                              'Class comparison TP, FP, TN, FN on plant diseases')
+    if plot_diseased:
+        plot_single_explainer(path_root, subpath_diseased, explainers, image_indexed,
+                              'comparison between detected diseased images')
+    if plot_healthy:
+        plot_single_explainer(path_root, subpath_healthy, explainers, image_indexed,
+                              'comparison between detected healthy images')
+
+def plot_explained_images(model, all_ds, DEVICE, explainers,image_ids):
+    classes = ('healthy', 'diseased')
+    path_root = './data/exp/'
+    subpath_single_image = 'single_image/'
+    image_labels = np.zeros((len(image_ids), 4))
+    image_pred = np.zeros((len(image_ids), 4))
+    image_prob = np.zeros((len(image_ids), 4))
+    number_images = 6
+    image_indexed = []
+    for i in range(1, number_images + 1):
+        image_indexed.append(str(i))
+    # evaluate for specific Image IDs
+    for i, id in enumerate(image_ids):
+        for k in range(1, 5):
+            label, pred, prob = evaluate_id(str(k) + '_' + id, all_ds, model, explainers, path_root,
+                                            subpath_single_image + id + '/', DEVICE)
+            image_labels[i, k - 1] = label
+            image_pred[i, k - 1] = pred
+            image_prob[i, k - 1] = prob
+    # plot created explainer
+    for i, id in enumerate(image_ids):
+        image_names = []
+        for k in range(1, 5):
+            image_names.append(str(k) + '_' + id)
+        c1 = 'Truth for each day: '
+        c2 = 'Prediction for each day: '
+        prob = 'Probability of the prediction: '
+        for k in range(0, 4):
+            if image_pred[i, k] != -1:
+                c1 = c1 + 'Day ' + str(k) + ': ' + classes[int(image_labels[i, k])] + ' '
+                c2 = c2 + 'Day ' + str(k) + ': ' + classes[int(image_pred[i, k])] + ' '
+                prob = prob + 'Day ' + str(k) + ': ' + str(round(image_prob[i, k] * 100, 2)) + ' '
+        prediction = c1 + '\n' + c2 + '\n' + prob
+        plot_single_explainer(path_root, subpath_single_image + id + '/', explainers, image_names,
+                              'Plant comparison over days of ID: ' + id + '\n' + prediction)
