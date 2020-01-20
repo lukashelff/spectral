@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset, DataLoader
 import pickle
 import numpy as np
@@ -75,12 +76,12 @@ class Spectralloader(Dataset):
         # labels: list of all labels
         # labels_ids: list of all labels with corresponding IDs as [[label, Id]...]
         # data: list of all images
-        # data_ids: list of all images with corresponding IDs as [[image, ID]...]
+        # data_ids: list of all corresponding IDs for image order as [ID...]
         # index_data: Pointer to image index in order of label Indices
         # e.g. label with index i has its image data at Index index_data[i]
         # ids: list of all ids in order of labels
         self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
-        self.dict_data = []
+        self.dict_data = {}
         self.transform = transform
         self.path = root
         self.index_data = []
@@ -90,6 +91,7 @@ class Spectralloader(Dataset):
             self.ids.append(k[0])
             for i, s in enumerate(self.data_ids):
                 if k[0] == s:
+                    self.dict_data.update({s: (self.data[i], k[1])})
                     self.index_data += [i]
                     break
 
@@ -107,10 +109,10 @@ class Spectralloader(Dataset):
 
     # update value in dataset with the new specified value
     def update_data(self, id, val):
+
         for c, value in enumerate(self.data_ids):
-            if value[1] == id:
+            if value == id:
                 self.data[c] = val
-                self.data_ids[c][0] = val
 
     def get_id_by_index(self, index):
         try:
@@ -176,20 +178,23 @@ class Spectralloader(Dataset):
                         loaded_images += im
                         loaded_image_ids += ids
         label_ids, label_raw = sync_labels(loaded_image_ids)
+
         print("images loaded")
         return label_ids, label_raw, loaded_image_ids, loaded_images
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
-    def apply_roar(self, percentage, masks):
+    def apply_roar(self, percentage, masks, DEVICE):
         for d in range(0, self.__len__()):
-            print('modified images: ' + str(d) + "/" + str(self.__len__()))
+            # print('modified images: ' + str(d + 1) + "/" + str(self.__len__()))
             im, label = self.__getitem__(d)
             id = self.get_id_by_index(d)
             mask = masks[id]
+            torch.from_numpy(im).to(DEVICE)
+            torch.from_numpy(mask).to(DEVICE)
             mean = np.mean(im)
             try:
-                percentile = np.percentile(masks[id], 100 - percentage)
+                percentile = np.percentile(mask, 100 - percentage)
                 c, h, w = im.shape
                 val = im
                 for i in range(0, w):
@@ -201,5 +206,24 @@ class Spectralloader(Dataset):
                 self.update_data(id, val)
             except ValueError:
                 print('No roar img for id: ' + id)
+
+    def apply_roar_single_image(self, percentage, masks, id):
+        try:
+            im, label = self.get_by_id(id)
+            if im is not None:
+                mean = np.mean(im)
+                mask = masks[id]
+                percentile = np.percentile(mask, 100 - percentage)
+                c, h, w = im.shape
+                val = im
+                for i in range(0, w):
+                    for j in range(0, h):
+                        if mask[j][i] > percentile:
+                            val[0][j][i] = mean
+                            val[1][j][i] = mean
+                            val[2][j][i] = mean
+                self.update_data(id, val)
+        except ValueError:
+            print('No roar img for id: ' + id)
 
 

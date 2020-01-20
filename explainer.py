@@ -196,9 +196,9 @@ def explain_single(model, image, label):
 def create_mask(model, dataset, path, subpath, DEVICE):
     d_length = dataset.__len__()
     heapmaps = {}
+    model.to(DEVICE)
     for i in range(0, d_length):
         image, label = dataset.__getitem__(i)
-        model.to(DEVICE)
         image = torch.from_numpy(image).to(DEVICE)
         heapmaps[dataset.get_id_by_index(i)] = explain_single(model, image, label)
     if not os.path.exists(path + '/heapmaps'):

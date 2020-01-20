@@ -143,7 +143,7 @@ def evaluate_id(image_id, ds, model, explainers, path_root, subpath, DEVICE):
 
 
 # compare given images of plantes in a plot
-def plot_single_explainer(pathroot, subpath, explainers, image_names, title):
+def plot_single_explainer(pathroot, subpath, explainers, image_names, title, roar):
     exnum = len(explainers)
     number_images = len(image_names)
     images = []
@@ -155,7 +155,7 @@ def plot_single_explainer(pathroot, subpath, explainers, image_names, title):
                 print('image could not be loaded')
     number_images = len(images) // exnum
     fig = plt.figure(figsize=(6 * exnum + 2, 7 * number_images + 8))
-    fig.suptitle(title, fontsize=40)
+    fig.suptitle(title, fontsize=35)
     for k in range(0, len(images) // exnum):
         for i in range(0, exnum):
             ax = fig.add_subplot(number_images, exnum, (i + 1) + k * exnum)
@@ -179,7 +179,9 @@ def plot_single_explainer(pathroot, subpath, explainers, image_names, title):
                     ax.set_ylabel('image ' + image_names[k], fontsize=25)
 
     fig.tight_layout()
-    fig.savefig(pathroot + subpath + 'conclusion' + '.png')
+    if not os.path.exists(pathroot + subpath + 'conclusion/'):
+        os.makedirs(pathroot + subpath + 'conclusion/')
+    fig.savefig(pathroot + subpath + 'conclusion/' + 'conclusion' + roar + '.png')
     plt.show()
 
 
@@ -198,13 +200,13 @@ def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy
              subpath_diseased, subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes)
     if plot_classes:
         plot_single_explainer(path_root, subpath_classification, explainers, image_class,
-                              'Class comparison TP, FP, TN, FN on plant diseases')
+                              'Class comparison TP, FP, TN, FN on plant diseases', '')
     if plot_diseased:
         plot_single_explainer(path_root, subpath_diseased, explainers, image_indexed,
-                              'comparison between detected diseased images')
+                              'comparison between detected diseased images', '')
     if plot_healthy:
         plot_single_explainer(path_root, subpath_healthy, explainers, image_indexed,
-                              'comparison between detected healthy images')
+                              'comparison between detected healthy images', '')
 
 
 def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
@@ -241,4 +243,5 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
                 prob = prob + 'Day ' + str(k) + ': ' + str(round(image_prob[i, k] * 100, 2)) + ' '
         prediction = c1 + '\n' + c2 + '\n' + prob
         plot_single_explainer(path_root, subpath_single_image + id + '/', explainers, image_names,
-                              'Plant comparison over days of ID: ' + id + ', roar method: ' + roar + '\n' + prediction)
+                              'Plant comparison over days of ID: ' + id + ', roar method: ' + roar + '\n' + prediction,
+                              roar)

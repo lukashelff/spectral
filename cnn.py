@@ -5,8 +5,9 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 
-
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+
+
 def get_trainable(model_params):
     return (p for p in model_params if p.requires_grad)
 
@@ -26,6 +27,8 @@ def all_frozen(model_params):
 def freeze_all(model_params):
     for param in model_params:
         param.requires_grad = False
+
+
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     train_loss = np.zeros(N_EPOCHS)
@@ -123,7 +126,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title('model accuracy ' + roar + ', final balanced accuracy: ' + str(valid_balanced_acc[N_EPOCHS - 1]))
+    plt.title('model accuracy ' + roar + ', final balanced accuracy: ' + str(
+        round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('acc')
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
