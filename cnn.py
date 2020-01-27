@@ -182,5 +182,5 @@ def train_roar_ds(path_root, subpath_heapmaps, root, roar_values, filename_roar,
             print('training on ROAR DS, ' + str(i) + ' % removed')
             model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,
                           str(i) + '%_of_' + explainer)
-            print('saving roar model')
-            pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))
+            # print('saving roar model')
+            # pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))
