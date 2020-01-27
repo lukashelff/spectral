@@ -245,3 +245,22 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
         plot_single_explainer(path_root, subpath_single_image + id + '/', explainers, image_names,
                               'Plant comparison over days of ID: ' + id + ', roar method: ' + roar + '\n' + prediction,
                               roar)
+
+
+def plot_dev_acc(roar_values, roar_explainers):
+    colors = ['ro', 'go', 'bo', 'co', 'mo', 'yo', 'bo']
+    for c, k in enumerate(roar_explainers):
+        acc_vals = []
+        for i in roar_values:
+            sub_path = str(i) + '%_of_' + k + '.sav'
+            path = './data/plots/values/' + sub_path
+            val = pickle.load(open(path, 'rb'))
+            acc_vals.append(val)
+        plt.plot(roar_values, acc_vals, colors[c], label=k)
+    plt.title('development of accuracy by increasing ROAR value')
+    plt.xlabel('ROAR value: % removed from image')
+    plt.ylabel('accuracy')
+    plt.axis([0, 100, 0, 100])
+    plt.legend(loc='lower right')
+    plt.savefig('./data/plots/accuracy_roar_comparison')
+    plt.show()

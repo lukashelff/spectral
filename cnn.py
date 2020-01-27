@@ -126,20 +126,25 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
         )
 
     # plot acc, balanced acc and loss
+    if roar != 'orginal':
+        title = roar + ' image features removed'
+    # else:
+        title = roar
     plt.plot(train_acc, color='skyblue', label='train acc')
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title('model accuracy ' + roar + ', final balanced accuracy: ' + str(
+    plt.title('model accuracy ' + title + ', final balanced accuracy: ' + str(
         round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('acc')
     plt.xlabel('epoch')
+    plt.axis([0, N_EPOCHS, 50, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/plots/accuracy' + roar + '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
     plt.plot(valid_loss, color='orange', label='valid_loss')
-    plt.title('model loss ' + roar)
+    plt.title('model loss ' + title)
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
@@ -154,14 +159,14 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
 
 
 def train_roar_ds(path_root, subpath_heapmaps, root, roar_values, filename_roar, valid_labels, train_labels, batch_size,
-                  n_classes, N_EPOCHS, lr, mode, DEVICE):
+                  n_classes, N_EPOCHS, lr, mode, DEVICE, explainer):
     with open(path_root + subpath_heapmaps, 'rb') as f:
         mask = pickle.load(f)
         for i in roar_values:
             print('training with roar dataset ' + str(i) + ' % of the image features removed')  #
             print('loading validation DS')
             val_ds = Spectralloader(valid_labels, root, mode)
-            print('applying ROAR to validation DS')
+            print('applying ROAR heapmap to validation DS')
             val_ds.apply_roar(i, mask, DEVICE)
             val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
             # print example image
@@ -169,22 +174,11 @@ def train_roar_ds(path_root, subpath_heapmaps, root, roar_values, filename_roar,
             display_rgb(im, 'example image roar:' + str(i))
             print('loading training data')
             train_ds = Spectralloader(train_labels, root, mode)
-            print('applying ROAR to training DS')
+            print('applying ROAR heapmap to training DS')
             train_ds.apply_roar(i, mask, DEVICE)
             train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
-            print('training on dS with ROAR= ' + str(i) + ' % removed')
-            model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(i) + "%removed")
+            print('training on ROAR DS, ' + str(i) + ' % removed')
+            model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,
+                          str(i) + '%_of_' + explainer)
             print('saving roar model')
             pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))
-    acc_vals = []
-    for i in roar_values:
-        path = './data/plots/values/' + str(i) + "%removed" + '.sav'
-        val = pickle.load(open(path, 'rb'))
-        acc_vals.append(val)
-    plt.plot(roar_values, acc_vals, 'ro')
-    plt.title('development of accuracy by increasing ROAR value')
-    plt.xlabel('ROAR value: % removed from image')
-    plt.ylabel('accuracy')
-    plt.axis([0, 100, 0, 100])
-    plt.savefig('./data/plots/accuracy_roar_comparison')
-    plt.show()

@@ -34,12 +34,13 @@ from helpfunctions import *
 DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
-roar_create_mask = False
+roar_create_mask = True
 roar_train = True
 roar_plot = False
 N_EPOCHS = 90
 lr = 0.00015
-roar_explainers = ['gradcam', 'random', 'noisetunnel']
+roar_explainers = ['noisetunnel', 'gradcam']
+roar_values = [10, 20, 30, 50, 60, 70, 90, 95, 100]
 
 
 # cuda:1
@@ -68,7 +69,6 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
-    roar_values = [10, 30, 50, 70, 90, 95, 100]
     filename_roar = 'data/trained_model_roar'
     filename_ori = 'data/trained_model_original.sav'
     train_labels, valid_labels, all_labels = load_labels()
@@ -117,7 +117,8 @@ def main():
     if roar_train:
         for i in roar_explainers:
             train_roar_ds(path_exp, subpath_heapmaps + i + '.pkl', root, roar_values, filename_roar, valid_labels,
-                          train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE)
+                          train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE, i)
+        plot_dev_acc(roar_values, roar_explainers)
 
     if roar_plot:
         print('explaining roar models')

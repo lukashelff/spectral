@@ -212,7 +212,6 @@ def explain_single(model, image, label, explainer):
                                               )
         heapmap = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
-
     return heapmap
 
 
@@ -220,12 +219,14 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     d_length = dataset.__len__()
     model.to(DEVICE)
     heapmaps = {}
+    for k in roar_explainers:
+        heapmaps[k] = {}
     for i in range(0, d_length):
         image, label = dataset.__getitem__(i)
         image = torch.from_numpy(image).to(DEVICE)
         for k in roar_explainers:
-            heapmaps[k] = {}
             heapmaps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k)
+        print('create mask for image: ' + str(i))
     if not os.path.exists(path + '/heapmaps'):
         os.makedirs(path + '/heapmaps')
     for k in roar_explainers:
