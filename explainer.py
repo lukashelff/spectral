@@ -171,36 +171,62 @@ def explain(model, image, label):
 
 
 # create single explainer for given image
-def explain_single(model, image, label):
+def explain_single(model, image, label, explainer):
     input = image.unsqueeze(0)
     input.requires_grad = True
     model.eval()
     c, h, w = image.shape
+    heapmap = np.random.rand(h, w)
+
+    def cut_and_shape(data):
+        # consider only the positive values
+        for i in range(h):
+            for k in range(w):
+                for j in range(c):
+                    if data[i][k][j] < 0:
+                        data[i][k][j] = 0
+        # reshape to hxw
+        d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
+        return d_img
 
     def attribute_image_features(algorithm, input, **kwargs):
         model.zero_grad()
         tensor_attributions = algorithm.attribute(input, target=label, **kwargs)
         return tensor_attributions
 
-    # GradCam
-    gco = LayerGradCam(model, model.layer4)
-    attr_gco = attribute_image_features(gco, input)
-    att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
-    # gco_int = (att * 255).astype(np.uint8)
-    gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
-    np_gradcam = np.asarray(gradcam)
+    if explainer == 'gradcam':
+        # GradCam
+        gco = LayerGradCam(model, model.layer4)
+        attr_gco = attribute_image_features(gco, input)
+        att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
+        # gco_int = (att * 255).astype(np.uint8)
+        gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
+        heapmap = np.asarray(gradcam)
+    elif explainer == 'noisetunnel':
+        # IntegratedGradients Noise Tunnel
+        ig = IntegratedGradients(model)
+        nt = NoiseTunnel(ig)
+        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                              n_samples=5,
+                                              # stdevs=0.2
+                                              )
+        heapmap = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
-    return np_gradcam
+
+    return heapmap
 
 
-def create_mask(model, dataset, path, subpath, DEVICE):
+def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     d_length = dataset.__len__()
-    heapmaps = {}
     model.to(DEVICE)
+    heapmaps = {}
     for i in range(0, d_length):
         image, label = dataset.__getitem__(i)
         image = torch.from_numpy(image).to(DEVICE)
-        heapmaps[dataset.get_id_by_index(i)] = explain_single(model, image, label)
+        for k in roar_explainers:
+            heapmaps[k] = {}
+            heapmaps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k)
     if not os.path.exists(path + '/heapmaps'):
         os.makedirs(path + '/heapmaps')
-    pickle.dump(heapmaps, open(path + subpath, 'wb'))
+    for k in roar_explainers:
+        pickle.dump(heapmaps[k], open(path + subpath + k + '.pkl', 'wb'))

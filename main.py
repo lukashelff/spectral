@@ -26,19 +26,20 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 from spectralloader import Spectralloader
-from cnn import train
+from cnn import *
 from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
-roar_train = False
-roar_plot = True
-N_EPOCHS = 120
+roar_train = True
+roar_plot = False
+N_EPOCHS = 90
 lr = 0.00015
+roar_explainers = ['gradcam', 'random', 'noisetunnel']
 
 
 # cuda:1
@@ -67,13 +68,14 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
+    roar_values = [10, 30, 50, 70, 90, 95, 100]
     filename_roar = 'data/trained_model_roar'
     filename_ori = 'data/trained_model_original.sav'
     train_labels, valid_labels, all_labels = load_labels()
     # save the explainer images of the figures
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
-    path_root = './data/exp/'
-    subpath_heapmaps = 'heapmaps/heapmaps.pkl'
+    path_exp = './data/exp/'
+    subpath_heapmaps = 'heapmaps/heapmaps'
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     # image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
@@ -87,7 +89,7 @@ def main():
         print('loading validation dataset')
         val_ds = Spectralloader(valid_labels, root, mode)
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
-    if plot_for_image_id:
+    if plot_for_image_id or roar_create_mask:
         print('loading whole dataset')
         all_ds = Spectralloader(all_labels, root, mode)
 
@@ -111,33 +113,16 @@ def main():
 
     if roar_create_mask:
         print('creating heap map for ROAR')
-        create_mask(model, all_ds, path_root, subpath_heapmaps, DEVICE)
+        create_mask(model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
     if roar_train:
-        with open(path_root + subpath_heapmaps, 'rb') as f:
-            mask = pickle.load(f)
-            test_ims = []
-            for i in [10, 30, 50, 70, 90]:
-                print('training with roar dataset ' + str(i) + ' % of the image features removed')
-                print('loading training data')
-                train_ds = Spectralloader(train_labels, root, mode)
-                print('applying ROAR to training DS')
-                train_ds.apply_roar(i, mask, DEVICE)
-                train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
-                print('loading validation dataset')
-                val_ds = Spectralloader(valid_labels, root, mode)
-                print('applying ROAR to validation DS')
-                val_ds.apply_roar(i, mask, DEVICE)
-                val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
-                print('training ' + str(i) + ' % removed')
-                im, label = train_ds.get_by_id('1_Z17_1_0_0')
-                display_rgb(im, 'example image roar:' + str(i))
-                model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(i) + "%removed")
-                print('saving roar model')
-                pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))
+        for i in roar_explainers:
+            train_roar_ds(path_exp, subpath_heapmaps + i + '.pkl', root, roar_values, filename_roar, valid_labels,
+                          train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE)
+
     if roar_plot:
         print('explaining roar models')
-        for i in [10, 30, 50, 70, 90]:
-            with open(path_root + subpath_heapmaps, 'rb') as f:
+        for i in roar_values:
+            with open(path_exp + subpath_heapmaps + 'gradcam' + '.pkl', 'rb') as f:
                 mask = pickle.load(f)
                 all_ds = Spectralloader(all_labels, root, mode)
                 print('applying ROAR to specified IDs in DS')

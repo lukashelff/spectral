@@ -1,11 +1,15 @@
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from torchvision import models
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
+import pickle
+import os
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+from helpfunctions import display_rgb
+from spectralloader import Spectralloader
 
 
 def get_trainable(model_params):
@@ -141,5 +145,46 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     plt.legend(loc='lower right')
     plt.savefig('./data/plots/loss' + roar + '.png')
     plt.show()
+    path_values = './data/plots/values/'
+    if not os.path.exists(path_values):
+        os.makedirs(path_values)
+    pickle.dump(round(valid_balanced_acc[N_EPOCHS - 1], 2), open(path_values + roar + '.sav', 'wb'))
 
     return model
+
+
+def train_roar_ds(path_root, subpath_heapmaps, root, roar_values, filename_roar, valid_labels, train_labels, batch_size,
+                  n_classes, N_EPOCHS, lr, mode, DEVICE):
+    with open(path_root + subpath_heapmaps, 'rb') as f:
+        mask = pickle.load(f)
+        for i in roar_values:
+            print('training with roar dataset ' + str(i) + ' % of the image features removed')  #
+            print('loading validation DS')
+            val_ds = Spectralloader(valid_labels, root, mode)
+            print('applying ROAR to validation DS')
+            val_ds.apply_roar(i, mask, DEVICE)
+            val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
+            # print example image
+            im, label = val_ds.get_by_id('4_Z15_1_1_0')
+            display_rgb(im, 'example image roar:' + str(i))
+            print('loading training data')
+            train_ds = Spectralloader(train_labels, root, mode)
+            print('applying ROAR to training DS')
+            train_ds.apply_roar(i, mask, DEVICE)
+            train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
+            print('training on dS with ROAR= ' + str(i) + ' % removed')
+            model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(i) + "%removed")
+            print('saving roar model')
+            pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))
+    acc_vals = []
+    for i in roar_values:
+        path = './data/plots/values/' + str(i) + "%removed" + '.sav'
+        val = pickle.load(open(path, 'rb'))
+        acc_vals.append(val)
+    plt.plot(roar_values, acc_vals, 'ro')
+    plt.title('development of accuracy by increasing ROAR value')
+    plt.xlabel('ROAR value: % removed from image')
+    plt.ylabel('accuracy')
+    plt.axis([0, 100, 0, 100])
+    plt.savefig('./data/plots/accuracy_roar_comparison')
+    plt.show()

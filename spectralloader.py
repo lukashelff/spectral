@@ -165,7 +165,6 @@ class Spectralloader(Dataset):
         loaded_images = []
         loaded_image_ids = []
         for i in range(1, 5):
-            print("loading images of day: " + str(i))
             if i == 1:
                 for k in range(1, 14):
                     ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
@@ -178,15 +177,15 @@ class Spectralloader(Dataset):
                         loaded_images += im
                         loaded_image_ids += ids
         label_ids, label_raw = sync_labels(loaded_image_ids)
-
-        print("images loaded")
         return label_ids, label_raw, loaded_image_ids, loaded_images
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
     def apply_roar(self, percentage, masks, DEVICE):
-        for d in range(0, self.__len__()):
-            # print('modified images: ' + str(d + 1) + "/" + str(self.__len__()))
+        length = self.__len__()
+        for d in range(0, length):
+            if ((d + 1) % (length//4)) == 0:
+                print('modified images: ' + str(d + 1) + ' of ' + str(self.__len__()))
             im, label = self.__getitem__(d)
             id = self.get_id_by_index(d)
             mask = masks[id]
