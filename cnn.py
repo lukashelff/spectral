@@ -171,7 +171,9 @@ def train_roar_ds(path_root, subpath_heapmaps, root, roar_values, filename_roar,
             val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
             # print example image
             im, label = val_ds.get_by_id('4_Z15_1_1_0')
-            display_rgb(im, 'example image roar:' + str(i))
+            path = './data/exp/pred_img_example/'
+            name = explainer + 'ROAR' + str(i)
+            display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
             print('loading training data')
             train_ds = Spectralloader(train_labels, root, mode)
             print('applying ROAR heapmap to training DS')

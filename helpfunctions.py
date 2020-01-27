@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -12,10 +14,13 @@ def display_rgb_grid(img, title):
 
 
 # display rgb image
-def display_rgb(img, title):
+def display_rgb(img, title, path, name):
     plt.title(title)
     plt.imshow(np.transpose(img, (1, 2, 0)))
     plt.show()
+    if not os.path.exists(path):
+        os.makedirs(path)
+    plt.savefig(path + name)
 
 
 # display spectral image
