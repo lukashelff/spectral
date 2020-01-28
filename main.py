@@ -34,12 +34,12 @@ from helpfunctions import *
 DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
-roar_create_mask = True
+roar_create_mask = False
 roar_train = True
 roar_plot = False
 N_EPOCHS = 90
 lr = 0.00015
-roar_explainers = ['noisetunnel', 'gradcam']
+roar_explainers = ['noisetunnel', 'random', 'gradcam']
 roar_values = [10, 20, 30, 50, 60, 70, 90, 95, 100]
 
 

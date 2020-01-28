@@ -260,7 +260,7 @@ def plot_dev_acc(roar_values, roar_explainers):
     plt.title('development of accuracy by increasing ROAR value')
     plt.xlabel('ROAR value: % removed from image')
     plt.ylabel('accuracy')
-    plt.axis([0, 100, 0, 100])
+    plt.axis([0, 100, 50, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/plots/accuracy_roar_comparison')
     plt.show()
