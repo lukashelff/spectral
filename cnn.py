@@ -127,17 +127,17 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
 
     # plot acc, balanced acc and loss
     if roar != 'orginal':
-        title = roar + ' image features removed'
-    # else:
-        title = roar
+        title = roar.replace(',', '_') + ' image features removed'
+    else:
+        title = roar + ' model 0% removed'
     plt.plot(train_acc, color='skyblue', label='train acc')
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title('model accuracy ' + title + ', final balanced accuracy: ' + str(
+    plt.title(title + ', final bal acc: ' + str(
         round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
-    plt.ylabel('acc')
-    plt.xlabel('epoch')
+    plt.ylabel('model accuracy')
+    plt.xlabel('training epoch')
     plt.axis([0, N_EPOCHS, 50, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/plots/accuracy' + roar + '.png')
@@ -158,12 +158,13 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     return model
 
 
-def train_roar_ds(path_root, subpath_heapmaps, root, roar_values, filename_roar, valid_labels, train_labels, batch_size,
-                  n_classes, N_EPOCHS, lr, mode, DEVICE, explainer):
-    with open(path_root + subpath_heapmaps, 'rb') as f:
+def train_roar_ds(path_root, root, roar_values, filename_roar, valid_labels, train_labels, batch_size, n_classes,
+                  N_EPOCHS, lr, mode, DEVICE, explainer):
+    with open(path_root, 'rb') as f:
         mask = pickle.load(f)
         for i in roar_values:
-            print('training with roar dataset ' + str(i) + ' % of the image features removed')  #
+            print('------------------------------------------------------------')
+            print('removing ' + str(i) + ' % of the image features & train after')  #
             print('loading validation DS')
             val_ds = Spectralloader(valid_labels, root, mode)
             print('applying ROAR heapmap to validation DS')
@@ -182,5 +183,5 @@ def train_roar_ds(path_root, subpath_heapmaps, root, roar_values, filename_roar,
             print('training on ROAR DS, ' + str(i) + ' % removed')
             model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,
                           str(i) + '%_of_' + explainer)
-            # print('saving roar model')
-            # pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))
+            print('saving roar model')
+            pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))

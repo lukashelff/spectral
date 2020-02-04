@@ -31,17 +31,19 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
-roar_create_mask = False
-roar_train = True
+roar_create_mask = True
+roar_train = False
+plot_roar_curve = False
 roar_plot = False
-N_EPOCHS = 90
+N_EPOCHS = 120
 lr = 0.00015
-roar_explainers = ['noisetunnel', 'random', 'gradcam']
-roar_values = [10, 20, 30, 50, 60, 70, 90, 95, 100]
-
+# roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
+roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100]
+roar_explainers = ['noisetunnel_gaussian']
+# roar_values = [10, 20]
 
 # cuda:1
 #
@@ -69,8 +71,8 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
-    filename_roar = 'data/trained_model_roar'
-    filename_ori = 'data/trained_model_original.sav'
+    trained_roar_models = './data/models/trained_model_roar'
+    original_trained_model = './data/models/trained_model_original.sav'
     train_labels, valid_labels, all_labels = load_labels()
     # save the explainer images of the figures
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
@@ -97,10 +99,12 @@ def main():
     if retrain:
         # train on original data
         model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original")
-        pickle.dump(model, open(filename_ori, 'wb'))
+        if not os.path.exists('./data/models/'):
+            os.makedirs('./data/models/')
+        pickle.dump(model, open(original_trained_model, 'wb'))
         print('trained model saved')
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
-        model = pickle.load(open(filename_ori, 'rb'))
+        model = pickle.load(open(original_trained_model, 'rb'))
 
     # save the created explainer Image
     if plot_classes or plot_categories:
@@ -114,25 +118,29 @@ def main():
     if roar_create_mask:
         print('creating heap map for ROAR')
         create_mask(model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
+        print('heapmaps for ROAR created')
+
     if roar_train:
         for i in roar_explainers:
-            train_roar_ds(path_exp, subpath_heapmaps + i + '.pkl', root, roar_values, filename_roar, valid_labels,
+            train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', root, roar_values, trained_roar_models, valid_labels,
                           train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE, i)
+    if plot_roar_curve:
         plot_dev_acc(roar_values, roar_explainers)
 
     if roar_plot:
         print('explaining roar models')
         for i in roar_values:
-            with open(path_exp + subpath_heapmaps + 'gradcam' + '.pkl', 'rb') as f:
-                mask = pickle.load(f)
-                all_ds = Spectralloader(all_labels, root, mode)
-                print('applying ROAR to specified IDs in DS')
-                for id in image_ids:
-                    for w in range(1, 5):
-                        all_ds.apply_roar_single_image(i, mask, str(w) + '_' + id)
-                model = pickle.load(open(filename_roar + str(i) + '.sav', 'rb'))
-                print('creating explainer for DS with ' + str(i) + ' % of the image features removed')
-                plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
+            for ex in explainers:
+                with open(path_exp + subpath_heapmaps + 'gradcam' + '.pkl', 'rb') as f:
+                    mask = pickle.load(f)
+                    all_ds = Spectralloader(all_labels, root, mode)
+                    print('applying ROAR to specified IDs in DS')
+                    for id in image_ids:
+                        for w in range(1, 5):
+                            all_ds.apply_roar_single_image(i, mask, str(w) + '_' + id)
+                    model = pickle.load(open(trained_roar_models + str(i) + '.sav', 'rb'))
+                    print('creating explainer for DS with ' + str(i) + ' % of the image features removed')
+                    plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
 
 
 main()
