@@ -158,14 +158,13 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     return model
 
 
-def train_roar_ds(path_root, root, roar_values, filename_roar, valid_labels, train_labels, batch_size, n_classes,
+def train_roar_ds(path_root, root, roar_values, trained_roar_models, valid_labels, train_labels, batch_size, n_classes,
                   N_EPOCHS, lr, mode, DEVICE, explainer):
     with open(path_root, 'rb') as f:
         mask = pickle.load(f)
         for i in roar_values:
             print('------------------------------------------------------------')
-            print('removing ' + str(i) + ' % of the image features & train after')  #
-            print('loading validation DS')
+            print('removing ' + str(i) + ' % of the image features & train after ' + explainer)  #
             val_ds = Spectralloader(valid_labels, root, mode)
             print('applying ROAR heapmap to validation DS')
             val_ds.apply_roar(i, mask, DEVICE)
@@ -175,7 +174,6 @@ def train_roar_ds(path_root, root, roar_values, filename_roar, valid_labels, tra
             path = './data/exp/pred_img_example/'
             name = explainer + 'ROAR' + str(i)
             display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
-            print('loading training data')
             train_ds = Spectralloader(train_labels, root, mode)
             print('applying ROAR heapmap to training DS')
             train_ds.apply_roar(i, mask, DEVICE)
@@ -184,4 +182,4 @@ def train_roar_ds(path_root, root, roar_values, filename_roar, valid_labels, tra
             model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,
                           str(i) + '%_of_' + explainer)
             print('saving roar model')
-            pickle.dump(model, open(filename_roar + str(i) + '.sav', 'wb'))
+            pickle.dump(model, open(trained_roar_models + '_' + explainer + '_' + str(i) + '.sav', 'wb'))

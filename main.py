@@ -34,15 +34,18 @@ from helpfunctions import *
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
-roar_create_mask = True
-roar_train = False
+roar_create_mask = False
+roar_train = True
 plot_roar_curve = False
 roar_plot = False
 N_EPOCHS = 120
 lr = 0.00015
 # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
 roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100]
-roar_explainers = ['noisetunnel_gaussian']
+roar_explainers = ['guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
+# roar_explainers = ['noisetunnel', 'random', 'gradcam']
+
+
 # roar_values = [10, 20]
 
 # cuda:1
@@ -122,25 +125,29 @@ def main():
 
     if roar_train:
         for i in roar_explainers:
-            train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', root, roar_values, trained_roar_models, valid_labels,
-                          train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE, i)
+            train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', root, roar_values, trained_roar_models,
+                          valid_labels, train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE, i)
     if plot_roar_curve:
         plot_dev_acc(roar_values, roar_explainers)
 
     if roar_plot:
         print('explaining roar models')
-        for i in roar_values:
-            for ex in explainers:
-                with open(path_exp + subpath_heapmaps + 'gradcam' + '.pkl', 'rb') as f:
+        for ex in explainers:
+            # loading heapmap of coresponding explainer
+            with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
+                for i in roar_values:
+                    id = str(3) + '_' + image_ids[0]
                     mask = pickle.load(f)
                     all_ds = Spectralloader(all_labels, root, mode)
-                    print('applying ROAR to specified IDs in DS')
-                    for id in image_ids:
-                        for w in range(1, 5):
-                            all_ds.apply_roar_single_image(i, mask, str(w) + '_' + id)
-                    model = pickle.load(open(trained_roar_models + str(i) + '.sav', 'rb'))
+                    print('applying ROAR to specified image with ID: ' + id)
+                    all_ds.apply_roar_single_image(i, mask, id)
+                    image, label = all_ds.get_by_id(id)
+                    # loading model of explainer for corresponding remove value
+                    model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
                     print('creating explainer for DS with ' + str(i) + ' % of the image features removed')
-                    plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
+                    # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
+                    heap = explain_single(model, image, label, ex)
+                    fig = apply_heap(heap, image)
 
 
 main()
