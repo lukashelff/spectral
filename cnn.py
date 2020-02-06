@@ -127,14 +127,14 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
 
     # plot acc, balanced acc and loss
     if roar != 'orginal':
-        title = roar.replace(',', '_') + ' image features removed'
+        title = roar.replace('_', ' ') + ' image features removed'
     else:
         title = roar + ' model 0% removed'
     plt.plot(train_acc, color='skyblue', label='train acc')
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title(title + ', final bal acc: ' + str(
+    plt.title(title + ',\nfinal bal acc: ' + str(
         round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')

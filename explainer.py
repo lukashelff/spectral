@@ -171,23 +171,6 @@ def explain(model, image, label):
     return [f1, f2, f3, f4, f6, f7, f8]
 
 
-def apply_heap(activation_map, image):
-    # Edge detection of original input image
-    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
-    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-    # Compute the Canny filter for two values of sigma
-    org_img_edged = feature.canny(org_img_edged, sigma=3)
-    fig, ax = plt.subplots()
-    ax.imshow(org_img_edged, cmap=plt.cm.binary)
-    ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map), alpha=0.4)
-    ax.tick_params(axis='both', which='both', length=0)
-    plt.setp(ax.get_xticklabels(), visible=False)
-    plt.setp(ax.get_yticklabels(), visible=False)
-    plt.close('all')
-    return fig
-
-
 # create single explainer for given image
 def explain_single(model, image, label, explainer):
     input = image.unsqueeze(0)

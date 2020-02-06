@@ -198,7 +198,7 @@ class Spectralloader(Dataset):
                 val = im
                 for i in range(0, w):
                     for j in range(0, h):
-                        if mask[j][i] > percentile:
+                        if mask[j][i] >= percentile:
                             val[0][j][i] = mean
                             val[1][j][i] = mean
                             val[2][j][i] = mean
@@ -217,7 +217,7 @@ class Spectralloader(Dataset):
                 val = im
                 for i in range(0, w):
                     for j in range(0, h):
-                        if mask[j][i] > percentile:
+                        if mask[j][i] >= percentile:
                             val[0][j][i] = mean
                             val[1][j][i] = mean
                             val[2][j][i] = mean
