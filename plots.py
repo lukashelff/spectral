@@ -248,7 +248,7 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
 
 
 def plot_dev_acc(roar_values, roar_explainers):
-    colors = ['g', 'b', 'c', 'm', 'y', 'b']
+    colors = ['g', 'b', 'c', 'm', 'y', 'k', 'w']
     path = './data/plots/values/original.sav'
     val = pickle.load(open(path, 'rb'))
     plt.plot([roar_values[0], roar_values[-1]], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')

@@ -40,10 +40,7 @@ plot_roar_curve = False
 roar_plot = True
 N_EPOCHS = 120
 lr = 0.00015
-roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
-roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100]
-roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'guided_gradcam_gaussian']
-# roar_values = [60, 70, 80, 90, 95, 100]
+
 
 
 # roar_values = [10, 20]
@@ -68,6 +65,12 @@ def load_labels():
 
 
 def main():
+    roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
+                       'guided_gradcam_gaussian']
+    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100]
+    # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
+    #                    'guided_gradcam_gaussian']
+    # roar_values = [10, 30, 50, 60, 80, 90]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
@@ -84,7 +87,7 @@ def main():
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     # image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
-    image_ids = ['Z17_1_0_0']
+    image_ids = ['Z17_1_0_0', 'Z15_2_1_2']
 
     if retrain or plot_classes or plot_categories:
         # loaded needed data
@@ -119,6 +122,7 @@ def main():
         plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, 'original')
 
     if roar_create_mask:
+
         print('creating heap map for ROAR')
         create_mask(model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
         print('heapmaps for ROAR created')
@@ -131,80 +135,91 @@ def main():
         plot_dev_acc(roar_values, roar_explainers)
 
     if roar_plot:
+        roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian']
+        roar_values = [10, 30, 50, 70, 90, 100]
         subpath = 'roar/'
         print('plotting modified images according to roar')
-        fig = plt.figure(figsize=(6 * len(roar_values) + 2, 7 * len(roar_explainers) + 8))
-        fig.suptitle("image modification according to ROAR framework", fontsize=35)
-        if not os.path.exists(path_exp + subpath):
-            os.makedirs(path_exp + subpath)
-        for c_ex, ex in enumerate(roar_explainers):
-            # loading heapmap of corresponding explainer
-            with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
-                mask = pickle.load(f)
-                print('appling ' + ex + ' to image')
-                for c_r, i in enumerate(roar_values):
-                    id = str(3) + '_' + image_ids[0]
-                    all_ds = Spectralloader(all_labels, root, mode)
-                    all_ds.apply_roar_single_image(i, mask, id)
-                    image, label = all_ds.get_by_id(id)
-                    sub_path = str(i) + '%_of_' + ex + '.sav'
-                    path = './data/plots/values/' + sub_path
-                    acc = pickle.load(open(path, 'rb'))
-                    # create ROAR plot
-                    ax = fig.add_subplot(len(roar_values), len(roar_explainers), (c_ex + 1) + c_r * len(roar_explainers))
-                    ax.tick_params(axis='both', which='both', length=0)
-                    if c_r == 0:
-                        ax.set_ylabel(str(i) + '%')
-                    if c_ex == 0:
-                        ax.set_title(ex + '\n' + str(acc) + '%')
-                    else:
-                        ax.set_title(str(acc) + '%')
-                    plt.imshow(np.transpose(image, (1, 2, 0)))
-                    plt.setp(ax.get_xticklabels(), visible=False)
-                    plt.setp(ax.get_yticklabels(), visible=False)
-        plt.show()
-        plt.close('all')
-
-
-        # fig2 = plt.figure(figsize=(6 * len(roar_values) + 2, 7 * len(roar_explainers) + 8))
-        # fig2.suptitle("modified image according to ROAR framework with applied interpretation of its saliency method", fontsize=35)
-        # fig.savefig(path_exp + subpath + 'comparison_roar_images' + '.png')
+        w, h = 9 * len(roar_explainers), 8 * len(roar_values) + 8
+        # fig = plt.figure(figsize=(w, h))
+        # # fig.suptitle("image modification according to ROAR framework", fontsize=35)
+        # if not os.path.exists(path_exp + subpath):
+        #     os.makedirs(path_exp + subpath)
         # for c_ex, ex in enumerate(roar_explainers):
         #     # loading heapmap of corresponding explainer
         #     with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
         #         mask = pickle.load(f)
         #         print('appling ' + ex + ' to image')
         #         for c_r, i in enumerate(roar_values):
-        #             id = str(3) + '_' + image_ids[0]
+        #             id = str(3) + '_' + image_ids[1]
         #             all_ds = Spectralloader(all_labels, root, mode)
-        #             all_ds.apply_roar_single_image(i, mask, id)
+        #             sub_path = str(i) + '%_of_' + ex + '.sav'
+        #             path = './data/plots/values/' + sub_path
+        #             if i == 0:
+        #                 path = './data/plots/values/' + 'original.sav'
+        #             else:
+        #                 all_ds.apply_roar_single_image(i, mask, id)
         #             image, label = all_ds.get_by_id(id)
-        #             # loading model of explainer for corresponding remove value
-        #             model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
-        #             print('image with ' + str(i) + ' % of the image features removed')
-        #             # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
-        #             model.to(DEVICE)
-        #             image = torch.from_numpy(image).to(DEVICE)
-        #             activation_map = explain_single(model, image, label, ex)
-        #             org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-        #             org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
-        #             org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-        #             # Compute the Canny filter for two values of sigma
-        #             org_img_edged = feature.canny(org_img_edged, sigma=3)
-        #             ax2 = fig2.add_subplot(len(roar_values), len(roar_explainers),
+        #             acc = pickle.load(open(path, 'rb'))
+        #             # create ROAR plot
+        #             ax = fig.add_subplot(len(roar_values), len(roar_explainers),
         #                                  (c_ex + 1) + c_r * len(roar_explainers))
-        #             ax2.tick_params(axis='both', which='both', length=0)
-        #             if c_r == 0:
-        #                 ax2.set_ylabel(str(i) + '%')
+        #             ax.tick_params(axis='both', which='both', length=0)
         #             if c_ex == 0:
-        #                 ax2.set_title(ex)
-        #             ax2.imshow(org_img_edged, cmap=plt.cm.binary)
-        #             ax2.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
-        #                       alpha=0.4)
-        #             plt.setp(ax2.get_xticklabels(), visible=False)
-        #             plt.setp(ax2.get_yticklabels(), visible=False)
-        #
-        # fig2.savefig(path_exp + subpath + 'comparison_explained_roar_images' + '.png')
+        #                 ax.set_ylabel(str(i) + '%')
+        #             if c_r == 0:
+        #                 ax.set_title(ex + '\n' + str(acc) + '%')
+        #             else:
+        #                 ax.set_title(str(acc) + '%')
+        #             plt.imshow(np.transpose(image, (1, 2, 0)))
+        #             plt.setp(ax.get_xticklabels(), visible=False)
+        #             plt.setp(ax.get_yticklabels(), visible=False)
+        # plt.show()
+        # fig.savefig(path_exp + subpath + 'comparison_roar_images2' + '.png')
+        # plt.close('all')
+        roar_values = [0, 10, 30, 50, 70, 90, 100]
+
+        fig2 = plt.figure(figsize=(w, h))
+        # fig2.suptitle("modified image according to ROAR framework with applied interpretation of its saliency method",
+        #               fontsize=35)
+        for c_ex, ex in enumerate(roar_explainers):
+            # loading heapmap of corresponding explainer
+            with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
+                mask = pickle.load(f)
+                print('applying ' + ex + ' to image')
+                for c_r, i in enumerate(roar_values):
+                    id = str(3) + '_' + image_ids[1]
+                    all_ds = Spectralloader(all_labels, root, mode)
+                    # loading model of explainer for corresponding remove value
+                    if i == 0:
+                        model = pickle.load(open(original_trained_model, 'rb'))
+                    else:
+                        model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
+                        all_ds.apply_roar_single_image(i, mask, id)
+                    image, label = all_ds.get_by_id(id)
+                    print('image with ' + str(i) + ' % of the image features removed')
+                    # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
+                    model.to(DEVICE)
+                    image = torch.from_numpy(image).to(DEVICE)
+                    activation_map = explain_single(model, image, label, ex)
+                    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+                    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+                    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+                    # Compute the Canny filter for two values of sigma
+                    org_img_edged = feature.canny(org_img_edged, sigma=3)
+                    ax2 = fig2.add_subplot(len(roar_values), len(roar_explainers),
+                                           (c_ex + 1) + c_r * len(roar_explainers))
+                    ax2.tick_params(axis='both', which='both', length=0)
+                    if c_ex == 0:
+                        ax2.set_ylabel(str(i) + '%')
+                    if c_r == 0:
+                        ax2.set_title(ex)
+                    ax2.imshow(org_img_edged, cmap=plt.cm.binary)
+                    ax2.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
+                               alpha=0.4)
+                    plt.setp(ax2.get_xticklabels(), visible=False)
+                    plt.setp(ax2.get_yticklabels(), visible=False)
+
+        fig2.savefig(path_exp + subpath + 'comparison_explained_roar_images2' + '.png')
         plt.show()
 
 
