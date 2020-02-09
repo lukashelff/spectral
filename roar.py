@@ -45,12 +45,12 @@ subpath = 'roar/'
 def eval_roar_expl_im(all_labels, mode, DEVICE):
     roar_expl_im_values = [0, 10, 30, 50, 70, 90, 100]
     roar_im_expl = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'noisetunnel_gaussian']
-    w, h = 8.5 * len(roar_im_expl), 8.5 * len(roar_expl_im_values)
+    w, h = 9 * len(roar_im_expl), 8.5 * len(roar_expl_im_values) + 4
     image_ids_roar_exp = [0, 3, 4, 6]
     for k in image_ids_roar_exp:
         id = str(3) + '_' + image_ids[k]
         fig = plt.figure(figsize=(w, h))
-        fig.subplots_adjust(top=3)
+        fig.subplots_adjust(top=1)
         fig.suptitle(
             "modified image " + id + " according to ROAR framework with applied interpretation of its saliency method",
             fontsize=20)
@@ -103,7 +103,7 @@ def roar_mod_im_comp(all_labels, mode):
     roar_values = [10, 30, 50, 70, 90, 100]
     subpath = 'roar/'
     print('plotting modified images according to roar')
-    w, h = 9 * len(roar_explainers), 8 * len(roar_values) + 8
+    w, h = 9 * len(roar_explainers), 8.5 * len(roar_values) + 4
     fig = plt.figure(figsize=(w, h))
     # fig.suptitle("image modification according to ROAR framework", fontsize=35)
     if not os.path.exists(path_exp + subpath):
