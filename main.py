@@ -39,8 +39,8 @@ plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
 roar_train = False
 plot_roar_curve = False
-roar_mod_im_comp = False
-roar_expl_im = True
+roar_mod_im_comp = True
+roar_expl_im = False
 N_EPOCHS = 120
 lr = 0.00015
 
@@ -137,7 +137,7 @@ def main():
 
     # comparison of modified roar Images
     if roar_mod_im_comp:
-        roar_mod_im_comp(all_labels, mode)
+        eval_roar_mod_im_comp(all_labels, mode)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_im:
