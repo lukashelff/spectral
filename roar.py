@@ -49,7 +49,7 @@ def eval_roar_expl_im(all_labels, mode, DEVICE):
     roar_expl_im_values = [0, 10, 30, 50, 70, 90, 100]
     print('plotting modified images according to roar')
     roar_im_expl = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'noisetunnel_gaussian']
-    w, h = 9 * len(roar_im_expl), 8.5 * len(roar_expl_im_values) + 4
+    w, h = 8.6 * len(roar_im_expl), 7.5 * len(roar_expl_im_values) + 3
     image_ids_roar_exp = [0, 3, 4, 6]
     for k in image_ids_roar_exp:
         id = str(3) + '_' + image_ids[k]
@@ -104,20 +104,22 @@ def eval_roar_expl_im(all_labels, mode, DEVICE):
 # comparison of modified roar Images
 # Axes: removed % of image features and explainers
 def eval_roar_mod_im_comp(all_labels, mode):
-    # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
-    #                    'guided_gradcam_gaussian']
-    roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian']
+    roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
+                       'guided_gradcam_gaussian']
+    # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian']
     roar_values = [10, 30, 50, 70, 90, 100]
     image_ids_roar_exp = [0, 3, 4, 6]
+    image_ids_roar_exp = [0]
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     subpath = 'roar/'
     print('plotting modified images according to roar')
-    w, h = 9 * len(roar_explainers), 8.5 * len(roar_values) + 8
+    w, h = 8.6 * len(roar_explainers), 7.5 * len(roar_values) + 3
 
     for k in image_ids_roar_exp:
         fig = plt.figure(figsize=(w, h))
-        fig.subplots_adjust(top=1)
+        fig.subplots_adjust(top=0.95)
         fig.suptitle("image " + image_ids[k] + " modificed according to ROAR framework", fontsize=25)
+        print('modifing image: ' + image_ids[k])
         if not os.path.exists(path_exp + subpath):
             os.makedirs(path_exp + subpath)
         for c_ex, ex in enumerate(roar_explainers):
@@ -126,7 +128,6 @@ def eval_roar_mod_im_comp(all_labels, mode):
                 mask = pickle.load(f)
                 print('appling ' + ex + ' to image!')
                 for c_r, i in enumerate(roar_values):
-                    print("appling " + str(i) + '%')
                     id = str(3) + '_' + image_ids[k]
                     all_ds = Spectralloader([image_labels[k]], root, mode)
                     sub_path = str(i) + '%_of_' + ex + '.sav'
@@ -150,6 +151,6 @@ def eval_roar_mod_im_comp(all_labels, mode):
                     plt.imshow(np.transpose(image, (1, 2, 0)))
                     plt.setp(ax.get_xticklabels(), visible=False)
                     plt.setp(ax.get_yticklabels(), visible=False)
-        plt.show()
+        # plt.show()
         fig.savefig(path_exp + subpath + 'comparison_roar_images' + id + '.png')
         plt.close('all')
