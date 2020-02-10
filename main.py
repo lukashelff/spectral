@@ -137,11 +137,11 @@ def main():
 
     # comparison of modified roar Images
     if roar_mod_im_comp:
-        eval_roar_mod_im_comp(all_labels, mode)
+        eval_roar_mod_im_comp(mode)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_im:
-        eval_roar_expl_im(all_labels, mode, DEVICE)
+        eval_roar_expl_im(mode, DEVICE)
 
 
 main()

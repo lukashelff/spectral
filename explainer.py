@@ -190,6 +190,16 @@ def explain_single(model, image, label, explainer):
         d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
         return d_img
 
+    def normalize(data):
+        # consider only the positive values
+        for i in range(h):
+            for k in range(w):
+                    if data[i][k] < 0:
+                        data[i][k] = 0
+        # reshape to 2D hxw
+        d_img = data
+        return d_img
+
     def attribute_image_features(algorithm, input, **kwargs):
         model.zero_grad()
         tensor_attributions = algorithm.attribute(input, target=label, **kwargs)

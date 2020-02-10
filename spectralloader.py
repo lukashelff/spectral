@@ -206,7 +206,7 @@ class Spectralloader(Dataset):
             except ValueError:
                 print('No roar img for id: ' + id)
 
-    def apply_roar_single_image(self, percentage, masks, id):
+    def apply_roar_single_image(self, percentage, masks, id, new_val):
         try:
             im, label = self.get_by_id(id)
             if im is not None:
@@ -218,9 +218,14 @@ class Spectralloader(Dataset):
                 for i in range(0, w):
                     for j in range(0, h):
                         if mask[j][i] >= percentile:
-                            val[0][j][i] = 238/255
-                            val[1][j][i] = 173/255
-                            val[2][j][i] = 14/255
+                            if new_val == "mean":
+                                val[0][j][i] = 0
+                                val[1][j][i] = 0
+                                val[2][j][i] = 0
+                            else:
+                                val[0][j][i] = 238/255
+                                val[1][j][i] = 173/255
+                                val[2][j][i] = 14/255
                 self.update_data(id, val)
         except ValueError:
             print('No roar img for id: ' + id)
