@@ -174,6 +174,7 @@ def train_roar_ds(path_root, root, roar_values, trained_roar_models, valid_label
             im, label = val_ds.get_by_id('4_Z15_1_1_0')
             path = './data/exp/pred_img_example/'
             name = explainer + 'ROAR' + str(i)
+            # display the modified image and save to pred images in data/exp/pred_img_example
             display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
             train_ds = Spectralloader(train_labels, root, mode)
             print('applying ROAR heapmap to training DS')

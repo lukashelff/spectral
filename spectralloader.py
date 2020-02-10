@@ -193,7 +193,10 @@ class Spectralloader(Dataset):
             torch.from_numpy(mask).to(DEVICE)
             mean = np.mean(im)
             try:
-                percentile = np.percentile(mask, 100 - percentage)
+                # only take percentile of values with duplicated zeros deleted
+                mask_flat = mask.flatten()
+                mask_zero_removed = mask_flat[mask_flat != 0]
+                percentile = np.percentile(mask_zero_removed.append(0), 100 - percentage)
                 c, h, w = im.shape
                 val = im
                 for i in range(0, w):

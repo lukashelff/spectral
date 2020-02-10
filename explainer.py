@@ -239,6 +239,7 @@ def explain_single(model, image, label, explainer):
 
     return heapmap
 
+
 # create a mask with all heapmaps for specified dataset
 def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     d_length = dataset.__len__()
@@ -257,6 +258,7 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
         os.makedirs(path + '/heapmaps')
     for k in roar_explainers:
         pickle.dump(heapmaps[k], open(path + subpath + k + '.pkl', 'wb'))
+
 
 # cut top x Percentage of data and clips it to max
 def cut_top_per(data):

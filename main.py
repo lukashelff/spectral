@@ -33,11 +33,11 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, True, False
 roar_create_mask = False
-roar_train = False
+roar_train = True
 plot_roar_curve = False
 roar_mod_im_comp = False
 roar_expl_im = False
