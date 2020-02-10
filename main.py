@@ -35,7 +35,7 @@ from helpfunctions import *
 
 DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 retrain = False
-plot_for_image_id, plot_classes, plot_categories = False, True, False
+plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
 roar_train = True
 plot_roar_curve = False

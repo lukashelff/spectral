@@ -215,8 +215,10 @@ class Spectralloader(Dataset):
             if im is not None:
                 mean = np.mean(im)
                 mask = masks[id]
-                percentile = np.percentile(mask, 100 - percentage)
-                c, h, w = im.shape
+                # only take percentile of values with duplicated zeros deleted
+                mask_flat = mask.flatten()
+                mask_zero_removed = mask_flat[mask_flat != 0]
+                percentile = np.percentile(mask_zero_removed.append(0), 100 - percentage)                c, h, w = im.shape
                 val = im
                 for i in range(0, w):
                     for j in range(0, h):
