@@ -183,4 +183,5 @@ def train_roar_ds(path_root, root, roar_values, trained_roar_models, valid_label
             model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,
                           str(i) + '%_of_' + explainer)
             print('saving roar model')
-            pickle.dump(model, open(trained_roar_models + '_' + explainer + '_' + str(i) + '.sav', 'wb'))
+            # pickle.dump(model, open(trained_roar_models + '_' + explainer + '_' + str(i) + '.sav', 'wb'))
+            torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')

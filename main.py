@@ -78,7 +78,7 @@ def main():
     batch_size = 20
     n_classes = 2
     trained_roar_models = './data/models/trained_model_roar'
-    original_trained_model = './data/models/trained_model_original.sav'
+    original_trained_model = './data/models/trained_model_original.pt'
     train_labels, valid_labels, all_labels = load_labels()
     # save the explainer images of the figures
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
@@ -103,30 +103,30 @@ def main():
     # train model or use trained model from last execution
     if retrain:
         # train on original data
-        model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original")
+        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original")
         if not os.path.exists('./data/models/'):
             os.makedirs('./data/models/')
-        torch.save(model.state_dict(), original_trained_model)
+        torch.save(original_model.state_dict(), original_trained_model)
         # pickle.dump(model, open(original_trained_model, 'wb'))
         print('trained model saved')
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
-        model = Spectralloader()
-        model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
+        original_model = models.resnet18(pretrained=True)
+        original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         # model = pickle.load(open(original_trained_model, 'rb'))
 
     # save the created explainer Image
     if plot_classes or plot_categories:
         # evaluate images and their classification
         print('creating explainer plots for specific classes')
-        plot_explained_categories(model, val_dl, DEVICE, plot_categories, plot_classes, plot_categories, explainers)
+        plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_classes, plot_categories, explainers)
     if plot_for_image_id:
         print('creating explainer plots for specified images')
-        plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, 'original')
+        plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original')
 
     # create a mask containing the heapmap of all specified images
     if roar_create_mask:
         print('creating heap map for ROAR')
-        create_mask(model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
+        create_mask(original_model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
         print('heapmaps for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages

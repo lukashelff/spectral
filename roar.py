@@ -38,7 +38,7 @@ image_ids_roar_exp = [0, 3, 4, 6]
 image_labels = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1), ('3_Z8_4_0_0', 1),
                 ('3_Z8_4_1_2', 1), ('3_Z1_3_1_1', 0), ('3_Z2_1_0_2', 0)]
 trained_roar_models = './data/models/trained_model_roar'
-original_trained_model = './data/models/trained_model_original.sav'
+original_trained_model = './data/models/trained_model_original.pt'
 root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
 path_exp = './data/exp/'
 subpath_heapmaps = 'heapmaps/heapmaps'
@@ -82,9 +82,14 @@ def eval_roar_expl_im(mode, DEVICE):
                     # loading model of explainer for corresponding remove value
                     all_ds = Spectralloader([image_labels[k]], root, mode)
                     if i == 0:
-                        model = pickle.load(open(original_trained_model, 'rb'))
+                        # model = pickle.load(open(original_trained_model, 'rb'))
+                        model = models.resnet18(pretrained=True)
+                        model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
                     else:
-                        model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
+                        model = models.resnet18(pretrained=True)
+                        model.load_state_dict(
+                            torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
+                        # model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
                         all_ds.apply_roar_single_image(i, mask, id, 'mean')
                     # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
                     image, label = all_ds.get_by_id(id)
