@@ -207,7 +207,7 @@ def explain_single(model, image, label, explainer):
         gc = GuidedGradCam(model, model.layer4)
         attr_gc = attribute_image_features(gc, input)
         heapmap = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heapmap =cut_top_per(heapmap)
+        heapmap = cut_top_per(heapmap)
 
     elif explainer == 'guided_gradcam_gaussian':
         gc = GuidedGradCam(model, model.layer4)
@@ -224,7 +224,7 @@ def explain_single(model, image, label, explainer):
                                               # stdevs=0.2
                                               )
         heapmap = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heapmap =cut_top_per(heapmap)
+        heapmap = cut_top_per(heapmap)
 
     elif explainer == 'noisetunnel_gaussian':
         # IntegratedGradients Noise Tunnel
@@ -261,7 +261,7 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
 
 def cut_top_per(data):
     h, w = data.shape
-    percentile = np.percentile(data, 99)
+    percentile = np.percentile(data, 98.5)
     # consider only the positive values
     for i in range(h):
         for k in range(w):

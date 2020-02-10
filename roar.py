@@ -49,8 +49,8 @@ subpath = 'roar/'
 # interpretation/explaination of modified roar Images
 # Axes: removed % of image features and explainers
 def eval_roar_expl_im(mode, DEVICE):
+    roar_explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
     roar_expl_im_values = [0, 10, 30, 50, 70, 90, 100]
-    image_ids_roar_exp = [0]
     w, h = 8 * len(roar_explainers), 7 * len(roar_expl_im_values) + 10
     for k in image_ids_roar_exp:
         id = str(3) + '_' + image_ids[k]
