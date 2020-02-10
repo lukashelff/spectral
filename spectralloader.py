@@ -219,9 +219,9 @@ class Spectralloader(Dataset):
                     for j in range(0, h):
                         if mask[j][i] >= percentile:
                             if new_val == "mean":
-                                val[0][j][i] = 0
-                                val[1][j][i] = 0
-                                val[2][j][i] = 0
+                                val[0][j][i] = mean
+                                val[1][j][i] = mean
+                                val[2][j][i] = mean
                             else:
                                 val[0][j][i] = 238/255
                                 val[1][j][i] = 173/255
