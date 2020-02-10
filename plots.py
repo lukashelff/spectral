@@ -77,7 +77,12 @@ def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healt
                 if plot_classes and index_classes[1] == -1 and preddata[i] == 1 and ydata[i] == 0:
                     index_classes[1] = ydata[i]
                     index_classes_image[1] = explain(model, X[i], ydata[i])
-
+    if not os.path.exists(path_root + subpath_healthy):
+        os.makedirs(path_root + subpath_healthy)
+    if not os.path.exists(path_root + subpath_diseased):
+        os.makedirs(path_root + subpath_diseased)
+    if not os.path.exists(path_root + subpath_classification):
+        os.makedirs(path_root + subpath_classification)
     if plot_healthy:
         # save images of explainer in data
         # save healthy images which got detected
