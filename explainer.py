@@ -190,16 +190,6 @@ def explain_single(model, image, label, explainer):
         d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
         return d_img
 
-    def normalize(data):
-        # consider only the positive values
-        for i in range(h):
-            for k in range(w):
-                    if data[i][k] < 0:
-                        data[i][k] = 0
-        # reshape to 2D hxw
-        d_img = data
-        return d_img
-
     def attribute_image_features(algorithm, input, **kwargs):
         model.zero_grad()
         tensor_attributions = algorithm.attribute(input, target=label, **kwargs)
@@ -217,6 +207,7 @@ def explain_single(model, image, label, explainer):
         gc = GuidedGradCam(model, model.layer4)
         attr_gc = attribute_image_features(gc, input)
         heapmap = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        heapmap =cut_top_per(heapmap)
 
     elif explainer == 'guided_gradcam_gaussian':
         gc = GuidedGradCam(model, model.layer4)
@@ -233,6 +224,7 @@ def explain_single(model, image, label, explainer):
                                               # stdevs=0.2
                                               )
         heapmap = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        heapmap =cut_top_per(heapmap)
 
     elif explainer == 'noisetunnel_gaussian':
         # IntegratedGradients Noise Tunnel
@@ -265,3 +257,16 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
         os.makedirs(path + '/heapmaps')
     for k in roar_explainers:
         pickle.dump(heapmaps[k], open(path + subpath + k + '.pkl', 'wb'))
+
+
+def cut_top_per(data):
+    h, w = data.shape
+    percentile = np.percentile(data, 99)
+    # consider only the positive values
+    for i in range(h):
+        for k in range(w):
+            if data[i][k] > percentile:
+                data[i][k] = percentile
+    # reshape to 2D hxw
+    d_img = data
+    return d_img

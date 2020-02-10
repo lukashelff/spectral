@@ -50,7 +50,7 @@ subpath = 'roar/'
 # Axes: removed % of image features and explainers
 def eval_roar_expl_im(mode, DEVICE):
     roar_expl_im_values = [0, 10, 30, 50, 70, 90, 100]
-    # image_ids_roar_exp = [0]
+    image_ids_roar_exp = [0]
     w, h = 8 * len(roar_explainers), 7 * len(roar_expl_im_values) + 10
     for k in image_ids_roar_exp:
         id = str(3) + '_' + image_ids[k]
@@ -59,7 +59,7 @@ def eval_roar_expl_im(mode, DEVICE):
         fig.suptitle(
             "modified image " + id + " according to ROAR framework with applied interpretation of its saliency method",
             fontsize=45)
-        print('plotting modified images according to roar')
+        print('plotting modified image:' + id + ' according to roar')
         all_ds = Spectralloader([image_labels[k]], root, mode)
         image, label = all_ds.get_by_id(id)
         for c_e, a in enumerate(roar_explainers):
@@ -138,7 +138,7 @@ def eval_roar_mod_im_comp(mode):
                     if i == 0:
                         path = './data/plots/values/' + 'original.sav'
                     else:
-                        all_ds.apply_roar_single_image(i, mask, id)
+                        all_ds.apply_roar_single_image(i, mask, id, 'comp')
                     image, label = all_ds.get_by_id(id)
                     acc = pickle.load(open(path, 'rb'))
                     # create ROAR plot
