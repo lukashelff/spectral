@@ -171,7 +171,7 @@ def explain(model, image, label):
     return [f1, f2, f3, f4, f6, f7, f8]
 
 
-# create single explainer for given image
+# create single explainer of the image for the specified explainer
 def explain_single(model, image, label, explainer):
     input = image.unsqueeze(0)
     input.requires_grad = True
@@ -239,7 +239,7 @@ def explain_single(model, image, label, explainer):
 
     return heapmap
 
-
+# create a mask with all heapmaps for specified dataset
 def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     d_length = dataset.__len__()
     model.to(DEVICE)
@@ -258,7 +258,7 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     for k in roar_explainers:
         pickle.dump(heapmaps[k], open(path + subpath + k + '.pkl', 'wb'))
 
-
+# cut top x Percentage of data and clips it to max
 def cut_top_per(data):
     h, w = data.shape
     percentile = np.percentile(data, 98.5)

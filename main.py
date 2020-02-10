@@ -123,15 +123,19 @@ def main():
         print('creating explainer plots for specified images')
         plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, 'original')
 
+    # create a mask containing the heapmap of all specified images
     if roar_create_mask:
         print('creating heap map for ROAR')
         create_mask(model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
         print('heapmaps for ROAR created')
 
+    # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
         for i in roar_explainers:
             train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', root, roar_values, trained_roar_models,
                           valid_labels, train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE, i)
+
+    # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
         plot_dev_acc(roar_values, roar_explainers)
 
