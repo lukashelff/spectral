@@ -95,7 +95,6 @@ class Spectralloader(Dataset):
                     self.index_data += [i]
                     break
 
-
     def __getitem__(self, index):
         # return only 1 sample and label (according to "Index")
         # get label for ID
@@ -183,9 +182,10 @@ class Spectralloader(Dataset):
     # given percentage of the values get removed from the dataset
     def apply_roar(self, percentage, masks, DEVICE):
         length = self.__len__()
+        print('modified images: 0%')
         for d in range(0, length):
-            if ((d + 1) % (length//4)) == 0:
-                print('modified images: ' + str(d + 1) + ' of ' + str(self.__len__()))
+            if ((d + 1) % (length // 4)) == 0:
+                print('modified images: ' + str(round((d + 1) * 100 / self.__len__())) + '%')
             im, label = self.__getitem__(d)
             id = self.get_id_by_index(d)
             mask = masks[id]
@@ -196,7 +196,8 @@ class Spectralloader(Dataset):
                 # only take percentile of values with duplicated zeros deleted
                 mask_flat = mask.flatten()
                 mask_zero_removed = mask_flat[mask_flat != 0]
-                percentile = np.percentile(mask_zero_removed.append(0), 100 - percentage)
+                np.append(mask_zero_removed, 0)
+                percentile = np.percentile(mask_zero_removed, 100 - percentage)
                 c, h, w = im.shape
                 val = im
                 for i in range(0, w):
@@ -218,7 +219,9 @@ class Spectralloader(Dataset):
                 # only take percentile of values with duplicated zeros deleted
                 mask_flat = mask.flatten()
                 mask_zero_removed = mask_flat[mask_flat != 0]
-                percentile = np.percentile(mask_zero_removed.append(0), 100 - percentage)                c, h, w = im.shape
+                np.append(mask_zero_removed, 0)
+                percentile = np.percentile(mask_zero_removed, 100 - percentage)
+                c, h, w = im.shape
                 val = im
                 for i in range(0, w):
                     for j in range(0, h):
@@ -228,11 +231,9 @@ class Spectralloader(Dataset):
                                 val[1][j][i] = mean
                                 val[2][j][i] = mean
                             else:
-                                val[0][j][i] = 238/255
-                                val[1][j][i] = 173/255
-                                val[2][j][i] = 14/255
+                                val[0][j][i] = 238 / 255
+                                val[1][j][i] = 173 / 255
+                                val[2][j][i] = 14 / 255
                 self.update_data(id, val)
         except ValueError:
             print('No roar img for id: ' + id)
-
-

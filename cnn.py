@@ -126,7 +126,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
         )
 
     # plot acc, balanced acc and loss
-    if roar != 'orginal':
+    if roar != "original":
         title = roar.replace('_', ' ') + ' image features removed'
     else:
         title = roar + ' model 0% removed'
