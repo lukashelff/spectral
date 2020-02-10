@@ -33,14 +33,14 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 retrain = False
-plot_for_image_id, plot_classes, plot_categories = False, False, False
+plot_for_image_id, plot_classes, plot_categories = False, True, False
 roar_create_mask = False
 roar_train = False
 plot_roar_curve = False
-roar_mod_im_comp = True
-roar_expl_im = True
+roar_mod_im_comp = False
+roar_expl_im = False
 N_EPOCHS = 120
 lr = 0.00015
 
@@ -111,6 +111,7 @@ def main():
         print('trained model saved')
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
         original_model = models.resnet18(pretrained=True)
+        original_model.fc = nn.Linear(512, n_classes)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         # model = pickle.load(open(original_trained_model, 'rb'))
 

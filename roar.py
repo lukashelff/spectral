@@ -43,6 +43,7 @@ root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
 path_exp = './data/exp/'
 subpath_heapmaps = 'heapmaps/heapmaps'
 subpath = 'roar/'
+n_classes = 2
 
 
 # applying the explainers to an roar trained image
@@ -84,9 +85,11 @@ def eval_roar_expl_im(mode, DEVICE):
                     if i == 0:
                         # model = pickle.load(open(original_trained_model, 'rb'))
                         model = models.resnet18(pretrained=True)
+                        model.fc = nn.Linear(512, n_classes)
                         model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
                     else:
                         model = models.resnet18(pretrained=True)
+                        model.fc = nn.Linear(512, n_classes)
                         model.load_state_dict(
                             torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
                         # model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
