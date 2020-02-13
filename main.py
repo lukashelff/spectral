@@ -33,7 +33,7 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
@@ -67,9 +67,8 @@ def load_labels():
 def main():
     roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
                        'guided_gradcam_gaussian']
-    roar_explainers = ['gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
-                       'guided_gradcam_gaussian']
-    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100]
+    # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam']
+    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
@@ -87,7 +86,8 @@ def main():
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
-    if retrain or plot_classes or plot_categories:
+    # loading Datasets
+    if retrain or plot_classes or plot_categories or roar_train:
         # loaded needed data
         print('loading training data')
         train_ds = Spectralloader(train_labels, root, mode)
@@ -132,8 +132,8 @@ def main():
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
         for i in roar_explainers:
-            train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', root, roar_values, trained_roar_models,
-                          valid_labels, train_labels, batch_size, n_classes, N_EPOCHS, lr, mode, DEVICE, i)
+            train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', roar_values, trained_roar_models,
+                          val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, DEVICE, i)
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:

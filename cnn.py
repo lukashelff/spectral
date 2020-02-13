@@ -159,12 +159,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
 
 
 # ROAR remove and retrain
-def train_roar_ds(path_root, root, roar_values, trained_roar_models, valid_labels, train_labels, batch_size, n_classes,
-                  N_EPOCHS, lr, mode, DEVICE, explainer):
+def train_roar_ds(path_root, roar_values, trained_roar_models, val_ds_org, train_ds_org, batch_size, n_classes,
+                  N_EPOCHS, lr, DEVICE, explainer):
     # load datasets
     print('loading DS')
-    val_ds_org = Spectralloader(valid_labels, root, mode)
-    train_ds_org = Spectralloader(train_labels, root, mode)
+    # val_ds_org = Spectralloader(valid_labels, root, mode)
+    # train_ds_org = Spectralloader(train_labels, root, mode)
     with open(path_root, 'rb') as f:
         mask = pickle.load(f)
         for i in roar_values:
