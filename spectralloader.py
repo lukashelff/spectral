@@ -180,7 +180,7 @@ class Spectralloader(Dataset):
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
-    def apply_roar(self, percentage, masks, DEVICE):
+    def apply_roar(self, percentage, masks, DEVICE, explainer):
         length = self.__len__()
         print('modified images: 0%')
         for d in range(0, length):
@@ -195,9 +195,10 @@ class Spectralloader(Dataset):
             try:
                 # only take percentile of values with duplicated zeros deleted
                 mask_flat = mask.flatten()
-                mask_zero_removed = mask_flat[mask_flat != 0]
-                np.append(mask_zero_removed, 0)
-                percentile = np.percentile(mask_zero_removed, 100 - percentage)
+                if explainer == 'guided_gradcam':
+                    mask_flat = mask_flat[mask_flat != 0]
+                    np.append(mask_flat, 0)
+                percentile = np.percentile(mask_flat, 100 - percentage)
                 c, h, w = im.shape
                 val = im
                 for i in range(0, w):
@@ -210,7 +211,7 @@ class Spectralloader(Dataset):
             except ValueError:
                 print('No roar img for id: ' + id)
 
-    def apply_roar_single_image(self, percentage, masks, id, new_val):
+    def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
         try:
             im, label = self.get_by_id(id)
             if im is not None:
@@ -218,9 +219,10 @@ class Spectralloader(Dataset):
                 mask = masks[id]
                 # only take percentile of values with duplicated zeros deleted
                 mask_flat = mask.flatten()
-                mask_zero_removed = mask_flat[mask_flat != 0]
-                np.append(mask_zero_removed, 0)
-                percentile = np.percentile(mask_zero_removed, 100 - percentage)
+                if explainer == 'guided_gradcam':
+                    mask_flat = mask_flat[mask_flat != 0]
+                    np.append(mask_flat, 0)
+                percentile = np.percentile(mask_flat, 100 - percentage)
                 c, h, w = im.shape
                 val = im
                 for i in range(0, w):

@@ -161,14 +161,18 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
 # ROAR remove and retrain
 def train_roar_ds(path_root, root, roar_values, trained_roar_models, valid_labels, train_labels, batch_size, n_classes,
                   N_EPOCHS, lr, mode, DEVICE, explainer):
+    # load datasets
+    print('loading DS')
+    val_ds_org = Spectralloader(valid_labels, root, mode)
+    train_ds_org = Spectralloader(train_labels, root, mode)
     with open(path_root, 'rb') as f:
         mask = pickle.load(f)
         for i in roar_values:
             print('------------------------------------------------------------')
             print('removing ' + str(i) + ' % of the image features & train after ' + explainer)  #
-            val_ds = Spectralloader(valid_labels, root, mode)
+            val_ds = val_ds_org
             print('applying ROAR heapmap to validation DS')
-            val_ds.apply_roar(i, mask, DEVICE)
+            val_ds.apply_roar(i, mask, DEVICE, explainer)
             val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
             # print example image
             im, label = val_ds.get_by_id('4_Z15_1_1_0')
@@ -176,9 +180,9 @@ def train_roar_ds(path_root, root, roar_values, trained_roar_models, valid_label
             name = explainer + 'ROAR' + str(i)
             # display the modified image and save to pred images in data/exp/pred_img_example
             display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
-            train_ds = Spectralloader(train_labels, root, mode)
+            train_ds = train_ds_org
             print('applying ROAR heapmap to training DS')
-            train_ds.apply_roar(i, mask, DEVICE)
+            train_ds.apply_roar(i, mask, DEVICE, explainer)
             train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
             print('training on ROAR DS, ' + str(i) + ' % removed')
             model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,

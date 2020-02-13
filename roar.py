@@ -50,9 +50,9 @@ n_classes = 2
 # interpretation/explaination of modified roar Images
 # Axes: removed % of image features and explainers
 def eval_roar_expl_im(mode, DEVICE):
-    roar_explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
+    explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
     roar_expl_im_values = [0, 10, 30, 50, 70, 90, 100]
-    w, h = 8 * len(roar_explainers), 7 * len(roar_expl_im_values) + 10
+    w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
     for k in image_ids_roar_exp:
         id = str(3) + '_' + image_ids[k]
         fig = plt.figure(figsize=(w, h))
@@ -63,8 +63,8 @@ def eval_roar_expl_im(mode, DEVICE):
         print('plotting modified image:' + id + ' according to roar')
         all_ds = Spectralloader([image_labels[k]], root, mode)
         image, label = all_ds.get_by_id(id)
-        for c_e, a in enumerate(roar_explainers):
-            ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(roar_explainers),
+        for c_e, a in enumerate(explainers):
+            ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
                                  c_e + 1)
             ax.tick_params(axis='both', which='both', length=0)
             ax.set_title(a, fontsize=25)
@@ -73,7 +73,7 @@ def eval_roar_expl_im(mode, DEVICE):
             plt.setp(ax.get_yticklabels(), visible=False)
             if c_e == 0:
                 ax.set_ylabel('original image', fontsize=25)
-        for c_ex, ex in enumerate(roar_explainers):
+        for c_ex, ex in enumerate(explainers):
             # loading heapmap of corresponding explainer
             with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
                 mask = pickle.load(f)
@@ -93,7 +93,7 @@ def eval_roar_expl_im(mode, DEVICE):
                         model.load_state_dict(
                             torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
                         # model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
-                        all_ds.apply_roar_single_image(i, mask, id, 'mean')
+                        all_ds.apply_roar_single_image(i, mask, id, 'mean', ex)
                     # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
                     image, label = all_ds.get_by_id(id)
                     model.to(DEVICE)
@@ -104,8 +104,8 @@ def eval_roar_expl_im(mode, DEVICE):
                     org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
                     # Compute the Canny filter for two values of sigma
                     org_img_edged = feature.canny(org_img_edged, sigma=3)
-                    ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(roar_explainers),
-                                         (c_ex + 1) + (c_r + 1) * len(roar_explainers))
+                    ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
+                                         (c_ex + 1) + (c_r + 1) * len(explainers))
                     ax.tick_params(axis='both', which='both', length=0)
                     if c_ex == 0:
                         ax.set_ylabel(str(i) + '%', fontsize=25)
@@ -146,7 +146,7 @@ def eval_roar_mod_im_comp(mode):
                     if i == 0:
                         path = './data/plots/values/' + 'original.sav'
                     else:
-                        all_ds.apply_roar_single_image(i, mask, id, 'comp')
+                        all_ds.apply_roar_single_image(i, mask, id, 'comp', ex)
                     image, label = all_ds.get_by_id(id)
                     acc = pickle.load(open(path, 'rb'))
                     # create ROAR plot
