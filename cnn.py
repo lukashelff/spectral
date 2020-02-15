@@ -151,7 +151,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
     plt.savefig('./data/plots/loss' + roar + '.png')
-    plt.show()
+    plt.close('all')
     path_values = './data/plots/values/'
     if not os.path.exists(path_values):
         os.makedirs(path_values)

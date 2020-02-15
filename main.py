@@ -65,7 +65,7 @@ def load_labels():
 
 
 def main():
-    roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
+    roar_explainers = ['guided_gradcam', 'noisetunnel', 'random', 'gradcam', 'noisetunnel_gaussian',
                        'guided_gradcam_gaussian']
     # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
@@ -118,7 +118,8 @@ def main():
     if plot_classes or plot_categories:
         # evaluate images and their classification
         print('creating explainer plots for specific classes')
-        plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_classes, plot_categories, explainers)
+        plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_classes, plot_categories,
+                                  explainers)
     if plot_for_image_id:
         print('creating explainer plots for specified images')
         plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original')
