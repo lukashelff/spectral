@@ -144,7 +144,7 @@ def eval_roar_mod_im_comp(mode):
                     sub_path = str(i) + '%_of_' + ex + '.sav'
                     path = './data/plots/values/' + sub_path
                     if i == 0:
-                        path = './data/plots/values/' + 'original.sav'
+                        path = './data/plots/values/original.sav'
                     else:
                         all_ds.apply_roar_single_image(i, mask, id, 'comp', ex)
                     image, label = all_ds.get_by_id(id)

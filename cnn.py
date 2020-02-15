@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -170,7 +172,7 @@ def train_roar_ds(path_root, roar_values, trained_roar_models, val_ds_org, train
         for i in roar_values:
             print('------------------------------------------------------------')
             print('removing ' + str(i) + ' % of the image features & train after ' + explainer)  #
-            val_ds = val_ds_org
+            val_ds = deepcopy(val_ds_org)
             print('applying ROAR heapmap to validation DS')
             val_ds.apply_roar(i, mask, DEVICE, explainer)
             val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
@@ -179,8 +181,8 @@ def train_roar_ds(path_root, roar_values, trained_roar_models, val_ds_org, train
             path = './data/exp/pred_img_example/'
             name = explainer + 'ROAR' + str(i)
             # display the modified image and save to pred images in data/exp/pred_img_example
-            display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
-            train_ds = train_ds_org
+            # display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
+            train_ds = deepcopy(train_ds_org)
             print('applying ROAR heapmap to training DS')
             train_ds.apply_roar(i, mask, DEVICE, explainer)
             train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
@@ -190,3 +192,4 @@ def train_roar_ds(path_root, roar_values, trained_roar_models, val_ds_org, train
             print('saving roar model')
             # pickle.dump(model, open(trained_roar_models + '_' + explainer + '_' + str(i) + '.sav', 'wb'))
             torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')
+
