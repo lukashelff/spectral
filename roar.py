@@ -83,7 +83,6 @@ def eval_roar_expl_im(mode, DEVICE):
                     # loading model of explainer for corresponding remove value
                     all_ds = Spectralloader([image_labels[k]], root, mode)
                     if i == 0:
-                        # model = pickle.load(open(original_trained_model, 'rb'))
                         model = models.resnet18(pretrained=True)
                         model.fc = nn.Linear(512, n_classes)
                         model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
@@ -92,7 +91,6 @@ def eval_roar_expl_im(mode, DEVICE):
                         model.fc = nn.Linear(512, n_classes)
                         model.load_state_dict(
                             torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
-                        # model = pickle.load(open(trained_roar_models + '_' + ex + '_' + str(i) + '.sav', 'rb'))
                         all_ds.apply_roar_single_image(i, mask, id, 'mean', ex)
                     # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
                     image, label = all_ds.get_by_id(id)
@@ -100,7 +98,7 @@ def eval_roar_expl_im(mode, DEVICE):
                     image = torch.from_numpy(image).to(DEVICE)
                     activation_map = explain_single(model, image, label, ex)
                     org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-                    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+                    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1])
                     org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
                     # Compute the Canny filter for two values of sigma
                     org_img_edged = feature.canny(org_img_edged, sigma=3)
@@ -115,6 +113,7 @@ def eval_roar_expl_im(mode, DEVICE):
                     plt.setp(ax.get_yticklabels(), visible=False)
 
         fig.savefig(path_exp + subpath + 'comparison_explained_roar_image_' + id + '.png')
+        plt.show()
         plt.close('all')
 
 
@@ -163,4 +162,5 @@ def eval_roar_mod_im_comp(mode):
                     plt.setp(ax.get_xticklabels(), visible=False)
                     plt.setp(ax.get_yticklabels(), visible=False)
         fig.savefig(path_exp + subpath + 'comparison_roar_images' + id + '.png')
+        plt.show()
         plt.close('all')

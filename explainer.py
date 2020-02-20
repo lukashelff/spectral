@@ -180,7 +180,7 @@ def explain_single(model, image, label, explainer):
     heapmap = np.random.rand(h, w)
 
     def cut_and_shape(data):
-        # consider only the positive values
+        # # consider only the positive values
         for i in range(h):
             for k in range(w):
                 for j in range(c):
