@@ -138,7 +138,6 @@ def evaluate_id(image_id, ds, model, explainers, path_root, subpath, DEVICE):
             explained[i].savefig(directory, bbox_inches='tight')
         image = image[None]
         image = image.type('torch.FloatTensor').to(DEVICE)
-        # print(model.get_device())
         output = model(image)
         _, pred = torch.max(output, 1)
         prob = torch.max(F.softmax(output, 1)).item()

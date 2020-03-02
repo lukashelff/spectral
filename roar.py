@@ -113,7 +113,7 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
                     plt.setp(ax.get_yticklabels(), visible=False)
 
         fig.savefig(path_exp + subpath + 'comparison_explained_roar_image_' + id + '.png')
-        plt.close('all')
+        fig.clear()
 
 
 # plotting the roar trained images
@@ -161,5 +161,4 @@ def eval_roar_mod_im_comp(mode, roar_explainers):
                     plt.setp(ax.get_xticklabels(), visible=False)
                     plt.setp(ax.get_yticklabels(), visible=False)
         fig.savefig(path_exp + subpath + 'comparison_roar_images' + id + '.png')
-        plt.show()
-        plt.close('all')
+        fig.clear()
