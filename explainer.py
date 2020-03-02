@@ -18,6 +18,7 @@ from spectralloader import Spectralloader
 
 
 # create all explainers for a given image
+# more preformat
 def explain(model, image, label):
     print("creating images")
     input = image.unsqueeze(0)
@@ -172,12 +173,12 @@ def explain(model, image, label):
 
 
 # create single explainer of the image for the specified explainer
-def explain_single(model, image, label, explainer):
+def explain_single(model, image, label, explainer, bounded):
     input = image.unsqueeze(0)
     input.requires_grad = True
     model.eval()
     c, h, w = image.shape
-    heapmap = np.random.rand(h, w)
+    heat_map = np.random.rand(h, w)
 
     def cut_and_shape(data):
         # # consider only the positive values
@@ -201,19 +202,20 @@ def explain_single(model, image, label, explainer):
         attr_gco = attribute_image_features(gco, input)
         att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
         gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
-        heapmap = np.asarray(gradcam)
+        heat_map = np.asarray(gradcam)
 
     elif explainer == 'guided_gradcam':
         gc = GuidedGradCam(model, model.layer4)
         attr_gc = attribute_image_features(gc, input)
-        heapmap = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heapmap = cut_top_per(heapmap)
+        heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        if bounded:
+            heat_map = cut_top_per(heat_map)
 
     elif explainer == 'guided_gradcam_gaussian':
         gc = GuidedGradCam(model, model.layer4)
         attr_gc = attribute_image_features(gc, input)
-        heapmap = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heapmap = ndi.gaussian_filter(heapmap, 7)
+        heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        heat_map = ndi.gaussian_filter(heat_map, 7)
 
     elif explainer == 'noisetunnel':
         # IntegratedGradients Noise Tunnel
@@ -223,8 +225,9 @@ def explain_single(model, image, label, explainer):
                                               n_samples=5,
                                               # stdevs=0.2
                                               )
-        heapmap = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heapmap = cut_top_per(heapmap)
+        heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        if bounded:
+            heat_map = cut_top_per(heat_map)
 
     elif explainer == 'noisetunnel_gaussian':
         # IntegratedGradients Noise Tunnel
@@ -234,30 +237,38 @@ def explain_single(model, image, label, explainer):
                                               n_samples=5,
                                               # stdevs=0.2
                                               )
-        heapmap = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heapmap = ndi.gaussian_filter(heapmap, 7)
+        heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        heat_map = ndi.gaussian_filter(heat_map, 7)
 
-    return heapmap
+    elif explainer == 'Integrated_Gradients':
+        # IntegratedGradients
+        ig = IntegratedGradients(model)
+        attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
+        heat_map = cut_and_shape(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+        if bounded:
+            heat_map = cut_top_per(heat_map)
+
+    return heat_map
 
 
-# create a mask with all heapmaps for specified dataset
+# create a mask with all heat_maps for specified dataset
 def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     d_length = dataset.__len__()
     model.to(DEVICE)
-    heapmaps = {}
+    heat_maps = {}
     for k in roar_explainers:
-        heapmaps[k] = {}
+        heat_maps[k] = {}
     for i in range(0, d_length):
         image, label = dataset.__getitem__(i)
         image = torch.from_numpy(image).to(DEVICE)
-        for k in roar_explainers:
-            heapmaps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k)
-        if ((i + 1) % (d_length // 4)) == 0:
+        if (i % ((d_length - 1) // (2*len(roar_explainers)))) == 0:
             print('create mask for image ' + str(i) + ' of ' + str(d_length))
-    if not os.path.exists(path + '/heapmaps'):
-        os.makedirs(path + '/heapmaps')
+        for k in roar_explainers:
+            heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
+    if not os.path.exists(path + '/heat_maps'):
+        os.makedirs(path + '/heat_maps')
     for k in roar_explainers:
-        pickle.dump(heapmaps[k], open(path + subpath + k + '.pkl', 'wb'))
+        pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
 
 
 # cut top x Percentage of data and clips it to max

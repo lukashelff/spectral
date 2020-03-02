@@ -33,14 +33,14 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
-roar_create_mask = False
+roar_create_mask = True
 roar_train = False
 plot_roar_curve = False
-roar_mod_im_comp = True
-roar_expl_im = True
+roar_mod_im_comp = False
+roar_expl_im = False
 N_EPOCHS = 120
 lr = 0.00015
 
@@ -65,12 +65,10 @@ def load_labels():
 
 
 def main():
-    roar_explainers = ['guided_gradcam', 'random', 'gradcam', 'noisetunnel_gaussian',
-                       'guided_gradcam_gaussian', 'noisetunnel']
-    # roar_explainers = ['guided_gradcam']
-    # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam']
+    roar_explainers = ['Integrated_Gradients', 'gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
+                       'noisetunnel', 'noisetunnel_gaussian']
+    roar_explainers = ['Integrated_Gradients', 'guided_gradcam', 'noisetunnel']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
-    # roar_values = [100]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
@@ -126,9 +124,9 @@ def main():
 
     # create a mask containing the heapmap of all specified images
     if roar_create_mask:
-        print('creating heap map for ROAR')
+        print('creating for ROAR mask')
         create_mask(original_model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
-        print('heapmaps for ROAR created')
+        print('mask for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
@@ -143,12 +141,12 @@ def main():
     # comparison of modified roar Images
     if roar_mod_im_comp:
         print('creating ROAR comparison plot')
-        eval_roar_mod_im_comp(mode)
+        eval_roar_mod_im_comp(mode, roar_explainers)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_im:
         print('creating ROAR explanation plot')
-        eval_roar_expl_im(mode, DEVICE)
+        eval_roar_expl_im(mode, DEVICE, roar_explainers)
 
 
 main()

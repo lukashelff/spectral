@@ -186,9 +186,9 @@ class Spectralloader(Dataset):
                 mask = masks[id]
                 # only take percentile of values with duplicated zeros deleted
                 mask_flat = mask.flatten()
-                # if explainer == 'guided_gradcam':
-                #     mask_flat = mask_flat[mask_flat != 0]
-                #     np.append(mask_flat, 0)
+                if explainer == 'guided_gradcam' or 'Integrated_Gradients':
+                    mask_flat = mask_flat[mask_flat != 0]
+                    np.append(mask_flat, 0)
                 percentile = np.percentile(mask_flat, 100 - percentage)
                 c, h, w = im.shape
                 val = im

@@ -31,8 +31,8 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian',
-                   'guided_gradcam_gaussian']
+# roar_explainers = ['guided_gradcam', 'random', 'gradcam', 'noisetunnel_gaussian',
+#                    'guided_gradcam_gaussian', 'noisetunnel', 'Integrated_Gradients']
 image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 image_ids_roar_exp = [0, 3, 4, 6]
 image_labels = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1), ('3_Z8_4_0_0', 1),
@@ -49,8 +49,8 @@ n_classes = 2
 # applying the explainers to an roar trained image
 # interpretation/explaination of modified roar Images
 # Axes: removed % of image features and explainers
-def eval_roar_expl_im(mode, DEVICE):
-    explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
+def eval_roar_expl_im(mode, DEVICE, explainers):
+    # explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
     roar_expl_im_values = [0, 10, 30, 50, 70, 90, 100]
     w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
     for k in image_ids_roar_exp:
@@ -96,7 +96,7 @@ def eval_roar_expl_im(mode, DEVICE):
                     image, label = all_ds.get_by_id(id)
                     model.to(DEVICE)
                     image = torch.from_numpy(image).to(DEVICE)
-                    activation_map = explain_single(model, image, label, ex)
+                    activation_map = explain_single(model, image, label, ex, True)
                     org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
                     org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1])
                     org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
@@ -113,15 +113,14 @@ def eval_roar_expl_im(mode, DEVICE):
                     plt.setp(ax.get_yticklabels(), visible=False)
 
         fig.savefig(path_exp + subpath + 'comparison_explained_roar_image_' + id + '.png')
-        plt.show()
         plt.close('all')
 
 
 # plotting the roar trained images
 # comparison of modified roar Images
 # Axes: removed % of image features and explainers
-def eval_roar_mod_im_comp(mode):
-    # roar_explainers = ['noisetunnel', 'random', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian']
+def eval_roar_mod_im_comp(mode, roar_explainers):
+    roar_explainers = ['random'] + roar_explainers
     roar_values = [10, 30, 50, 70, 90, 100]
     print('plotting modified images according to roar')
     w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 3
