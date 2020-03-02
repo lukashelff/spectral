@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import random
 
+
 class Spectralloader(Dataset):
     """
         The spektral dataset can be found in folder
@@ -179,31 +180,46 @@ class Spectralloader(Dataset):
         return label_ids, label_raw, loaded_image_ids, loaded_images
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
+        im = None
         try:
             im, label = self.get_by_id(id)
-            if im is not None:
-                mean = np.mean(im)
-                mask = masks[id]
-                # only take percentile of values with duplicated zeros deleted
-                mask_flat = mask.flatten()
-                # if explainer == 'guided_gradcam' or 'Integrated_Gradients':
-                #     mask_flat = mask_flat[mask_flat != 0]
-                #     np.append(mask_flat, 0)
-                percentile = np.percentile(mask_flat, 100 - percentage)
-                c, h, w = im.shape
-                val = im
-                bigger = 0
-                same = 0
-                for i in mask_flat:
-                    if i > percentile:
-                        bigger += 1
-                    if i == percentile:
-                        same += 1
-                missing = round(0.01 * percentage * w * h) - bigger
-                selection = random.sample(range(1, same), missing)
-                for i in range(0, w):
-                    for j in range(0, h):
-                        if mask[j][i] > percentile:
+        except ValueError:
+            print('No roar img for id: ' + id)
+
+        if im is not None:
+            mean = np.mean(im)
+            mask = masks[id]
+            # only take percentile of values with duplicated zeros deleted
+            mask_flat = mask.flatten()
+            # if explainer == 'guided_gradcam' or 'Integrated_Gradients':
+            #     mask_flat = mask_flat[mask_flat != 0]
+            #     np.append(mask_flat, 0)
+            percentile = np.percentile(mask_flat, 100 - percentage)
+            c, h, w = im.shape
+            val = im
+            bigger = 0
+            same = 0
+            for i in mask_flat:
+                if i > percentile:
+                    bigger += 1
+                if i == percentile:
+                    same += 1
+            if same != 0:
+                missing = int(0.01 * percentage * w * h - bigger)
+                selection = random.sample(range(0, same), max(missing, 0))
+            for i in range(0, w):
+                for j in range(0, h):
+                    if mask[j][i] > percentile:
+                        if new_val == "mean":
+                            val[0][j][i] = mean
+                            val[1][j][i] = mean
+                            val[2][j][i] = mean
+                        else:
+                            val[0][j][i] = 238 / 255
+                            val[1][j][i] = 173 / 255
+                            val[2][j][i] = 14 / 255
+                    if mask[j][i] == percentile:
+                        if same in selection:
                             if new_val == "mean":
                                 val[0][j][i] = mean
                                 val[1][j][i] = mean
@@ -212,20 +228,8 @@ class Spectralloader(Dataset):
                                 val[0][j][i] = 238 / 255
                                 val[1][j][i] = 173 / 255
                                 val[2][j][i] = 14 / 255
-                        if mask[j][i] == percentile:
-                            if same in selection:
-                                if new_val == "mean":
-                                    val[0][j][i] = mean
-                                    val[1][j][i] = mean
-                                    val[2][j][i] = mean
-                                else:
-                                    val[0][j][i] = 238 / 255
-                                    val[1][j][i] = 173 / 255
-                                    val[2][j][i] = 14 / 255
-                            same -= 1
-                self.update_data(id, val)
-        except ValueError:
-            print('No roar img for id: ' + id)
+                        same -= 1
+            self.update_data(id, val)
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
