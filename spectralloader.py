@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import pickle
 import numpy as np
-
+import random
 
 class Spectralloader(Dataset):
     """
@@ -186,15 +186,24 @@ class Spectralloader(Dataset):
                 mask = masks[id]
                 # only take percentile of values with duplicated zeros deleted
                 mask_flat = mask.flatten()
-                if explainer == 'guided_gradcam' or 'Integrated_Gradients':
-                    mask_flat = mask_flat[mask_flat != 0]
-                    np.append(mask_flat, 0)
+                # if explainer == 'guided_gradcam' or 'Integrated_Gradients':
+                #     mask_flat = mask_flat[mask_flat != 0]
+                #     np.append(mask_flat, 0)
                 percentile = np.percentile(mask_flat, 100 - percentage)
                 c, h, w = im.shape
                 val = im
+                bigger = 0
+                same = 0
+                for i in mask_flat:
+                    if i > percentile:
+                        bigger += 1
+                    if i == percentile:
+                        same += 1
+                missing = round(0.01 * percentage * w * h) - bigger
+                selection = random.sample(range(1, same), missing)
                 for i in range(0, w):
                     for j in range(0, h):
-                        if mask[j][i] >= percentile:
+                        if mask[j][i] > percentile:
                             if new_val == "mean":
                                 val[0][j][i] = mean
                                 val[1][j][i] = mean
@@ -203,6 +212,17 @@ class Spectralloader(Dataset):
                                 val[0][j][i] = 238 / 255
                                 val[1][j][i] = 173 / 255
                                 val[2][j][i] = 14 / 255
+                        if mask[j][i] == percentile:
+                            if same in selection:
+                                if new_val == "mean":
+                                    val[0][j][i] = mean
+                                    val[1][j][i] = mean
+                                    val[2][j][i] = mean
+                                else:
+                                    val[0][j][i] = 238 / 255
+                                    val[1][j][i] = 173 / 255
+                                    val[2][j][i] = 14 / 255
+                            same -= 1
                 self.update_data(id, val)
         except ValueError:
             print('No roar img for id: ' + id)
@@ -241,4 +261,3 @@ class Spectralloader(Dataset):
             #     self.update_data(id, val)
             # except ValueError:
             #     print('No roar img for id: ' + id)
-
