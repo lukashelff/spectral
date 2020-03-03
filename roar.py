@@ -51,7 +51,7 @@ n_classes = 2
 # Axes: removed % of image features and explainers
 def eval_roar_expl_im(mode, DEVICE, explainers):
     # explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
-    roar_expl_im_values = [0, 10, 30, 50, 70, 90, 100]
+    roar_expl_im_values = [0, 10, 20, 30, 50, 70, 90, 100]
     w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
     for k in image_ids_roar_exp:
         id = str(3) + '_' + image_ids[k]
@@ -59,7 +59,7 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
         fig.subplots_adjust(top=0.95)
         fig.suptitle(
             "modified image " + id + " according to ROAR framework with applied interpretation of its saliency method",
-            fontsize=45)
+            fontsize=80)
         print('plotting modified image:' + id + ' according to roar')
         all_ds = Spectralloader([image_labels[k]], root, mode)
         image, label = all_ds.get_by_id(id)
@@ -67,12 +67,12 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
             ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
                                  c_e + 1)
             ax.tick_params(axis='both', which='both', length=0)
-            ax.set_title(a, fontsize=25)
+            ax.set_title(a, fontsize=40)
             plt.imshow(np.transpose(image, (1, 2, 0)))
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), visible=False)
             if c_e == 0:
-                ax.set_ylabel('original image', fontsize=25)
+                ax.set_ylabel('original image', fontsize=40)
         for c_ex, ex in enumerate(explainers):
             # loading heapmap of corresponding explainer
             with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
@@ -106,7 +106,7 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
                                          (c_ex + 1) + (c_r + 1) * len(explainers))
                     ax.tick_params(axis='both', which='both', length=0)
                     if c_ex == 0:
-                        ax.set_ylabel(str(i) + '%', fontsize=25)
+                        ax.set_ylabel(str(i) + '%', fontsize=40)
                     ax.imshow(org_img_edged, cmap=plt.cm.binary)
                     ax.imshow(activation_map, cmap='viridis', alpha=0.4)
                     plt.setp(ax.get_xticklabels(), visible=False)
@@ -127,7 +127,7 @@ def eval_roar_mod_im_comp(mode, roar_explainers):
     for k in image_ids_roar_exp:
         fig = plt.figure(figsize=(w, h))
         fig.subplots_adjust(top=0.95)
-        fig.suptitle("image " + image_ids[k] + " modificed according to ROAR framework", fontsize=45)
+        fig.suptitle("image " + image_ids[k] + " modificed according to ROAR framework", fontsize=80)
         print('modifing image: ' + image_ids[k])
         if not os.path.exists(path_exp + subpath):
             os.makedirs(path_exp + subpath)
@@ -152,11 +152,11 @@ def eval_roar_mod_im_comp(mode, roar_explainers):
                                          (c_ex + 1) + c_r * len(roar_explainers))
                     ax.tick_params(axis='both', which='both', length=0)
                     if c_ex == 0:
-                        ax.set_ylabel(str(i) + '%', fontsize=25)
+                        ax.set_ylabel(str(i) + '%', fontsize=40)
                     if c_r == 0:
-                        ax.set_title(ex + '\n' + str(acc) + '%', fontsize=25)
+                        ax.set_title(ex + '\n' + str(acc) + '%', fontsize=40)
                     else:
-                        ax.set_title(str(acc) + '%', fontsize=25)
+                        ax.set_title(str(acc) + '%', fontsize=40)
                     plt.imshow(np.transpose(image, (1, 2, 0)))
                     plt.setp(ax.get_xticklabels(), visible=False)
                     plt.setp(ax.get_yticklabels(), visible=False)

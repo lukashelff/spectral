@@ -185,31 +185,21 @@ class Spectralloader(Dataset):
             im, label = self.get_by_id(id)
         except ValueError:
             print('No roar img for id: ' + id)
-
         if im is not None:
             mean = np.mean(im)
             mask = masks[id]
             # only take percentile of values with duplicated zeros deleted
             mask_flat = mask.flatten()
-            # if explainer == 'guided_gradcam' or 'Integrated_Gradients':
-            #     mask_flat = mask_flat[mask_flat != 0]
-            #     np.append(mask_flat, 0)
             percentile = np.percentile(mask_flat, 100 - percentage)
             c, h, w = im.shape
             val = im
             bigger = 0
             same = 0
-            for i in mask_flat:
-                if i > percentile:
-                    bigger += 1
-                if i == percentile:
-                    same += 1
-            if same != 0:
-                missing = int(0.01 * percentage * w * h - bigger)
-                selection = random.sample(range(0, same), max(missing, 0))
+            indices_of_same_values = []
             for i in range(0, w):
                 for j in range(0, h):
                     if mask[j][i] > percentile:
+                        bigger += 1
                         if new_val == "mean":
                             val[0][j][i] = mean
                             val[1][j][i] = mean
@@ -219,16 +209,20 @@ class Spectralloader(Dataset):
                             val[1][j][i] = 173 / 255
                             val[2][j][i] = 14 / 255
                     if mask[j][i] == percentile:
-                        if same in selection:
-                            if new_val == "mean":
-                                val[0][j][i] = mean
-                                val[1][j][i] = mean
-                                val[2][j][i] = mean
-                            else:
-                                val[0][j][i] = 238 / 255
-                                val[1][j][i] = 173 / 255
-                                val[2][j][i] = 14 / 255
-                        same -= 1
+                        same += 1
+                        indices_of_same_values.append([j, i])
+            if same > 5:
+                missing = max(int(0.01 * percentage * w * h - bigger), 0)
+                selection = random.sample(indices_of_same_values, missing)
+                for i in selection:
+                    if new_val == "mean":
+                        val[0][i[0]][i[1]] = mean
+                        val[1][i[0]][i[1]] = mean
+                        val[2][i[0]][i[1]] = mean
+                    else:
+                        val[0][i[0]][i[1]] = 238 / 255
+                        val[1][i[0]][i[1]] = 173 / 255
+                        val[2][i[0]][i[1]] = 14 / 255
             self.update_data(id, val)
 
     # apply the roar to the dataset

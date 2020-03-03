@@ -247,6 +247,13 @@ def explain_single(model, image, label, explainer, bounded):
         heat_map = cut_and_shape(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
+    elif explainer == 'Layerwise_Relevance_Propagation':
+        print("LRP")
+        # Convert to innvestigate model
+        # inn_model = InnvestigateModel(model, lrp_exponent=2,
+        #                               method="e-rule",
+        #                               beta=.5)
+        # model_prediction, heatmap = inn_model.innvestigate(in_tensor=input)
 
     return heat_map
 

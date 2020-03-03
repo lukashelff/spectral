@@ -252,11 +252,10 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
 
 
 def plot_dev_acc(roar_values, roar_explainers):
-    colors = ['g', 'b', 'c', 'm', 'y', 'k', 'w']
+    colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
     path = './data/plots/values/original.sav'
     val = pickle.load(open(path, 'rb'))
     plt.plot([roar_values[0], roar_values[-1]], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
-
     for c, k in enumerate(roar_explainers):
         acc_vals = []
         for i in roar_values:
@@ -264,7 +263,8 @@ def plot_dev_acc(roar_values, roar_explainers):
             path = './data/plots/values/' + sub_path
             val = pickle.load(open(path, 'rb'))
             acc_vals.append(val)
-        plt.plot(roar_values, acc_vals, colors[c], label=k)
+        plt.plot(roar_values, acc_vals, label=k)
+
     plt.title('development of accuracy by increasing ROAR value')
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
