@@ -173,12 +173,17 @@ def explain(model, image, label):
 
 
 # create single explainer of the image for the specified explainer
-def explain_single(model, image, label, explainer, bounded):
+def explain_single(model, image, ori_label, explainer, bounded):
     input = image.unsqueeze(0)
     input.requires_grad = True
     model.eval()
     c, h, w = image.shape
     heat_map = np.random.rand(h, w)
+    image_mod = image[None]
+    output = model(image_mod)
+    _, pred = torch.max(output, 1)
+    label = pred.item()
+
 
     def cut_and_shape(data):
         # # consider only the positive values

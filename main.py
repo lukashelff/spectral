@@ -36,10 +36,10 @@ from helpfunctions import *
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
-roar_create_mask = False
+roar_create_mask = True
 roar_train = True
-plot_roar_curve = False
-roar_mod_im_comp = False
+plot_roar_curve = True
+roar_mod_im_comp = True
 roar_expl_im = False
 N_EPOCHS = 120
 lr = 0.00015
@@ -65,9 +65,8 @@ def load_labels():
 
 
 def main():
-    roar_explainers = ['Integrated_Gradients', 'gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                       'noisetunnel', 'noisetunnel_gaussian']
-    roar_explainers = ['gradcam', 'guided_gradcam_gaussian']
+    roar_explainers = ['guided_gradcam', 'gradcam', 'guided_gradcam_gaussian',
+                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     mode = 'rgb'
     shuffle_dataset = True

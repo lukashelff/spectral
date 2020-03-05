@@ -121,7 +121,7 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
 # Axes: removed % of image features and explainers
 def eval_roar_mod_im_comp(mode, roar_explainers):
     roar_explainers = ['random'] + roar_explainers
-    roar_values = [10, 20, 30, 50, 70, 90, 100]
+    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     print('plotting modified images according to roar')
     w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 3
     for k in image_ids_roar_exp:

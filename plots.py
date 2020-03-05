@@ -109,6 +109,8 @@ def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healt
                     path_root + subpath_classification + explainers[i] + image_class[k] + '.png', bbox_inches='tight')
 
 
+# evaluates the image according to the given model
+# returns label, predicted label and the probity of it
 def evaluate_id(image_id, ds, model, explainers, path_root, subpath, DEVICE):
     # evaluate predictions with model and create Images from explainers
     # # get first batch for evaluation
