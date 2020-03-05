@@ -194,7 +194,6 @@ class Spectralloader(Dataset):
             c, h, w = im.shape
             val = im
             bigger = 0
-            same = 0
             indices_of_same_values = []
             for i in range(0, w):
                 for j in range(0, h):
@@ -209,9 +208,8 @@ class Spectralloader(Dataset):
                             val[1][j][i] = 173 / 255
                             val[2][j][i] = 14 / 255
                     if mask[j][i] == percentile:
-                        same += 1
                         indices_of_same_values.append([j, i])
-            if same > 5:
+            if len(indices_of_same_values) > 5:
                 missing = max(int(0.01 * percentage * w * h - bigger), 0)
                 selection = random.sample(indices_of_same_values, missing)
                 for i in selection:

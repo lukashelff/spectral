@@ -67,9 +67,8 @@ def load_labels():
 def main():
     roar_explainers = ['Integrated_Gradients', 'gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian']
-    roar_explainers = ['noisetunnel']
+    roar_explainers = ['gradcam', 'guided_gradcam_gaussian']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
-    roar_values = [30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42

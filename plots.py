@@ -252,6 +252,7 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
 
 
 def plot_dev_acc(roar_values, roar_explainers):
+    roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
     path = './data/plots/values/original.sav'
     val = pickle.load(open(path, 'rb'))
@@ -269,6 +270,6 @@ def plot_dev_acc(roar_values, roar_explainers):
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
     plt.axis([roar_values[0], roar_values[-1], 50, 100])
-    plt.legend(loc='lower right')
+    plt.legend(loc='lower left')
     plt.savefig('./data/plots/accuracy_roar_comparison')
     plt.show()
