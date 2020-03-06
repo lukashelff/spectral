@@ -1,8 +1,11 @@
 import torch
+import tqdm as tqdm
 from torch.utils.data import Dataset, DataLoader
 import pickle
 import numpy as np
 import random
+import tqdm
+import sys
 
 
 class Spectralloader(Dataset):
@@ -227,33 +230,36 @@ class Spectralloader(Dataset):
     # given percentage of the values get removed from the dataset
     def apply_roar(self, percentage, masks, DEVICE, explainer):
         length = self.__len__()
-        print('modified images: 0%')
-        for d in range(0, length):
-            if ((d + 1) % (length // 4)) == 0:
-                print('modified images: ' + str(round((d + 1) * 100 / self.__len__())) + '%')
-            # im, label = self.__getitem__(d)
-            id = self.get_id_by_index(d)
-            self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+        text = 'modify images for ' + explainer
+        with tqdm.tqdm(total=length, desc=text) as progress:
+            for d in range(0, length):
+                progress.update(1)
+                # if ((d + 1) % (length // 4)) == 0:
+                #     print('modified images: ' + str(round((d + 1) * 100 / self.__len__())) + '%')
+                # im, label = self.__getitem__(d)
+                id = self.get_id_by_index(d)
+                self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+        progress.close()
 
-            # mask = masks[id]
-            # torch.from_numpy(im).to(DEVICE)
-            # torch.from_numpy(mask).to(DEVICE)
-            # mean = np.mean(im)
-            # try:
-            #     # only take percentile of values with duplicated zeros deleted
-            #     mask_flat = mask.flatten()
-            #     if explainer == 'guided_gradcam':
-            #         mask_flat = mask_flat[mask_flat != 0]
-            #         np.append(mask_flat, 0)
-            #     percentile = np.percentile(mask_flat, 100 - percentage)
-            #     c, h, w = im.shape
-            #     val = im
-            #     for i in range(0, w):
-            #         for j in range(0, h):
-            #             if mask[j][i] >= percentile:
-            #                 val[0][j][i] = mean
-            #                 val[1][j][i] = mean
-            #                 val[2][j][i] = mean
-            #     self.update_data(id, val)
-            # except ValueError:
-            #     print('No roar img for id: ' + id)
+                # mask = masks[id]
+                # torch.from_numpy(im).to(DEVICE)
+                # torch.from_numpy(mask).to(DEVICE)
+                # mean = np.mean(im)
+                # try:
+                #     # only take percentile of values with duplicated zeros deleted
+                #     mask_flat = mask.flatten()
+                #     if explainer == 'guided_gradcam':
+                #         mask_flat = mask_flat[mask_flat != 0]
+                #         np.append(mask_flat, 0)
+                #     percentile = np.percentile(mask_flat, 100 - percentage)
+                #     c, h, w = im.shape
+                #     val = im
+                #     for i in range(0, w):
+                #         for j in range(0, h):
+                #             if mask[j][i] >= percentile:
+                #                 val[0][j][i] = mean
+                #                 val[1][j][i] = mean
+                #                 val[2][j][i] = mean
+                #     self.update_data(id, val)
+                # except ValueError:
+                #     print('No roar img for id: ' + id)

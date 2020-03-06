@@ -131,17 +131,19 @@ def main():
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
-        processes = []
-        for i in roar_explainers:
-            p = mp.Process(target=train_roar_ds,
-                           args=(path_exp + subpath_heapmaps + i + '.pkl', roar_values, trained_roar_models,
-                                 val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, DEVICE, i))
-            p.start()
-            processes.append(p)
-            # train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', roar_values, trained_roar_models,
-            #               val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, DEVICE, i)
-        for process in processes:
-            process.join()
+        train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, val_ds, train_ds, batch_size,
+                      n_classes, N_EPOCHS, lr, DEVICE, roar_explainers)
+        # processes = []
+        # for i in roar_explainers:
+        #     p = mp.Process(target=train_roar_ds,
+        #                    args=(path_exp + subpath_heapmaps + i + '.pkl', roar_values, trained_roar_models,
+        #                          val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, DEVICE, i))
+        #     p.start()
+        #     processes.append(p)
+        #     # train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', roar_values, trained_roar_models,
+        #     #               val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, DEVICE, i)
+        # for process in processes:
+        #     process.join()
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
