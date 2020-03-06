@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 import pickle
 import os
+import multiprocessing as mp
 
 from helpfunctions import display_rgb
 from spectralloader import Spectralloader
@@ -90,13 +91,13 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
         train_loss[epoch] = total_loss / n_samples
         train_acc[epoch] = n_correct / n_samples * 100
 
-        print(
-            f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            f"  train loss: {train_loss[epoch]:9.3f} |"
-            f"  train acc:  {train_acc[epoch]:9.3f}% |"
-            f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
-
-        )
+        # print(
+        #     f"Epoch {epoch + 1}/{N_EPOCHS} |"
+        #     f"  train loss: {train_loss[epoch]:9.3f} |"
+        #     f"  train acc:  {train_acc[epoch]:9.3f}% |"
+        #     f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
+        #
+        # )
 
         # Eval
         model.eval()
