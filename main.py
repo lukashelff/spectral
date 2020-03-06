@@ -26,6 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 import multiprocessing as mp
+import torch
 
 from roar import *
 from spectralloader import Spectralloader
@@ -34,7 +35,7 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
@@ -50,6 +51,7 @@ lr = 0.00015
 #
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
 def load_labels():
+    mp.set_start_method('spawn')
     path_test = 'data/test_fileids.txt'
     path_train = 'data/train_fileids.txt'
     valid = []
@@ -65,9 +67,9 @@ def load_labels():
     return train, valid, train + valid
 
 
-def main():
-    roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
+if __name__ == '__main__':
+    # roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
+    #                    'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     mode = 'rgb'
@@ -133,17 +135,6 @@ def main():
     if roar_train:
         train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, val_ds, train_ds, batch_size,
                       n_classes, N_EPOCHS, lr, DEVICE, roar_explainers)
-        # processes = []
-        # for i in roar_explainers:
-        #     p = mp.Process(target=train_roar_ds,
-        #                    args=(path_exp + subpath_heapmaps + i + '.pkl', roar_values, trained_roar_models,
-        #                          val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, DEVICE, i))
-        #     p.start()
-        #     processes.append(p)
-        #     # train_roar_ds(path_exp + subpath_heapmaps + i + '.pkl', roar_values, trained_roar_models,
-        #     #               val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, DEVICE, i)
-        # for process in processes:
-        #     process.join()
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
@@ -158,6 +149,3 @@ def main():
     if roar_expl_im:
         print('creating ROAR explanation plot')
         eval_roar_expl_im(mode, DEVICE, roar_explainers)
-
-
-main()

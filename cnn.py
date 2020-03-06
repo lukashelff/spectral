@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 import pickle
 import os
-import multiprocessing as mp
+import torch.multiprocessing as mp
 
 from helpfunctions import display_rgb
 from spectralloader import Spectralloader
@@ -49,6 +49,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
         model = models.resnet18(pretrained=True)
         freeze_all(model.parameters())
         model.fc = nn.Linear(512, n_classes)
+        model.share_memory()
         model = model.to(DEVICE)
         return model
 
@@ -164,16 +165,26 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
 # ROAR remove and retrain
 def train_roar_ds(path, roar_values, trained_roar_models, val_ds_org, train_ds_org, batch_size, n_classes,
                   N_EPOCHS, lr, DEVICE, roar_explainers):
+    num_processes = len(roar_explainers)
+    processes = []
     pool = mp.Pool(1)
     for explainer in roar_explainers:
         path_root = path + explainer + '.pkl'
         with open(path_root, 'rb') as f:
             mask = pickle.load(f)
             for i in roar_values:
-                pool.apply_async(train_parallel, args=(i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
-                                                       batch_size, n_classes, N_EPOCHS, lr, trained_roar_models))
-    pool.close()
-    pool.join()
+                train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
+                # parallel not working
+                # pool.apply_async(train_parallel, args=(i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+                #                                        batch_size, n_classes, N_EPOCHS, lr, trained_roar_models))
+            #     p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+            #                                            batch_size, n_classes, N_EPOCHS, lr, trained_roar_models))
+            #     p.start()
+            #     processes.append(p)
+            # for p in processes:
+            #     p.join()
+    # pool.close()
+    # pool.join()
 
     # print('------------------------------------------------------------')
     # print('removing ' + str(i) + ' % of the image features & train after ' + explainer)  #
@@ -200,7 +211,6 @@ def train_roar_ds(path, roar_values, trained_roar_models, val_ds_org, train_ds_o
 
 def train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
                    trained_roar_models):
-    print('removing ' + str(i) + ' % of the image features of ' + explainer)
     val_ds = deepcopy(val_ds_org)
     val_ds.apply_roar(i, mask, DEVICE, explainer)
     val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
