@@ -47,6 +47,7 @@ N_EPOCHS = 120
 lr = 0.00015
 
 
+
 # cuda:1
 #
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
@@ -68,10 +69,11 @@ def load_labels():
 
 
 if __name__ == '__main__':
-    # roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-    #                    'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
+    roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
+                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
+    roar_explainers = ['Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
+    roar_values = [10, 20, 30, 40, 50, 60, 70]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
