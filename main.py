@@ -40,7 +40,7 @@ retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
 roar_train = True
-plot_roar_curve = False
+plot_roar_curve = True
 roar_mod_im_comp = False
 roar_expl_im = False
 N_EPOCHS = 120
@@ -68,12 +68,12 @@ def load_labels():
     return train, valid, train + valid
 
 
-if __name__ == '__main__':
+def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
-    roar_values = [10, 20, 30, 40, 50, 60, 70]
+    roar_values = [60, 70]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
@@ -151,3 +151,7 @@ if __name__ == '__main__':
     if roar_expl_im:
         print('creating ROAR explanation plot')
         eval_roar_expl_im(mode, DEVICE, roar_explainers)
+
+
+if __name__ == '__main__':
+    main()

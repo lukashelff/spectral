@@ -17,12 +17,13 @@ def display_rgb_grid(img, title):
 # display rgb image
 def display_rgb(img, title, path, name):
     plt.title(title)
-    plt.imshow(np.transpose(img, (1, 2, 0)))
-    # im = Image.fromarray(np.transpose(img, (1, 2, 0)))
+    img_tr = np.transpose(img, (1, 2, 0))
+    plt.imshow(img_tr)
     plt.show()
+    im = Image.fromarray((img_tr * 255).astype(np.uint8))
     if not os.path.exists(path):
         os.makedirs(path)
-    # im.save(path + name)
+    im.save(path + name)
 
 def to_rgb(image):
     return np.transpose(image, (1, 2, 0))
