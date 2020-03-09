@@ -12,7 +12,7 @@ import os
 import torch.multiprocessing as mp
 from tqdm import tqdm
 import helpfunctions
-from concurrent.futures import ProcessPoolExecutor
+import concurrent.futures as futures
 from helpfunctions import display_rgb
 from spectralloader import Spectralloader
 
@@ -179,15 +179,14 @@ def train_roar_ds(path, roar_values, trained_roar_models, val_ds_org, train_ds_o
             for i in roar_values:
                 # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
                 #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
-                # parallel not working
+                # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
 
-    #             p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
-    #                                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models))
-    #             p.start()
-    #             processes.append(p)
-    #         for p in processes:
-    #             p.join()
+                p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+                                                       batch_size, n_classes, N_EPOCHS, lr, trained_roar_models))
+                p.start()
+                processes.append(p)
+            for p in processes:
+                p.join()
     # pool.close()
     # pool.join()
 
@@ -219,18 +218,19 @@ def train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_s
 
     val_ds = deepcopy(val_ds_org)
     train_ds = deepcopy(train_ds_org)
-    processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
+    # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
     # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
     # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
-    # train_ds.apply_roar(i, mask, DEVICE, explainer)
-    # val_ds.apply_roar(i, mask, DEVICE, explainer)
+    train_ds.apply_roar(i, mask, DEVICE, explainer)
+    val_ds.apply_roar(i, mask, DEVICE, explainer)
 
     # p1.start()
     # p2.start()
     # p1.join()
     # p2.join()
-    with ProcessPoolExecutor(max_workers=5) as ex:
-        ex.map(train_parallel, processes)
+    # with futures.ProcessPoolExecutor(max_workers=5) as ex:
+    #     fs = ex.map(train_parallel, processes)
+    # futures.wait(fs)
     # print example image
     im, label = val_ds.get_by_id('4_Z15_1_1_0')
     path = './data/exp/pred_img_example/'

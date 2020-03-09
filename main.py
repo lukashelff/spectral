@@ -39,7 +39,7 @@ DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
-roar_train = True
+roar_train = False
 plot_roar_curve = True
 roar_mod_im_comp = False
 roar_expl_im = False
@@ -71,9 +71,7 @@ def load_labels():
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
-    roar_values = [60, 70]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42

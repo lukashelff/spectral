@@ -232,14 +232,20 @@ class Spectralloader(Dataset):
         length = self.__len__()
         text = 'removing ' + str(percentage) + '% of ' + explainer
         #parallel execution not working
-        # pool = mp.Pool(1)
-        # data = []
+        # pool = mp.Pool(20)
         # for d in range(0, length):
         #     id = self.get_id_by_index(d)
-        #     data += [[percentage, masks, id, "mean", explainer]]
-        # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
+        #     pool.apply_async(self.parallel_roar, (percentage, masks, id, "mean", explainer))
+        # pool.close()
+        # pool.join()
+            # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
         with tqdm.tqdm(total=length, desc=text) as progress:
             for d in range(0, length):
                 id = self.get_id_by_index(d)
                 progress.update(1)
                 self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+
+    def parallel_roar(self, percentage, masks, id, mean, explainer):
+        self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+
+
