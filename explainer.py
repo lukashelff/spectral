@@ -10,6 +10,7 @@ from captum.attr import Saliency
 from captum.attr import visualization as viz
 from captum.attr import GuidedGradCam
 from captum.attr._core.guided_grad_cam import LayerGradCam
+from captum.attr._core.layer_wise_relevance_propagation import LRP
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
