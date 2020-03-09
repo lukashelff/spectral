@@ -21,7 +21,6 @@ from torchvision import models
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 from sklearn import preprocessing
-from utils import *
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
@@ -39,7 +38,7 @@ DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
-roar_train = False
+roar_train = True
 plot_roar_curve = True
 roar_mod_im_comp = False
 roar_expl_im = False
@@ -71,7 +70,9 @@ def load_labels():
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
+    roar_explainers = ['noisetunnel']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
+    roar_values = [99]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42

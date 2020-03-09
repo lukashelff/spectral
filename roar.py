@@ -21,7 +21,6 @@ from torchvision import models
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 from sklearn import preprocessing
-from utils import *
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature

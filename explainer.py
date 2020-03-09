@@ -10,12 +10,14 @@ from captum.attr import Saliency
 from captum.attr import visualization as viz
 from captum.attr import GuidedGradCam
 from captum.attr._core.guided_grad_cam import LayerGradCam
-from captum.attr._core.layer_wise_relevance_propagation import LRP
+# from captum.attr._core.layer_wise_relevance_propagation import LRP
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 import pickle
+import innvestigator
 from spectralloader import Spectralloader
+import settings as set
 
 
 # create all explainers for a given image
@@ -253,13 +255,25 @@ def explain_single(model, image, ori_label, explainer, bounded):
         heat_map = cut_and_shape(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
-    elif explainer == 'Layerwise_Relevance_Propagation':
-        print("LRP")
+    elif explainer == 'LRP':
+
+        original_trained_model = './data/models/trained_model_original.pt'
+        data_LRP_stored = './data/exp/lrp'
+
+
+        print("Layerwise_Relevance_Propagation")
+        set.settings["model_path"] = original_trained_model
+        set.settings["data_path"] = data_LRP_stored
+        set.settings["ADNI_DIR"] = ''
+        set.settings["train_h5"] = ''
+        set.settings["val_h5"] = ''
+        set.settings["holdout_h5"] = ''
+
         # Convert to innvestigate model
-        # inn_model = InnvestigateModel(model, lrp_exponent=2,
-        #                               method="e-rule",
-        #                               beta=.5)
-        # model_prediction, heatmap = inn_model.innvestigate(in_tensor=input)
+        inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
+                                      method="e-rule",
+                                      beta=.5)
+        model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
 
     return heat_map
 
