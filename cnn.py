@@ -179,14 +179,14 @@ def train_roar_ds(path, roar_values, trained_roar_models, val_ds_org, train_ds_o
             for i in roar_values:
                 # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
                 #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
+                train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
 
-                p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
-                                                       batch_size, n_classes, N_EPOCHS, lr, trained_roar_models))
-                p.start()
-                processes.append(p)
-            for p in processes:
-                p.join()
+            #     p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+            #                                            batch_size, n_classes, N_EPOCHS, lr, trained_roar_models))
+            #     p.start()
+            #     processes.append(p)
+            # for p in processes:
+            #     p.join()
     # pool.close()
     # pool.join()
 

@@ -8,6 +8,8 @@ import tqdm
 import sys
 import multiprocessing as mp
 import helpfunctions
+
+
 class Spectralloader(Dataset):
     """
         The spektral dataset can be found in folder

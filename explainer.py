@@ -15,9 +15,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 import pickle
-import innvestigator
 from spectralloader import Spectralloader
-import settings as set
 
 # create single explainer of the image for the specified explainer
 def explain_single(model, image, ori_label, explainer, bounded):
@@ -139,8 +137,8 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
             print('create mask for image ' + str(i) + ' of ' + str(d_length))
         for k in roar_explainers:
             heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
-    if not os.path.exists(path + '/heapmaps'):
-        os.makedirs(path + '/heapmaps')
+    if not os.path.exists(path + '/heatmaps'):
+        os.makedirs(path + '/heatmaps')
     for k in roar_explainers:
         pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
 

@@ -40,8 +40,8 @@ plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = True
 roar_train = True
 plot_roar_curve = True
-roar_mod_im_comp = False
-roar_expl_im = False
+roar_mod_im_comp = True
+roar_expl_im = True
 N_EPOCHS = 120
 lr = 0.00015
 
@@ -84,7 +84,7 @@ def main():
     # save the explainer images of the figures
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/exp/'
-    subpath_heapmaps = 'heapmaps/heapmaps'
+    subpath_heatmaps = 'heatmaps/heatmaps'
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
@@ -128,12 +128,12 @@ def main():
     # create a mask containing the heapmap of all specified images
     if roar_create_mask:
         print('creating for ROAR mask')
-        create_mask(original_model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
+        create_mask(original_model, all_ds, path_exp, subpath_heatmaps, DEVICE, roar_explainers)
         print('mask for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
-        train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, val_ds, train_ds, batch_size,
+        train_roar_ds(path_exp + subpath_heatmaps, roar_values, trained_roar_models, val_ds, train_ds, batch_size,
                       n_classes, N_EPOCHS, lr, DEVICE, roar_explainers)
 
     # plot the acc curves of all trained ROAR models
