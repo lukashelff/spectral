@@ -70,7 +70,7 @@ def load_labels():
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['lrp']
+    roar_explainers = ['LRP']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     mode = 'rgb'
     shuffle_dataset = True

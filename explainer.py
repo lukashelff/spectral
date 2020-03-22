@@ -15,7 +15,11 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 import pickle
+
+from tqdm import tqdm
+
 from spectralloader import Spectralloader
+
 
 # import from local lib
 # import innvestigator
@@ -189,7 +193,6 @@ def explain_single(model, image, ori_label, explainer, bounded):
     _, pred = torch.max(output, 1)
     label = pred.item()
 
-
     def cut_and_shape(data):
         # # consider only the positive values
         for i in range(h):
@@ -291,17 +294,18 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     heat_maps = {}
     for k in roar_explainers:
         heat_maps[k] = {}
-    for i in range(0, d_length):
-        image, label = dataset.__getitem__(i)
-        image = torch.from_numpy(image).to(DEVICE)
-        if (i % ((d_length - 1) // (2*len(roar_explainers)))) == 0:
-            print('create mask for image ' + str(i) + ' of ' + str(d_length))
+    text = 'creating mask for ' + roar_explainers
+    with tqdm(total=len(roar_explainers) * d_length, desc=text) as progress:
+        for i in range(0, d_length):
+            image, label = dataset.__getitem__(i)
+            image = torch.from_numpy(image).to(DEVICE)
+            for k in roar_explainers:
+                progress.update(1)
+                heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
+        if not os.path.exists(path + '/heapmaps'):
+            os.makedirs(path + '/heapmaps')
         for k in roar_explainers:
-            heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
-    if not os.path.exists(path + '/heapmaps'):
-        os.makedirs(path + '/heapmaps')
-    for k in roar_explainers:
-        pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
+            pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
 
 
 # cut top x Percentage of data and clips it to max
