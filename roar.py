@@ -145,7 +145,8 @@ def eval_roar_mod_im_comp(mode, roar_explainers):
                     else:
                         all_ds.apply_roar_single_image(i, mask, id, 'comp', ex)
                     image, label = all_ds.get_by_id(id)
-                    acc = pickle.load(open(path, 'rb'))
+                    # acc = pickle.load(open(path, 'rb'))
+                    acc = 100
                     # create ROAR plot
                     ax = fig.add_subplot(len(roar_values), len(roar_explainers),
                                          (c_ex + 1) + c_r * len(roar_explainers))

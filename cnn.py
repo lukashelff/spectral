@@ -38,6 +38,16 @@ def freeze_all(model_params):
         param.requires_grad = False
 
 
+def get_model(DEVICE, n_classes):
+    model = models.resnet18(pretrained=True)
+    model.avgpool = nn.AvgPool2d(kernel_size=7, stride=7, padding=0)
+    freeze_all(model.parameters())
+    model.fc = nn.Linear(512, n_classes)
+    model.share_memory()
+    model = model.to(DEVICE)
+    return model
+
+
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     train_loss = np.zeros(N_EPOCHS)
@@ -47,15 +57,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     valid_acc = np.zeros(N_EPOCHS)
     valid_balanced_acc = np.zeros(N_EPOCHS)
 
-    def get_model():
-        model = models.resnet18(pretrained=True)
-        freeze_all(model.parameters())
-        model.fc = nn.Linear(512, n_classes)
-        model.share_memory()
-        model = model.to(DEVICE)
-        return model
 
-    model = get_model()
+
+    model = get_model(DEVICE, n_classes)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         get_trainable(model.parameters()),

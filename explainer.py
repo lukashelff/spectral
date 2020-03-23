@@ -22,8 +22,8 @@ from spectralloader import Spectralloader
 
 
 # import from local lib
-# import innvestigator
-# import settings as set
+import innvestigator
+import settings as set
 
 
 # create all explainers for a given image
@@ -264,7 +264,7 @@ def explain_single(model, image, ori_label, explainer, bounded):
     elif explainer == 'LRP':
         # CAPTUM lrp
         lrp = LRP(model)
-        attr_lrp = attribute_image_features(lrp, input)
+        attr_lrp, delta = attribute_image_features(lrp, input, return_convergence_delta=True, verbose=True)
         heat_map = cut_and_shape(np.transpose(attr_lrp.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -294,7 +294,9 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     heat_maps = {}
     for k in roar_explainers:
         heat_maps[k] = {}
-    text = 'creating mask for ' + roar_explainers
+    text = 'creating mask for '
+    for i in roar_explainers:
+        text = text + i + ' '
     with tqdm(total=len(roar_explainers) * d_length, desc=text) as progress:
         for i in range(0, d_length):
             image, label = dataset.__getitem__(i)
