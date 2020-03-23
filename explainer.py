@@ -59,6 +59,7 @@ def explain(model, image, label):
         plt.close('all')
         return fig
 
+    # normalize and reshape
     def normalize(data):
         # consider only the positive values
         for i in range(h):
@@ -67,11 +68,6 @@ def explain(model, image, label):
                     # if label == 1:
                     if data[i][k][j] < 0:
                         data[i][k][j] = 0
-                    # else:
-                    #     if data[i][k][j] > 0:
-                    #         data[i][k][j] = 0
-                    #     else:
-                    #         data[i][k][j] = abs(data[i][k][j])
 
         # reshape to hxw
         d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
@@ -80,7 +76,6 @@ def explain(model, image, label):
         min = 0
         designated_mean = 0.25
         factor = (designated_mean * max) / mean
-        # print('max val: ' + str(max) + ' mean val: ' + str(mean) + ' faktor: ' + str(factor))
         # normalize
         for i in range(h):
             for k in range(w):
@@ -145,11 +140,14 @@ def explain(model, image, label):
     f6 = detect_edge(attr_gc)
     f7 = detect_edge(np_gradcam)
     f8 = detect_edge(attr_ig_nt2)
+    f1, a1 = viz.visualize_image_attr(None, np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                      method="original_image", use_pyplot=False)
+
+    # ----------------------------------------------------------------
+    # code to display images with the captum lib
 
     # original_image = detect_edge()
     # # Original Image
-    f1, a1 = viz.visualize_image_attr(None, np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
-                                      method="original_image", use_pyplot=False)
     # # Overlayed Gradient Magnitudes saliency
     # f2, a2 = viz.visualize_image_attr(grads, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
     # # Overlayed Integrated Gradients
