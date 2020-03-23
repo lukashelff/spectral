@@ -40,7 +40,7 @@ def freeze_all(model_params):
 
 def get_model(DEVICE, n_classes):
     model = models.resnet18(pretrained=True)
-    model.avgpool = nn.AvgPool2d(kernel_size=7, stride=7, padding=0)
+    model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
     freeze_all(model.parameters())
     model.fc = nn.Linear(512, n_classes)
     model.share_memory()

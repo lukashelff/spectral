@@ -261,26 +261,26 @@ def explain_single(model, image, ori_label, explainer, bounded):
 
     elif explainer == 'LRP':
         # CAPTUM lrp
-        lrp = LRP(model)
-        attr_lrp, delta = attribute_image_features(lrp, input, return_convergence_delta=True, verbose=True)
-        heat_map = cut_and_shape(np.transpose(attr_lrp.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        # lrp = LRP(model)
+        # attr_lrp, delta = attribute_image_features(lrp, input, return_convergence_delta=True)
+        # heat_map = cut_and_shape(np.transpose(attr_lrp.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # lrp FROM LOCAL LIB
-        # original_trained_model = './data/models/trained_model_original.pt'
-        # data_LRP_stored = './data/exp/lrp'
-        # print("Layerwise_Relevance_Propagation")
-        # set.settings["model_path"] = original_trained_model
-        # set.settings["data_path"] = data_LRP_stored
-        # set.settings["ADNI_DIR"] = ''
-        # set.settings["train_h5"] = ''
-        # set.settings["val_h5"] = ''
-        # set.settings["holdout_h5"] = ''
-        # # Convert to innvestigate model
-        # inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
-        #                               method="e-rule",
-        #                               beta=.5)
-        # model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
+        original_trained_model = './data/models/trained_model_original.pt'
+        data_LRP_stored = './data/exp/lrp'
+        print("Layerwise_Relevance_Propagation")
+        set.settings["model_path"] = original_trained_model
+        set.settings["data_path"] = data_LRP_stored
+        set.settings["ADNI_DIR"] = ''
+        set.settings["train_h5"] = ''
+        set.settings["val_h5"] = ''
+        set.settings["holdout_h5"] = ''
+        # Convert to innvestigate model
+        inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
+                                      method="e-rule",
+                                      beta=.5)
+        model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
 
     return heat_map
 
