@@ -26,6 +26,149 @@ import innvestigator
 import settings as set
 
 
+# create single explainer of the image for the specified explainer
+def explain_single(model, image, ori_label, explainer, bounded):
+    input = image.unsqueeze(0)
+    input.requires_grad = True
+    model.eval()
+    c, h, w = image.shape
+    heat_map = np.random.rand(h, w)
+    image_mod = image[None]
+    output = model(image_mod)
+    _, pred = torch.max(output, 1)
+    label = pred.item()
+
+    def cut_and_shape(data):
+        # # consider only the positive values
+        for i in range(h):
+            for k in range(w):
+                for j in range(c):
+                    if data[i][k][j] < 0:
+                        data[i][k][j] = 0
+        # reshape to 2D hxw
+        d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
+        return d_img
+
+    def attribute_image_features(algorithm, input, **kwargs):
+        model.zero_grad()
+        tensor_attributions = algorithm.attribute(input, target=label, **kwargs)
+        return tensor_attributions
+
+    if explainer == 'gradcam':
+        # GradCam
+        gco = LayerGradCam(model, model.layer4)
+        attr_gco = attribute_image_features(gco, input)
+        att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
+        gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
+        heat_map = np.asarray(gradcam)
+
+    elif explainer == 'guided_gradcam':
+        gc = GuidedGradCam(model, model.layer4)
+        attr_gc = attribute_image_features(gc, input)
+        heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        if bounded:
+            heat_map = cut_top_per(heat_map)
+
+    elif explainer == 'guided_gradcam_gaussian':
+        gc = GuidedGradCam(model, model.layer4)
+        attr_gc = attribute_image_features(gc, input)
+        heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        heat_map = ndi.gaussian_filter(heat_map, 7)
+
+    elif explainer == 'noisetunnel':
+        # IntegratedGradients Noise Tunnel
+        ig = IntegratedGradients(model)
+        nt = NoiseTunnel(ig)
+        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                              n_samples=5,
+                                              # stdevs=0.2
+                                              )
+        heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        if bounded:
+            heat_map = cut_top_per(heat_map)
+
+    elif explainer == 'noisetunnel_gaussian':
+        # IntegratedGradients Noise Tunnel
+        ig = IntegratedGradients(model)
+        nt = NoiseTunnel(ig)
+        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
+                                              n_samples=5,
+                                              # stdevs=0.2
+                                              )
+        heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        heat_map = ndi.gaussian_filter(heat_map, 7)
+
+    elif explainer == 'Integrated_Gradients':
+        # IntegratedGradients
+        ig = IntegratedGradients(model)
+        attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
+        heat_map = cut_and_shape(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+        if bounded:
+            heat_map = cut_top_per(heat_map)
+
+    elif explainer == 'LRP':
+        # CAPTUM lrp
+        # lrp = LRP(model)
+        # attr_lrp, delta = attribute_image_features(lrp, input, return_convergence_delta=True)
+        # heat_map = cut_and_shape(np.transpose(attr_lrp.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # lrp FROM LOCAL LIB
+        original_trained_model = './data/models/trained_model_original.pt'
+        data_LRP_stored = './data/exp/lrp'
+        print("Layerwise_Relevance_Propagation")
+        set.settings["model_path"] = original_trained_model
+        set.settings["data_path"] = data_LRP_stored
+        set.settings["ADNI_DIR"] = ''
+        set.settings["train_h5"] = ''
+        set.settings["val_h5"] = ''
+        set.settings["holdout_h5"] = ''
+        # Convert to innvestigate model
+        inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
+                                      method="e-rule",
+                                      beta=.5)
+        model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
+
+    return heat_map
+
+
+# create a mask with all heat_maps for specified dataset
+def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
+    d_length = dataset.__len__()
+    model.to(DEVICE)
+    heat_maps = {}
+    for k in roar_explainers:
+        heat_maps[k] = {}
+    text = 'creating mask for '
+    for i in roar_explainers:
+        text = text + i + ' '
+    with tqdm(total=len(roar_explainers) * d_length, desc=text) as progress:
+        for i in range(0, d_length):
+            image, label = dataset.__getitem__(i)
+            image = torch.from_numpy(image).to(DEVICE)
+            for k in roar_explainers:
+                progress.update(1)
+                heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
+        if not os.path.exists(path + '/heapmaps'):
+            os.makedirs(path + '/heapmaps')
+        for k in roar_explainers:
+            pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
+
+
+# cut top x Percentage of data and clips it to max
+def cut_top_per(data):
+    h, w = data.shape
+    percentile = np.percentile(data, 98.5)
+    # consider only the positive values
+    for i in range(h):
+        for k in range(w):
+            if data[i][k] > percentile:
+                data[i][k] = percentile
+    # reshape to 2D hxw
+    d_img = data
+    return d_img
+
+
 # create all explainers for a given image
 # more preformat
 def explain(model, image, label):
@@ -179,144 +322,3 @@ def explain(model, image, label):
     return [f1, f2, f3, f4, f6, f7, f8]
 
 
-# create single explainer of the image for the specified explainer
-def explain_single(model, image, ori_label, explainer, bounded):
-    input = image.unsqueeze(0)
-    input.requires_grad = True
-    model.eval()
-    c, h, w = image.shape
-    heat_map = np.random.rand(h, w)
-    image_mod = image[None]
-    output = model(image_mod)
-    _, pred = torch.max(output, 1)
-    label = pred.item()
-
-    def cut_and_shape(data):
-        # # consider only the positive values
-        for i in range(h):
-            for k in range(w):
-                for j in range(c):
-                    if data[i][k][j] < 0:
-                        data[i][k][j] = 0
-        # reshape to 2D hxw
-        d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
-        return d_img
-
-    def attribute_image_features(algorithm, input, **kwargs):
-        model.zero_grad()
-        tensor_attributions = algorithm.attribute(input, target=label, **kwargs)
-        return tensor_attributions
-
-    if explainer == 'gradcam':
-        # GradCam
-        gco = LayerGradCam(model, model.layer4)
-        attr_gco = attribute_image_features(gco, input)
-        att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
-        gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
-        heat_map = np.asarray(gradcam)
-
-    elif explainer == 'guided_gradcam':
-        gc = GuidedGradCam(model, model.layer4)
-        attr_gc = attribute_image_features(gc, input)
-        heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        if bounded:
-            heat_map = cut_top_per(heat_map)
-
-    elif explainer == 'guided_gradcam_gaussian':
-        gc = GuidedGradCam(model, model.layer4)
-        attr_gc = attribute_image_features(gc, input)
-        heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heat_map = ndi.gaussian_filter(heat_map, 7)
-
-    elif explainer == 'noisetunnel':
-        # IntegratedGradients Noise Tunnel
-        ig = IntegratedGradients(model)
-        nt = NoiseTunnel(ig)
-        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                              n_samples=5,
-                                              # stdevs=0.2
-                                              )
-        heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        if bounded:
-            heat_map = cut_top_per(heat_map)
-
-    elif explainer == 'noisetunnel_gaussian':
-        # IntegratedGradients Noise Tunnel
-        ig = IntegratedGradients(model)
-        nt = NoiseTunnel(ig)
-        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                              n_samples=5,
-                                              # stdevs=0.2
-                                              )
-        heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-        heat_map = ndi.gaussian_filter(heat_map, 7)
-
-    elif explainer == 'Integrated_Gradients':
-        # IntegratedGradients
-        ig = IntegratedGradients(model)
-        attr_ig, delta = attribute_image_features(ig, input, baselines=input * 0, return_convergence_delta=True)
-        heat_map = cut_and_shape(np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)))
-        if bounded:
-            heat_map = cut_top_per(heat_map)
-
-    elif explainer == 'LRP':
-        # CAPTUM lrp
-        # lrp = LRP(model)
-        # attr_lrp, delta = attribute_image_features(lrp, input, return_convergence_delta=True)
-        # heat_map = cut_and_shape(np.transpose(attr_lrp.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # lrp FROM LOCAL LIB
-        original_trained_model = './data/models/trained_model_original.pt'
-        data_LRP_stored = './data/exp/lrp'
-        print("Layerwise_Relevance_Propagation")
-        set.settings["model_path"] = original_trained_model
-        set.settings["data_path"] = data_LRP_stored
-        set.settings["ADNI_DIR"] = ''
-        set.settings["train_h5"] = ''
-        set.settings["val_h5"] = ''
-        set.settings["holdout_h5"] = ''
-        # Convert to innvestigate model
-        inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
-                                      method="e-rule",
-                                      beta=.5)
-        model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
-
-    return heat_map
-
-
-# create a mask with all heat_maps for specified dataset
-def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
-    d_length = dataset.__len__()
-    model.to(DEVICE)
-    heat_maps = {}
-    for k in roar_explainers:
-        heat_maps[k] = {}
-    text = 'creating mask for '
-    for i in roar_explainers:
-        text = text + i + ' '
-    with tqdm(total=len(roar_explainers) * d_length, desc=text) as progress:
-        for i in range(0, d_length):
-            image, label = dataset.__getitem__(i)
-            image = torch.from_numpy(image).to(DEVICE)
-            for k in roar_explainers:
-                progress.update(1)
-                heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
-        if not os.path.exists(path + '/heapmaps'):
-            os.makedirs(path + '/heapmaps')
-        for k in roar_explainers:
-            pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
-
-
-# cut top x Percentage of data and clips it to max
-def cut_top_per(data):
-    h, w = data.shape
-    percentile = np.percentile(data, 98.5)
-    # consider only the positive values
-    for i in range(h):
-        for k in range(w):
-            if data[i][k] > percentile:
-                data[i][k] = percentile
-    # reshape to 2D hxw
-    d_img = data
-    return d_img
