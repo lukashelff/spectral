@@ -15,6 +15,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 import pickle
+from torchsummary import summary
 
 from tqdm import tqdm
 
@@ -28,6 +29,7 @@ import settings as set
 
 # create single explainer of the image for the specified explainer
 def explain_single(model, image, ori_label, explainer, bounded):
+    from main import DEVICE
     input = image.unsqueeze(0)
     input.requires_grad = True
     model.eval()
@@ -107,6 +109,10 @@ def explain_single(model, image, ori_label, explainer, bounded):
             heat_map = cut_top_per(heat_map)
 
     elif explainer == 'LRP':
+        # model.to('cuda:0')
+        # summary(model, (3, 255, 213), batch_size=20)
+        # model.to(DEVICE)
+
         # CAPTUM lrp
         # lrp = LRP(model)
         # attr_lrp, delta = attribute_image_features(lrp, input, return_convergence_delta=True)
@@ -114,6 +120,7 @@ def explain_single(model, image, ori_label, explainer, bounded):
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # lrp FROM LOCAL LIB
+        # print(model)
         original_trained_model = './data/models/trained_model_original.pt'
         data_LRP_stored = './data/exp/lrp'
         print("Layerwise_Relevance_Propagation")

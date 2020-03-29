@@ -15,6 +15,7 @@ def module_tracker(fwd_hook_func):
         Wrapped method.
 
     """
+
     def hook_wrapper(relevance_propagator_instance, layer, *args):
         relevance_propagator_instance.module_list.append(layer)
         return fwd_hook_func(relevance_propagator_instance, layer, *args)
@@ -91,7 +92,7 @@ class RelevancePropagator:
             return self.max_pool_nd_inverse(layer, relevance).detach()
 
         elif isinstance(layer,
-                      (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d)):
+                        (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d)):
             return self.conv_nd_inverse(layer, relevance).detach()
 
         elif isinstance(layer, torch.nn.LogSoftmax):
@@ -320,18 +321,18 @@ class RelevancePropagator:
             # Add stabilizer term to norm to avoid numerical instabilities.
             norm += self.eps * torch.sign(norm)
             input_relevance = relevance_in.squeeze(dim=-1).repeat(1, 4)
-            input_relevance[:, :2*out_c] *= (1+self.beta)/norm[:, :out_c].repeat(1, 2)
-            input_relevance[:, 2*out_c:] *= -self.beta/norm[:, out_c:].repeat(1, 2)
+            input_relevance[:, :2 * out_c] *= (1 + self.beta) / norm[:, :out_c].repeat(1, 2)
+            input_relevance[:, 2 * out_c:] *= -self.beta / norm[:, out_c:].repeat(1, 2)
             inv_w = w.t()
             relevance_out = torch.zeros_like(m.in_tensor)
             for i in range(4):
-                relevance_out[:, i*in_c:(i+1)*in_c] = F.linear(
-                    input_relevance[:, i*out_c:(i+1)*out_c],
-                    weight=inv_w[:, i*out_c:(i+1)*out_c], bias=None)
+                relevance_out[:, i * in_c:(i + 1) * in_c] = F.linear(
+                    input_relevance[:, i * out_c:(i + 1) * out_c],
+                    weight=inv_w[:, i * out_c:(i + 1) * out_c], bias=None)
 
             relevance_out *= m.in_tensor
 
-            relevance_out = sum([relevance_out[:, i*in_c:(i+1)*in_c] for i in range(4)])
+            relevance_out = sum([relevance_out[:, i * in_c:(i + 1) * in_c] for i in range(4)])
 
             del sum_weights, input_relevance, norm, rare_neurons, \
                 mask, new_norm, m.in_tensor, w, inv_w
@@ -379,6 +380,10 @@ class RelevancePropagator:
 
         # In case the output had been reshaped for a linear layer,
         # make sure the relevance is put into the same shape as before.
+        print('====================================================')
+        print('relevance_in: ' + str(relevance_in.shape))
+        print('relevance_in target size: ' + str(m.out_shape))
+
         relevance_in = relevance_in.view(m.out_shape)
 
         # Get required values from layer
@@ -396,10 +401,24 @@ class RelevancePropagator:
                 norm = norm + torch.sign(norm) * self.eps
                 relevance_in[norm == 0] = 0
                 norm[norm == 0] = 1
-                relevance_out = inv_conv_nd(relevance_in/norm,
+                print('padding: ' + str(m.padding))
+                print('stride: ' + str(m.stride))
+                print('groups: ' + str(m.groups))
+                # print('weights: ' + str(w.shape))
+                print('kernel: ' + str(m.kernel_size))
+                print(inv_conv_nd)
+                output_padding = 0
+                if m.stride == (2, 2):
+                    sha = [m.out_shape[2], m.out_shape[3]]
+                    target_shape = list(m.in_tensor.shape)
+                    dif = (target_shape[2] - sha[0] * 2 + 1, target_shape[3] - sha[1] * 2 + 1)
+                    output_padding = dif
+                relevance_out = inv_conv_nd(relevance_in / norm,
                                             weight=w, bias=None,
                                             padding=m.padding, stride=m.stride,
-                                            groups=m.groups)
+                                            groups=m.groups, output_padding=output_padding)
+                print('relevance_out: ' + str(relevance_out.shape))
+                print('in_tensor: ' + str(m.in_tensor.shape))
                 relevance_out *= m.in_tensor
                 del m.in_tensor, norm, w
                 return relevance_out
@@ -476,8 +495,8 @@ class RelevancePropagator:
                 spatial_dims = [1] * len(relevance_in.size()[2:])
 
                 input_relevance = relevance_in.repeat(1, 4, *spatial_dims)
-                input_relevance[:, :2*out_c] *= (1+self.beta)/norm[:, :out_c].repeat(1, 2, *spatial_dims)
-                input_relevance[:, 2*out_c:] *= -self.beta/norm[:, out_c:].repeat(1, 2, *spatial_dims)
+                input_relevance[:, :2 * out_c] *= (1 + self.beta) / norm[:, :out_c].repeat(1, 2, *spatial_dims)
+                input_relevance[:, 2 * out_c:] *= -self.beta / norm[:, out_c:].repeat(1, 2, *spatial_dims)
                 # Each of the positive / negative entries needs its own
                 # convolution. TODO: Can this be done in groups, too?
 
@@ -486,15 +505,15 @@ class RelevancePropagator:
                 tmp_result = result = None
                 for i in range(4):
                     tmp_result = inv_conv_nd(
-                        input_relevance[:, i*out_c:(i+1)*out_c],
-                        weight=w[i*out_c:(i+1)*out_c],
+                        input_relevance[:, i * out_c:(i + 1) * out_c],
+                        weight=w[i * out_c:(i + 1) * out_c],
                         bias=None, padding=m.padding, stride=m.stride,
                         groups=m.groups)
-                    result = torch.zeros_like(relevance_out[:, i*in_c:(i+1)*in_c])
+                    result = torch.zeros_like(relevance_out[:, i * in_c:(i + 1) * in_c])
                     tmp_size = tmp_result.size()
                     slice_list = [slice(0, l) for l in tmp_size]
                     result[slice_list] += tmp_result
-                    relevance_out[:, i*in_c:(i+1)*in_c] = result
+                    relevance_out[:, i * in_c:(i + 1) * in_c] = result
                 relevance_out *= m.in_tensor
 
                 sum_weights = torch.zeros([in_c, in_c * 4, *spatial_dims]).to(self.device)

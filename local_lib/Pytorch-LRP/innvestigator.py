@@ -205,6 +205,9 @@ class InnvestigateModel(torch.nn.Module):
             # The module list is computed for every forward pass
             # by the model inverter.
             rev_model = self.inverter.module_list[::-1]
+            del rev_model[38:40]
+            del rev_model[24:26]
+            del rev_model[10:12]
             relevance = relevance_tensor.detach()
             del relevance_tensor
             # List to save relevance distributions per layer

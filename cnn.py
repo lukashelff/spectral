@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from torchsummary import summary
 from torchvision import models
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -40,6 +41,11 @@ def freeze_all(model_params):
 
 def get_model(DEVICE, n_classes):
     model = models.resnet18(pretrained=True)
+    model.to('cuda:0')
+    summary(model, (3, 255, 213), batch_size=20)
+    model.to(DEVICE)
+    print('=========================')
+    print(model)
     model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
     freeze_all(model.parameters())
     model.fc = nn.Linear(512, n_classes)
