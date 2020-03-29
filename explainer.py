@@ -136,6 +136,7 @@ def explain_single(model, image, ori_label, explainer, bounded):
                                       beta=.5)
         model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
 
+    assert (heat_map.shape == input.shape), "heatmap shape does not match image"
     return heat_map
 
 
