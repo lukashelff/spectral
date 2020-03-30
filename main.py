@@ -35,15 +35,15 @@ from plots import *
 from helpfunctions import *
 
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-retrain = False
+retrain = True
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
 roar_train = False
-plot_roar_curve = True
+plot_roar_curve = False
 roar_mod_im_comp = False
-roar_expl_im = True
-N_EPOCHS = 120
-lr = 0.00015
+roar_expl_im = False
+N_EPOCHS = 150
+lr = 0.0001
 
 
 # cuda:1

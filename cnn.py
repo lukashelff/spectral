@@ -64,8 +64,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar):
     valid_acc = np.zeros(N_EPOCHS)
     valid_balanced_acc = np.zeros(N_EPOCHS)
 
-
-
     model = get_model(DEVICE, n_classes)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
