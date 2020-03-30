@@ -41,7 +41,7 @@ roar_create_mask = False
 roar_train = False
 plot_roar_curve = True
 roar_mod_im_comp = False
-roar_expl_im = False
+roar_expl_im = True
 N_EPOCHS = 120
 lr = 0.00015
 

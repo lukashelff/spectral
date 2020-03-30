@@ -34,6 +34,7 @@ from helpfunctions import *
 #                    'guided_gradcam_gaussian', 'noisetunnel', 'Integrated_Gradients']
 image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 image_ids_roar_exp = [0, 3, 4, 6]
+image_ids_roar_exp = [3]
 image_labels = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1), ('3_Z8_4_0_0', 1),
                 ('3_Z8_4_1_2', 1), ('3_Z1_3_1_1', 0), ('3_Z2_1_0_2', 0)]
 trained_roar_models = './data/models/trained_model_roar'
@@ -82,12 +83,10 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
                     # loading model of explainer for corresponding remove value
                     all_ds = Spectralloader([image_labels[k]], root, mode)
                     if i == 0:
-                        model = models.resnet18(pretrained=True)
-                        model.fc = nn.Linear(512, n_classes)
+                        model = get_model(DEVICE, n_classes)
                         model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
                     else:
-                        model = models.resnet18(pretrained=True)
-                        model.fc = nn.Linear(512, n_classes)
+                        model = get_model(DEVICE, n_classes)
                         model.load_state_dict(
                             torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
                         all_ds.apply_roar_single_image(i, mask, id, 'mean', ex)
