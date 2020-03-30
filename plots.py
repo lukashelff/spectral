@@ -260,7 +260,7 @@ def plot_dev_acc(roar_values, roar_explainers):
     val = pickle.load(open(path, 'rb'))
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     plt.plot([roar_values[0], roar_values[-1]], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
-    plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
+    # plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
     for c, k in enumerate(roar_explainers):
         acc_vals = []
         for i in roar_values:
@@ -273,7 +273,7 @@ def plot_dev_acc(roar_values, roar_explainers):
     plt.title('development of accuracy by increasing ROAR value')
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
-    plt.axis([roar_values[0], roar_values[-1], 40, 90])
+    plt.axis([roar_values[0], roar_values[-1], 50, 90])
     plt.legend(loc='lower left')
     plt.savefig('./data/plots/accuracy_roar_comparison')
     plt.show()
