@@ -21,7 +21,6 @@ from tqdm import tqdm
 
 from spectralloader import Spectralloader
 
-
 # import from local lib
 import innvestigator
 import settings as set
@@ -132,11 +131,15 @@ def explain_single(model, image, ori_label, explainer, bounded):
         set.settings["holdout_h5"] = ''
         # Convert to innvestigate model
         inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
-                                      method="e-rule",
-                                      beta=.5)
+                                                    method="e-rule",
+                                                    beta=.5)
         model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
+        heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
 
-    assert (heat_map.shape == input.shape), "heatmap shape does not match image"
+        # heat_map = cut_and_shape(np.transpose(heat_map[0], (1, 2, 0)))
+
+    assert (heat_map.shape == torch.Size([213, 255])), "heatmap shape: " + str(heat_map.shape) +\
+                                                       " does not match image shape: " + str(torch.Size([213, 255]))
     return heat_map
 
 
@@ -328,5 +331,3 @@ def explain(model, image, label):
     # print('Leaf is ', classes[predicted[ind]],
     #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item())
     return [f1, f2, f3, f4, f6, f7, f8]
-
-

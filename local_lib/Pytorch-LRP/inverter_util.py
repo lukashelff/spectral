@@ -380,9 +380,9 @@ class RelevancePropagator:
 
         # In case the output had been reshaped for a linear layer,
         # make sure the relevance is put into the same shape as before.
-        print('====================================================')
-        print('relevance_in: ' + str(relevance_in.shape))
-        print('relevance_in target size: ' + str(m.out_shape))
+        # print('====================================================')
+        # print('relevance_in: ' + str(relevance_in.shape))
+        # print('relevance_in target size: ' + str(m.out_shape))
 
         relevance_in = relevance_in.view(m.out_shape)
 
@@ -401,12 +401,12 @@ class RelevancePropagator:
                 norm = norm + torch.sign(norm) * self.eps
                 relevance_in[norm == 0] = 0
                 norm[norm == 0] = 1
-                print('padding: ' + str(m.padding))
-                print('stride: ' + str(m.stride))
-                print('groups: ' + str(m.groups))
-                # print('weights: ' + str(w.shape))
-                print('kernel: ' + str(m.kernel_size))
-                print(inv_conv_nd)
+                # print('padding: ' + str(m.padding))
+                # print('stride: ' + str(m.stride))
+                # print('groups: ' + str(m.groups))
+                # # print('weights: ' + str(w.shape))
+                # print('kernel: ' + str(m.kernel_size))
+                # print(inv_conv_nd)
                 output_padding = 0
                 if m.stride == (2, 2):
                     sha = [m.out_shape[2], m.out_shape[3]]
@@ -417,8 +417,8 @@ class RelevancePropagator:
                                             weight=w, bias=None,
                                             padding=m.padding, stride=m.stride,
                                             groups=m.groups, output_padding=output_padding)
-                print('relevance_out: ' + str(relevance_out.shape))
-                print('in_tensor: ' + str(m.in_tensor.shape))
+                # print('relevance_out: ' + str(relevance_out.shape))
+                # print('in_tensor: ' + str(m.in_tensor.shape))
                 relevance_out *= m.in_tensor
                 del m.in_tensor, norm, w
                 return relevance_out

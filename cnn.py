@@ -41,11 +41,12 @@ def freeze_all(model_params):
 
 def get_model(DEVICE, n_classes):
     model = models.resnet18(pretrained=True)
-    model.to('cuda:0')
-    summary(model, (3, 255, 213), batch_size=20)
-    model.to(DEVICE)
-    print('=========================')
-    print(model)
+    # print model
+    # model.to('cuda:0')
+    # summary(model, (3, 255, 213), batch_size=20)
+    # model.to(DEVICE)
+    # print('=========================')
+    # print(model)
     model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
     freeze_all(model.parameters())
     model.fc = nn.Linear(512, n_classes)
@@ -225,7 +226,6 @@ def train_roar_ds(path, roar_values, trained_roar_models, val_ds_org, train_ds_o
 
 def train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
                    trained_roar_models):
-
     val_ds = deepcopy(val_ds_org)
     train_ds = deepcopy(train_ds_org)
     # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
@@ -249,8 +249,8 @@ def train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_s
     display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + 'values removed', path, name)
 
     # create Dataloaders
-    val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
-    train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
+    val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=1, )
+    train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=1, )
     # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
     model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(i) + '%_of_' + explainer)
     torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')
