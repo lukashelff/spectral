@@ -8,6 +8,8 @@ import tqdm
 import sys
 import multiprocessing as mp
 import helpfunctions
+
+
 class Spectralloader(Dataset):
     """
         The spektral dataset can be found in folder
@@ -249,3 +251,25 @@ class Spectralloader(Dataset):
         self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
 
 
+# returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
+def load_labels():
+    mp.set_start_method('spawn')
+    path_test = 'data/test_fileids.txt'
+    path_train = 'data/train_fileids.txt'
+    valid = []
+    train = []
+    valid_s = open(path_test, 'r').readlines()
+    train_s = open(path_train, 'r').readlines()
+    all_labels = []
+    all_ids = []
+    for i in valid_s:
+        data = i.split(';')
+        valid.append((data[0], int(data[1])))
+        all_labels.append(data[1])
+        all_ids.append(data[0])
+    for i in train_s:
+        data = i.split(';')
+        train.append((data[0], int(data[1])))
+        all_labels.append(data[1])
+        all_ids.append(data[0])
+    return train, valid, train + valid, all_ids, all_labels

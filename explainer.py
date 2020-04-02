@@ -137,7 +137,6 @@ def explain_single(model, image, ori_label, explainer, bounded):
         heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
-        # heat_map = cut_and_shape(np.transpose(heat_map[0], (1, 2, 0)))
 
     assert (heat_map.shape == torch.Size([213, 255])), "heatmap shape: " + str(heat_map.shape) +\
                                                        " does not match image shape: " + str(torch.Size([213, 255]))

@@ -26,9 +26,10 @@ from scipy import ndimage as ndi
 from skimage import feature
 import multiprocessing as mp
 import torch
+from sklearn.model_selection import StratifiedShuffleSplit
 
 from roar import *
-from spectralloader import Spectralloader
+from spectralloader import *
 from cnn import *
 from explainer import *
 from plots import *
@@ -46,26 +47,6 @@ N_EPOCHS = 150
 lr = 0.0001
 
 
-# cuda:1
-#
-# returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
-def load_labels():
-    mp.set_start_method('spawn')
-    path_test = 'data/test_fileids.txt'
-    path_train = 'data/train_fileids.txt'
-    valid = []
-    train = []
-    valid_s = open(path_test, 'r').readlines()
-    train_s = open(path_train, 'r').readlines()
-    for i in valid_s:
-        data = i.split(';')
-        valid.append((data[0], int(data[1])))
-    for i in train_s:
-        data = i.split(';')
-        train.append((data[0], int(data[1])))
-    return train, valid, train + valid
-
-
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'LRP']
@@ -79,7 +60,9 @@ def main():
     n_classes = 2
     trained_roar_models = './data/models/trained_model_roar'
     original_trained_model = './data/models/trained_model_original.pt'
-    train_labels, valid_labels, all_labels = load_labels()
+    train_labels, valid_labels, all_labels, ids, labels = load_labels()
+    sss = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
+    sss.get_n_splits(ids, labels)
     # save the explainer images of the figures
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/exp/'
@@ -89,8 +72,8 @@ def main():
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
     # loading Datasets
-    if retrain or plot_classes or plot_categories or roar_train:
-        # loaded needed data
+    if plot_classes or plot_categories:
+        # load needed data
         print('loading training data')
         train_ds = Spectralloader(train_labels, root, mode)
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
@@ -103,12 +86,7 @@ def main():
 
     # train model or use trained model from last execution
     if retrain:
-        # train on original data
-        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original")
-        if not os.path.exists('./data/models/'):
-            os.makedirs('./data/models/')
-        torch.save(original_model.state_dict(), original_trained_model)
-        print('trained model saved')
+        train_cross_val(sss, ids, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model)
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
         original_model = get_model(DEVICE, n_classes)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
@@ -131,8 +109,8 @@ def main():
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
-        train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, val_ds, train_ds, batch_size,
-                      n_classes, N_EPOCHS, lr, DEVICE, roar_explainers)
+        train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, ids, labels, batch_size,
+                      n_classes, N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode)
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
