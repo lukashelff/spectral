@@ -261,15 +261,12 @@ def load_labels():
     valid_s = open(path_test, 'r').readlines()
     train_s = open(path_train, 'r').readlines()
     all_labels = []
-    all_ids = []
     for i in valid_s:
         data = i.split(';')
         valid.append((data[0], int(data[1])))
-        all_labels.append(data[1])
-        all_ids.append(data[0])
+        all_labels.append(int(data[1]))
     for i in train_s:
         data = i.split(';')
         train.append((data[0], int(data[1])))
-        all_labels.append(data[1])
-        all_ids.append(data[0])
-    return train, valid, train + valid, all_ids, all_labels
+        all_labels.append(int(data[1]))
+    return train, valid, train + valid, all_labels

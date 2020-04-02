@@ -117,7 +117,7 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
 # plotting the roar trained images
 # comparison of modified roar Images
 # Axes: removed % of image features and explainers
-def eval_roar_mod_im_comp(mode, roar_explainers):
+def eval_roar_mod_im_comp(mode, roar_explainers, cv_iter):
     # roar_explainers = ['random'] + roar_explainers
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     print('plotting modified images according to roar')
@@ -144,7 +144,10 @@ def eval_roar_mod_im_comp(mode, roar_explainers):
                     else:
                         all_ds.apply_roar_single_image(i, mask, id, 'comp', ex)
                     image, label = all_ds.get_by_id(id)
-                    acc = pickle.load(open(path, 'rb'))
+                    acc = 0
+                    for j in range(cv_iter):
+                        acc += pickle.load(open(path, 'rb'))
+                    acc /= cv_iter
                     # acc = 100
                     # create ROAR plot
                     ax = fig.add_subplot(len(roar_values), len(roar_explainers),

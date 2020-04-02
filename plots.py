@@ -252,8 +252,8 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
                               'Plant comparison over days of ID: ' + id + ', roar method: ' + roar + '\n' + prediction,
                               roar)
 
-
-def plot_dev_acc(roar_values, roar_explainers):
+# crossval acc for every removed percentage of each explainer
+def plot_dev_acc(roar_values, roar_explainers, cv_iter):
     roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
     path = './data/plots/values/original.sav'
@@ -264,9 +264,12 @@ def plot_dev_acc(roar_values, roar_explainers):
     for c, k in enumerate(roar_explainers):
         acc_vals = []
         for i in roar_values:
+            val = 0
+            for j in range(cv_iter):
+                val += pickle.load(open(path, 'rb'))
+            val /= cv_iter
             sub_path = str(i) + '%_of_' + k + '.sav'
             path = './data/plots/values/' + sub_path
-            val = pickle.load(open(path, 'rb'))
             acc_vals.append(val)
         plt.plot(roar_values, acc_vals, label=k)
 

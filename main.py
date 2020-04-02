@@ -44,12 +44,12 @@ plot_roar_curve = False
 roar_mod_im_comp = False
 roar_expl_im = False
 N_EPOCHS = 150
-lr = 0.0001
+lr = 0.00015
 
 
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'LRP']
+                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     # roar_explainers = ['LRP']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     mode = 'rgb'
@@ -58,11 +58,11 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
+    cv_iterations = 6
     trained_roar_models = './data/models/trained_model_roar'
     original_trained_model = './data/models/trained_model_original.pt'
-    train_labels, valid_labels, all_labels, ids, labels = load_labels()
-    sss = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
-    sss.get_n_splits(ids, labels)
+    train_labels, valid_labels, all_data, labels = load_labels()
+    sss = StratifiedShuffleSplit(n_splits=cv_iterations, test_size=482, random_state=0)
     # save the explainer images of the figures
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/exp/'
@@ -74,19 +74,16 @@ def main():
     # loading Datasets
     if plot_classes or plot_categories:
         # load needed data
-        print('loading training data')
-        train_ds = Spectralloader(train_labels, root, mode)
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         print('loading validation dataset')
         val_ds = Spectralloader(valid_labels, root, mode)
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
     if plot_for_image_id or roar_create_mask:
         print('loading whole dataset')
-        all_ds = Spectralloader(all_labels, root, mode)
+        all_ds = Spectralloader(all_data, root, mode)
 
     # train model or use trained model from last execution
     if retrain:
-        train_cross_val(sss, ids, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model)
+        train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model)
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
         original_model = get_model(DEVICE, n_classes)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
@@ -109,17 +106,17 @@ def main():
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
-        train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, ids, labels, batch_size,
+        train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, all_data, labels, batch_size,
                       n_classes, N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode)
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
-        plot_dev_acc(roar_values, roar_explainers)
+        plot_dev_acc(roar_values, roar_explainers, cv_iterations)
 
     # comparison of modified roar Images
     if roar_mod_im_comp:
         print('creating ROAR comparison plot')
-        eval_roar_mod_im_comp(mode, roar_explainers)
+        eval_roar_mod_im_comp(mode, roar_explainers, cv_iterations)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_im:

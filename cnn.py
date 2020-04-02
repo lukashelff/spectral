@@ -170,16 +170,16 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
 
 # ROAR remove and retrain
-def train_roar_ds(path, roar_values, trained_roar_models, ids, labels, batch_size, n_classes,
+def train_roar_ds(path, roar_values, trained_roar_models, all_labels, labels, batch_size, n_classes,
                   N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode):
     cv_it = 0
-    for train_index, test_index in sss.split(ids, labels):
+    for train_index, test_index in sss.split(all_labels, labels):
         train_labels = []
         valid_labels = []
         for i in train_index:
-            train_labels.append(labels[i])
+            train_labels.append(all_labels[i])
         for i in test_index:
-            valid_labels.append(labels[i])
+            valid_labels.append(all_labels[i])
         train_ds = Spectralloader(train_labels, root, mode)
         val_ds = Spectralloader(valid_labels, root, mode)
         # num_processes = len(roar_explainers)
@@ -227,18 +227,19 @@ def train_roar_ds(path, roar_values, trained_roar_models, ids, labels, batch_siz
     # torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')
 
 
-def train_cross_val(sss, ids, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model):
+## train for each created split
+def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model):
     i = 0
-    for train_index, test_index in sss.split(ids, labels):
-        train_labels = []
-        valid_labels = []
+    for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
+        train_data = []
+        valid_data = []
         for i in train_index:
-            train_labels.append(labels[i])
+            train_data.append(all_data[i])
         for i in test_index:
-            valid_labels.append(labels[i])
-        train_ds = Spectralloader(train_labels, root, mode)
+            valid_data.append(all_data[i])
+        train_ds = Spectralloader(train_data, root, mode)
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
-        val_ds = Spectralloader(valid_labels, root, mode)
+        val_ds = Spectralloader(valid_data, root, mode)
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
         # train on original data
         original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", i)
