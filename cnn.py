@@ -47,7 +47,7 @@ def get_model(DEVICE, n_classes):
     # model.to(DEVICE)
     # print('=========================')
     # print(model)
-    model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
+    # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
     freeze_all(model.parameters())
     model.fc = nn.Linear(512, n_classes)
     model.share_memory()
@@ -73,68 +73,68 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     )
     text = 'training on DS with ' + roar
 
-    with tqdm(total=N_EPOCHS, desc=text) as progress:
+    # with tqdm(total=N_EPOCHS, desc=text) as progress:
 
-        for epoch in range(N_EPOCHS):
-            progress.update(1)
-            # Train
-            model.train()
+    for epoch in range(N_EPOCHS):
+        # progress.update(1)
+        # Train
+        model.train()
 
-            total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-            for batch_i, (X, y) in enumerate(train_dl):
+        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
+        for batch_i, (X, y) in enumerate(train_dl):
+            X, y = X.to(DEVICE), y.to(DEVICE)
+            optimizer.zero_grad()
+            y_ = model(X)
+            loss = criterion(y_, y)
+            loss.backward()
+            optimizer.step()
+
+            # Statistics
+            # print(
+            #     f"Epoch {epoch+1}/{N_EPOCHS} |"
+            #     f"  batch: {batch_i} |"
+            #     f"  batch loss:   {loss.item():0.3f}"
+            # )
+            _, y_label_ = torch.max(y_, 1)
+            n_correct += (y_label_ == y).sum().item()
+            total_loss += loss.item() * X.shape[0]
+            n_samples += X.shape[0]
+            pred += y_label_.tolist()
+            all_y += y.tolist()
+
+        train_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
+        train_loss[epoch] = total_loss / n_samples
+        train_acc[epoch] = n_correct / n_samples * 100
+
+        print(
+            f"Epoch {epoch + 1}/{N_EPOCHS} |"
+            f"  train loss: {train_loss[epoch]:9.3f} |"
+            f"  train acc:  {train_acc[epoch]:9.3f}% |"
+            f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
+
+        )
+
+        # Eval
+        model.eval()
+
+        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
+        with torch.no_grad():
+            for X, y in val_dl:
                 X, y = X.to(DEVICE), y.to(DEVICE)
-                optimizer.zero_grad()
                 y_ = model(X)
-                loss = criterion(y_, y)
-                loss.backward()
-                optimizer.step()
 
                 # Statistics
-                # print(
-                #     f"Epoch {epoch+1}/{N_EPOCHS} |"
-                #     f"  batch: {batch_i} |"
-                #     f"  batch loss:   {loss.item():0.3f}"
-                # )
                 _, y_label_ = torch.max(y_, 1)
                 n_correct += (y_label_ == y).sum().item()
+                loss = criterion(y_, y)
                 total_loss += loss.item() * X.shape[0]
                 n_samples += X.shape[0]
                 pred += y_label_.tolist()
                 all_y += y.tolist()
 
-            train_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-            train_loss[epoch] = total_loss / n_samples
-            train_acc[epoch] = n_correct / n_samples * 100
-
-            # print(
-            #     f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            #     f"  train loss: {train_loss[epoch]:9.3f} |"
-            #     f"  train acc:  {train_acc[epoch]:9.3f}% |"
-            #     f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
-            #
-            # )
-
-            # Eval
-            model.eval()
-
-            total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-            with torch.no_grad():
-                for X, y in val_dl:
-                    X, y = X.to(DEVICE), y.to(DEVICE)
-                    y_ = model(X)
-
-                    # Statistics
-                    _, y_label_ = torch.max(y_, 1)
-                    n_correct += (y_label_ == y).sum().item()
-                    loss = criterion(y_, y)
-                    total_loss += loss.item() * X.shape[0]
-                    n_samples += X.shape[0]
-                    pred += y_label_.tolist()
-                    all_y += y.tolist()
-
-            valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-            valid_loss[epoch] = total_loss / n_samples
-            valid_acc[epoch] = n_correct / n_samples * 100
+        valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
+        valid_loss[epoch] = total_loss / n_samples
+        valid_acc[epoch] = n_correct / n_samples * 100
 
         # plot acc, balanced acc and loss
         if roar != "original":
@@ -237,6 +237,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             train_data.append(all_data[i])
         for i in test_index:
             valid_data.append(all_data[i])
+        print('loading dataset')
         train_ds = Spectralloader(train_data, root, mode)
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_ds = Spectralloader(valid_data, root, mode)
