@@ -35,7 +35,7 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 retrain = True
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
@@ -58,7 +58,7 @@ def main():
     classes = ('healthy', 'diseased')
     batch_size = 20
     n_classes = 2
-    cv_iterations = 6
+    cv_iterations = 5
     trained_roar_models = './data/models/trained_model_roar'
     original_trained_model = './data/models/trained_model_original.pt'
     train_labels, valid_labels, all_data, labels = load_labels()

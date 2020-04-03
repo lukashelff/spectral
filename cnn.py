@@ -71,102 +71,102 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         lr=learning_rate,
         # momentum=0.9,
     )
-    text = 'training on DS with ' + roar
+    text = 'training on DS with ' + roar + ' in crossval iteration:' + str(cv_iteration)
 
-    # with tqdm(total=N_EPOCHS, desc=text) as progress:
+    with tqdm(total=N_EPOCHS, desc=text) as progress:
 
-    for epoch in range(N_EPOCHS):
-        # progress.update(1)
-        # Train
-        model.train()
+        for epoch in range(N_EPOCHS):
+            progress.update(1)
+            # Train
+            model.train()
 
-        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-        for batch_i, (X, y) in enumerate(train_dl):
-            X, y = X.to(DEVICE), y.to(DEVICE)
-            optimizer.zero_grad()
-            y_ = model(X)
-            loss = criterion(y_, y)
-            loss.backward()
-            optimizer.step()
-
-            # Statistics
-            # print(
-            #     f"Epoch {epoch+1}/{N_EPOCHS} |"
-            #     f"  batch: {batch_i} |"
-            #     f"  batch loss:   {loss.item():0.3f}"
-            # )
-            _, y_label_ = torch.max(y_, 1)
-            n_correct += (y_label_ == y).sum().item()
-            total_loss += loss.item() * X.shape[0]
-            n_samples += X.shape[0]
-            pred += y_label_.tolist()
-            all_y += y.tolist()
-
-        train_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-        train_loss[epoch] = total_loss / n_samples
-        train_acc[epoch] = n_correct / n_samples * 100
-
-        print(
-            f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            f"  train loss: {train_loss[epoch]:9.3f} |"
-            f"  train acc:  {train_acc[epoch]:9.3f}% |"
-            f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
-
-        )
-
-        # Eval
-        model.eval()
-
-        total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-        with torch.no_grad():
-            for X, y in val_dl:
+            total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
+            for batch_i, (X, y) in enumerate(train_dl):
                 X, y = X.to(DEVICE), y.to(DEVICE)
+                optimizer.zero_grad()
                 y_ = model(X)
+                loss = criterion(y_, y)
+                loss.backward()
+                optimizer.step()
 
                 # Statistics
+                # print(
+                #     f"Epoch {epoch+1}/{N_EPOCHS} |"
+                #     f"  batch: {batch_i} |"
+                #     f"  batch loss:   {loss.item():0.3f}"
+                # )
                 _, y_label_ = torch.max(y_, 1)
                 n_correct += (y_label_ == y).sum().item()
-                loss = criterion(y_, y)
                 total_loss += loss.item() * X.shape[0]
                 n_samples += X.shape[0]
                 pred += y_label_.tolist()
                 all_y += y.tolist()
 
-        valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-        valid_loss[epoch] = total_loss / n_samples
-        valid_acc[epoch] = n_correct / n_samples * 100
+            train_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
+            train_loss[epoch] = total_loss / n_samples
+            train_acc[epoch] = n_correct / n_samples * 100
 
-        # plot acc, balanced acc and loss
-        if roar != "original":
-            title = roar.replace('_', ' ') + ' image features removed'
-        else:
-            title = roar + ' model 0% removed'
-        plt.plot(train_acc, color='skyblue', label='train acc')
-        plt.plot(valid_acc, color='orange', label='valid_acc')
-        plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
-        plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-        plt.title(title + ',\nfinal bal acc: ' + str(
-            round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
-        plt.ylabel('model accuracy')
-        plt.xlabel('training epoch')
-        plt.axis([0, N_EPOCHS, 50, 100])
-        plt.legend(loc='lower right')
-        plt.savefig('./data/plots/accuracy' + roar + '.png')
-        plt.show()
-        plt.plot(train_loss, color='red', label='train_loss')
-        plt.plot(valid_loss, color='orange', label='valid_loss')
-        plt.title('model loss ' + title)
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.legend(loc='lower right')
-        plt.savefig('./data/plots/loss' + roar + '.png')
-        plt.close('all')
-        path_values = './data/plots/values/'
-        # add accuracy values
-        if not os.path.exists(path_values):
-            os.makedirs(path_values)
-        pickle.dump(round(valid_balanced_acc[N_EPOCHS - 1], 2), open(path_values + roar + '_cv_it_' + cv_iteration + '.sav', 'wb'))
-        return model
+            # print(
+            #     f"Epoch {epoch + 1}/{N_EPOCHS} |"
+            #     f"  train loss: {train_loss[epoch]:9.3f} |"
+            #     f"  train acc:  {train_acc[epoch]:9.3f}% |"
+            #     f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
+            #
+            # )
+
+            # Eval
+            model.eval()
+
+            total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
+            with torch.no_grad():
+                for X, y in val_dl:
+                    X, y = X.to(DEVICE), y.to(DEVICE)
+                    y_ = model(X)
+
+                    # Statistics
+                    _, y_label_ = torch.max(y_, 1)
+                    n_correct += (y_label_ == y).sum().item()
+                    loss = criterion(y_, y)
+                    total_loss += loss.item() * X.shape[0]
+                    n_samples += X.shape[0]
+                    pred += y_label_.tolist()
+                    all_y += y.tolist()
+
+            valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
+            valid_loss[epoch] = total_loss / n_samples
+            valid_acc[epoch] = n_correct / n_samples * 100
+
+    # plot acc, balanced acc and loss
+    if roar != "original":
+        title = roar.replace('_', ' ') + ' image features removed'
+    else:
+        title = roar + ' model 0% removed'
+    plt.plot(train_acc, color='skyblue', label='train acc')
+    plt.plot(valid_acc, color='orange', label='valid_acc')
+    plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
+    plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
+    plt.title(title + ',\nfinal bal acc: ' + str(
+        round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
+    plt.ylabel('model accuracy')
+    plt.xlabel('training epoch')
+    plt.axis([0, N_EPOCHS, 50, 100])
+    plt.legend(loc='lower right')
+    plt.savefig('./data/plots/accuracy' + roar + '.png')
+    plt.show()
+    plt.plot(train_loss, color='red', label='train_loss')
+    plt.plot(valid_loss, color='orange', label='valid_loss')
+    plt.title('model loss ' + title)
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(loc='lower right')
+    plt.savefig('./data/plots/loss' + roar + '.png')
+    plt.close('all')
+    path_values = './data/plots/values/'
+    # add accuracy values
+    if not os.path.exists(path_values):
+        os.makedirs(path_values)
+    pickle.dump(round(valid_balanced_acc[N_EPOCHS - 1], 2), open(path_values + roar + '_cv_it_' + cv_iteration + '.sav', 'wb'))
+    return model
 
 
 # ROAR remove and retrain
@@ -229,7 +229,10 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_labels, labels, ba
 
 ## train for each created split
 def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model):
-    i = 0
+    cv_it = 0
+    processes = []
+    if not os.path.exists('./data/models/'):
+        os.makedirs('./data/models/')
     for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
         train_data = []
         valid_data = []
@@ -239,48 +242,54 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             valid_data.append(all_data[i])
         print('loading dataset')
         train_ds = Spectralloader(train_data, root, mode)
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_ds = Spectralloader(valid_data, root, mode)
-        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
-        # train on original data
-        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", i)
-        i += 1
-    if not os.path.exists('./data/models/'):
-        os.makedirs('./data/models/')
-    torch.save(original_model.state_dict(), original_trained_model)
-    print('trained model saved')
+        cv_it += 1
+
+        p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
+                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
+
 
 
 def train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
                    trained_roar_models, cv_it):
-    val_ds = deepcopy(val_ds_org)
-    train_ds = deepcopy(train_ds_org)
-    # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
-    # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
-    # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
-    train_ds.apply_roar(i, mask, DEVICE, explainer)
-    val_ds.apply_roar(i, mask, DEVICE, explainer)
+    if explainer == 'original':
+        train_dl = DataLoader(train_ds_org, batch_size=batch_size, shuffle=True, num_workers=4, )
+        val_dl = DataLoader(val_ds_org, batch_size=batch_size, shuffle=False, num_workers=4, )
+        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it)
+        torch.save(original_model.state_dict(), trained_roar_models)
 
-    # p1.start()
-    # p2.start()
-    # p1.join()
-    # p2.join()
-    # with futures.ProcessPoolExecutor(max_workers=5) as ex:
-    #     fs = ex.map(train_parallel, processes)
-    # futures.wait(fs)
-    # print example image
-    im, label = val_ds.get_by_id('4_Z15_1_1_0')
-    path = './data/exp/pred_img_example/'
-    name = 'ROAR_' + str(i) + '_of_' + explainer + '.jpeg'
-    # display the modified image and save to pred images in data/exp/pred_img_example
-    display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + 'values removed', path, name)
+    else:
+        val_ds = deepcopy(val_ds_org)
+        train_ds = deepcopy(train_ds_org)
+        # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
+        # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
+        # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
+        train_ds.apply_roar(i, mask, DEVICE, explainer)
+        val_ds.apply_roar(i, mask, DEVICE, explainer)
+        # p1.start()
+        # p2.start()
+        # p1.join()
+        # p2.join()
+        # with futures.ProcessPoolExecutor(max_workers=5) as ex:
+        #     fs = ex.map(train_parallel, processes)
+        # futures.wait(fs)
+        # print example image
+        im, label = val_ds.get_by_id('4_Z15_1_1_0')
+        path = './data/exp/pred_img_example/'
+        name = 'ROAR_' + str(i) + '_of_' + explainer + '.jpeg'
+        # display the modified image and save to pred images in data/exp/pred_img_example
+        display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + 'values removed', path, name)
 
-    # create Dataloaders
-    val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=1, )
-    train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=1, )
-    # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
-    model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(i) + '%_of_' + explainer, cv_it)
-    torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')
+        # create Dataloaders
+        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=1, )
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=1, )
+        # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
+        model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(i) + '%_of_' + explainer, cv_it)
+        torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')
 
 
 def apply_parallel(ds, i, mask, DEVICE, explainer):

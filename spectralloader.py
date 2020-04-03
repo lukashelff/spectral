@@ -78,111 +78,92 @@ class Spectralloader(Dataset):
         """
 
     def __init__(self, labels, root, mode, transform=None):
-        # load data for given labels
+        # inputs:
         # labels: list of all labels
-        # labels_ids: list of all labels with corresponding IDs as [[label, Id]...]
-        # data: list of all images
-        # data_ids: list of all corresponding IDs for image order as [ID...]
-        # index_data: Pointer to image index in order of label Indices
-        # e.g. label with index i has its image data at Index index_data[i]
-        # ids: list of all ids in order of labels
-        self.labels_ids, self.labels, self.data_ids, self.data = self.load_images_for_labels(root, labels, mode=mode)
-        self.dict_data = {}
-        self.transform = transform
-        self.path = root
-        self.index_data = []
-        self.ids = []
-        # index of the position of the images for corresponding label in labels_ids
-        for k in self.labels_ids:
-            self.ids.append(k[0])
-            for i, s in enumerate(self.data_ids):
-                if k[0] == s:
-                    self.dict_data.update({s: (self.data[i], k[1])})
-                    self.index_data += [i]
-                    break
+        # Variables:
+        # ids: list of all ids in order of data
+        # data: dictionary of all IDs with their corresponding images and label
+        #  data[id]['image'] = image, data[id]['label'] = label,
+        self.data, self.ids = self.load_images_for_labels(root, labels, mode=mode)
+        print('total length of ids ' + str(self.__len__()) + ' with data indexed to ' + str(len(self.data)))
 
     def __getitem__(self, index):
-        # return only 1 sample and label (according to "Index")
-        # get label for ID
-        label = self.labels[index]
-        # # get corresponding Image for Index
-        image = self.data[self.index_data[index]]
+        # return only 1 sample and label according to "Index"
+        id = self.get_id_by_index(index)
+        image, label = self.get_by_id(id)
         return image, label
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.ids)
 
     # update value in dataset with the new specified value
     def update_data(self, id, val):
-
-        for c, value in enumerate(self.data_ids):
-            if value == id:
-                self.data[c] = val
+        try:
+            self.data[id]['image'] = val
+        except ValueError:
+            print('image with id: ' + id + ' not in dataset')
 
     def get_id_by_index(self, index):
         try:
             return self.ids[index]
         except ValueError:
-            print('No image in Dataset with id: ' + str(index))
-            return None, None
+            print('Index out of bound: ' + str(index))
+            return None
 
-    def get_by_id(self, ID):
+    def get_by_id(self, id):
         try:
-            index = self.ids.index(ID)
-            return self.__getitem__(index)
+            # index = self.ids.index(ID)
+            return self.data[id]['image'], self.data[id]['label']
         except ValueError:
-            print('image with id: ' + ID + ' not in dataset')
+            print('image with id: ' + id + ' not in dataset')
             return None, None
 
-    # returns 4 Arrays labelIdS, labels, ImageIDs and the Image as a Tuple(String, mmemap) e.g. (3_Z2_1_0_1, memmap)
+    # returns an Array of IDs and a dictionary of all IDs with their corresponding images and label
     def load_images_for_labels(self, root_path, labels, mode):
+        data = {}
+        ids = []
+
         # loads all the images have existing entry labels
         def load_image(path):
-            ids, ims = [], []
             dict = pickle.load(open(path + '/data.p', 'rb'))
             shape = dict['memmap_shape']
             samples = dict['samples']
             data_all = np.memmap(path + '/memmap.dat', mode='r', shape=shape, dtype='float32')
-            labels_ids = [i[0] for i in labels]
+            # labels_ids = [i[0] for i in labels]
             for k, i in enumerate(samples):
                 # only add if we have a label for the image
-                if i['id'].replace(',', '_') in labels_ids:
-                    if mode == 'rgb':
-                        # ims.append(data_all[k][:, :, [50, 88, 151]].reshape(3, 255, 213))
-                        # ims.append(data_all[k][:, :, [50, 88, 151]])
-                        data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
-                        ims.append(data)
-                    elif mode == 'spec':
-                        # ims.append(data_all[k].reshape(3, 255, 213))
-                        ims.append(data_all[k])
-                    ids.append(i['id'].replace(',', '_'))
-            return ids, ims
+                # if i['id'].replace(',', '_') in labels_ids:
+                if mode == 'rgb':
+                    # ims.append(data_all[k][:, :, [50, 88, 151]].reshape(3, 255, 213))
+                    # ims.append(data_all[k][:, :, [50, 88, 151]])
+                    data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
+                    add_to_data(data, i['id'].replace(',', '_'))
+                    # ims.append(data)
+                elif mode == 'spec':
+                    # ims.append(data_all[k].reshape(3, 255, 213))
+                    # ims.append(data_all[k])
+                    add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
 
-        # removes label entries with no existing image
-        def sync_labels(im_ids):
-            labs = labels
+        # add image with corresponding label and id to the DS
+        def add_to_data(image, id):
             for (k, i) in labels:
-                if k not in im_ids:
-                    labs.remove((k, i))
-            lab_raw = [i[1] for i in labs]
-            return labs, lab_raw
+                if k == id:
+                    data[id] = {}
+                    data[id]['image'] = image
+                    data[id]['label'] = i
+                    data[id]['id'] = k
+                    ids.append(k)
 
-        loaded_images = []
-        loaded_image_ids = []
         for i in range(1, 5):
             if i == 1:
                 for k in range(1, 14):
-                    ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
-                    loaded_images += im
-                    loaded_image_ids += ids
+                    load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
             else:
                 for k in range(1, 19):
                     if not (k == 16 and i == 4):
-                        ids, im = load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
-                        loaded_images += im
-                        loaded_image_ids += ids
-        label_ids, label_raw = sync_labels(loaded_image_ids)
-        return label_ids, label_raw, loaded_image_ids, loaded_images
+                        load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
+
+        return data, ids
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
         im = None
@@ -233,14 +214,14 @@ class Spectralloader(Dataset):
     def apply_roar(self, percentage, masks, DEVICE, explainer):
         length = self.__len__()
         text = 'removing ' + str(percentage) + '% of ' + explainer
-        #parallel execution not working
+        # parallel execution not working
         # pool = mp.Pool(20)
         # for d in range(0, length):
         #     id = self.get_id_by_index(d)
         #     pool.apply_async(self.parallel_roar, (percentage, masks, id, "mean", explainer))
         # pool.close()
         # pool.join()
-            # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
+        # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
         with tqdm.tqdm(total=length, desc=text) as progress:
             for d in range(0, length):
                 id = self.get_id_by_index(d)
