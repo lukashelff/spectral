@@ -36,10 +36,10 @@ from plots import *
 from helpfunctions import *
 
 DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
-retrain = True
+retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
-roar_train = False
+roar_train = True
 plot_roar_curve = False
 roar_mod_im_comp = False
 roar_expl_im = False
@@ -50,8 +50,9 @@ lr = 0.00015
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
+    roar_explainers = ['gradcam']
     # roar_explainers = ['LRP']
-    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
+    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42

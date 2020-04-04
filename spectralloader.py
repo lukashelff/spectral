@@ -85,7 +85,7 @@ class Spectralloader(Dataset):
         # data: dictionary of all IDs with their corresponding images and label
         #  data[id]['image'] = image, data[id]['label'] = label,
         self.data, self.ids = self.load_images_for_labels(root, labels, mode=mode)
-        print('total length of ids ' + str(self.__len__()) + ' with data indexed to ' + str(len(self.data)))
+        # print('total length of ids ' + str(self.__len__()) + ' with data indexed to ' + str(len(self.data)))
 
     def __getitem__(self, index):
         # return only 1 sample and label according to "Index"
