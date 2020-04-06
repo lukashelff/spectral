@@ -50,9 +50,10 @@ lr = 0.00015
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['gradcam']
+    roar_explainers = ['Integrated_Gradients']
     # roar_explainers = ['LRP']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
+    roar_values = [99]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
@@ -84,7 +85,8 @@ def main():
 
     # train model or use trained model from last execution
     if retrain:
-        train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model)
+        train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE,
+                        original_trained_model)
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
         original_model = get_model(DEVICE, n_classes)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))

@@ -178,31 +178,33 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_labels, labels, ba
         for explainer in roar_explainers:
             cv_it = 0
             for train_index, test_index in sss.split(all_labels, labels):
-                train_labels = []
-                valid_labels = []
-                for i in train_index:
-                    train_labels.append(all_labels[i])
-                for i in test_index:
-                    valid_labels.append(all_labels[i])
-                train_ds = Spectralloader(train_labels, root, mode)
-                val_ds = Spectralloader(valid_labels, root, mode)
-                path_root = path + explainer + '.pkl'
-                with open(path_root, 'rb') as f:
-                    mask = pickle.load(f)
-                    processes = []
-                    for i in roar_values:
-                        # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
-                        #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                        # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
+                if cv_it == 4:
+                    train_labels = []
+                    valid_labels = []
+                    for i in train_index:
+                        train_labels.append(all_labels[i])
+                    for i in test_index:
+                        valid_labels.append(all_labels[i])
+                    train_ds = Spectralloader(train_labels, root, mode)
+                    val_ds = Spectralloader(valid_labels, root, mode)
+                    path_root = path + explainer + '.pkl'
+                    with open(path_root, 'rb') as f:
+                        mask = pickle.load(f)
+                        processes = []
+                        for i in roar_values:
+                            # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+                            #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
+                            # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
 
-                        p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
-                                                               batch_size, n_classes, N_EPOCHS, lr, trained_roar_models, cv_it))
-                        p.start()
-                        processes.append(p)
-                    for p in processes:
-                        p.join()
+                            p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
+                                                                   batch_size, n_classes, N_EPOCHS, lr, trained_roar_models, cv_it))
+                            p.start()
+                            processes.append(p)
+                        for p in processes:
+                            p.join()
                 cv_it += 1
-                # torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
     # pool.close()
     # pool.join()
 
