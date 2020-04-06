@@ -45,7 +45,7 @@ roar_train = False
 plot_roar_curve = False
 roar_mod_im_comp = False
 roar_expl_im = False
-N_EPOCHS = 15
+N_EPOCHS = 150
 lr = 0.00015
 
 
@@ -77,6 +77,8 @@ def main():
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
+
+
     data_transforms = {
         'train': transforms.Compose([
             transforms.RandomHorizontalFlip(),
@@ -95,7 +97,9 @@ def main():
                                                   shuffle=True, num_workers=64)
                    for x in ['train', 'val']}
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-    imagenet_model = train(200, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
+    imagenet_model = train(200, 15, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
+
+
 
     # loading Datasets
     if plot_classes or plot_categories:

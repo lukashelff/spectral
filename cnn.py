@@ -78,14 +78,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         for epoch in range(N_EPOCHS):
             progress.update(1)
             # Train
-            print('1')
             model.train()
-            print(2)
-
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-            print(3)
             for batch_i, (X, y) in enumerate(train_dl):
-                print(4)
                 X, y = X.to(DEVICE), y.to(DEVICE)
                 optimizer.zero_grad()
                 y_ = model(X)
