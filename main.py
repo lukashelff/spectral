@@ -27,6 +27,8 @@ from skimage import feature
 import multiprocessing as mp
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit
+import torchvision.transforms as transforms
+import torchvision.datasets as t_datasets
 
 from roar import *
 from spectralloader import *
@@ -39,21 +41,23 @@ DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
-roar_train = True
+roar_train = False
 plot_roar_curve = False
 roar_mod_im_comp = False
 roar_expl_im = False
-N_EPOCHS = 150
+N_EPOCHS = 15
 lr = 0.00015
 
 
 def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['Integrated_Gradients']
+    roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
+                       'noisetunnel']
     # roar_explainers = ['LRP']
+    roar_explainers = ['Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
-    roar_values = [99]
+    roar_values = [20]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
@@ -72,6 +76,26 @@ def main():
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ]),
+        'val': transforms.Compose([
+            transforms.ToTensor(),
+        ]),
+    }
+
+    data_dir = 'data/tiny-imagenet-200'
+    image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
+                                                data_transforms[x])
+                      for x in ['train', 'val']}
+    dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=100,
+                                                  shuffle=True, num_workers=64)
+                   for x in ['train', 'val']}
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+    imagenet_model = train(200, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
 
     # loading Datasets
     if plot_classes or plot_categories:
@@ -119,12 +143,12 @@ def main():
     # comparison of modified roar Images
     if roar_mod_im_comp:
         print('creating ROAR comparison plot')
-        eval_roar_mod_im_comp(mode, roar_explainers, cv_iterations)
+        roar_comparison(mode, roar_explainers, cv_iterations)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_im:
         print('creating ROAR explanation plot')
-        eval_roar_expl_im(mode, DEVICE, roar_explainers)
+        roar_comparison_explained(mode, DEVICE, roar_explainers)
 
 
 if __name__ == '__main__':

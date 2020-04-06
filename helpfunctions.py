@@ -1,8 +1,11 @@
 import os
+import pickle
+
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+
 
 # transpose image to display learned images
 def display_rgb_grid(img, title):
@@ -25,8 +28,10 @@ def display_rgb(img, title, path, name):
         os.makedirs(path)
     im.save(path + name)
 
+
 def to_rgb(image):
     return np.transpose(image, (1, 2, 0))
+
 
 # display spectral image
 def display_spec(img, transpose=True):
@@ -54,6 +59,7 @@ def show_figure(fig, ax):
     # new_manager.canvas.axes = ax
     fig.set_canvas(new_manager.canvas)
 
+
 def figure_to_image(fig):
     canvas = FigureCanvas(fig)
     ax = fig.gca()
@@ -63,3 +69,25 @@ def figure_to_image(fig):
     canvas.draw()  # draw the canvas, cache the renderer
 
     return np.fromstring(canvas.tostring_rgb(), dtype='uint8')
+
+
+def get_cross_val_acc(ex, roar_per, cv_iter):
+    j = 0
+    acc = 0
+    try:
+        if ex == 'original':
+            for j in range(cv_iter):
+                sub_path = ex + '_cv_it_' + str(j + 1) + '.sav'
+                path = './data/plots/values/' + sub_path
+                acc += pickle.load(open(path, 'rb'))
+        else:
+            for j in range(cv_iter):
+                sub_path = str(roar_per) + '%_of_' + ex + '_cv_it_' + str(j) + '.sav'
+                path = './data/plots/values/' + sub_path
+                acc += pickle.load(open(path, 'rb'))
+
+        return acc / cv_iter
+    except ValueError:
+        print(
+            'accuracies for:' + ex + 'with ' + roar_per + ' removed image features in cross val iteration: ' + str(
+                j) + ' are not yet evaluated')

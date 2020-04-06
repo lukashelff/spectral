@@ -29,6 +29,7 @@ from spectralloader import Spectralloader
 from cnn import train
 from explainer import explain
 from matplotlib.pyplot import figure
+from helpfunctions import get_cross_val_acc
 
 def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healthy, subpath_diseased,
              subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes):
@@ -252,31 +253,26 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
                               'Plant comparison over days of ID: ' + id + ', roar method: ' + roar + '\n' + prediction,
                               roar)
 
+
 # crossval acc for every removed percentage of each explainer
 def plot_dev_acc(roar_values, roar_explainers, cv_iter):
-    roar_explainers += ['random']
+    # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
-    path = './data/plots/values/original.sav'
-    val = pickle.load(open(path, 'rb'))
+    val = get_cross_val_acc('original', 0, cv_iter)
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     plt.plot([roar_values[0], roar_values[-1]], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
     # plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
-    for c, k in enumerate(roar_explainers):
+    for c, ex in enumerate(roar_explainers):
         acc_vals = []
-        for i in roar_values:
-            val = 0
-            for j in range(cv_iter):
-                val += pickle.load(open(path, 'rb'))
-            val /= cv_iter
-            sub_path = str(i) + '%_of_' + k + '.sav'
-            path = './data/plots/values/' + sub_path
-            acc_vals.append(val)
-        plt.plot(roar_values, acc_vals, label=k)
-
-    plt.title('development of accuracy by increasing ROAR value')
+        for roar_per in roar_values:
+            acc = get_cross_val_acc(ex, roar_per, cv_iter)
+            acc_vals.append(acc)
+        acc_vals.append(50)
+        plt.plot(roar_values + [100], acc_vals, label=ex)
+    plt.title(str(cv_iter) + ' cross val accuracy by increasing the removed image features of each saliency method')
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
-    plt.axis([roar_values[0], roar_values[-1], 50, 90])
+    plt.axis([roar_values[0], 100, 50, 90])
     plt.legend(loc='lower left')
     plt.savefig('./data/plots/accuracy_roar_comparison')
     plt.show()

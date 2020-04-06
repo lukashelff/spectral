@@ -24,7 +24,6 @@ from sklearn import preprocessing
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
-from spectralloader import Spectralloader
 from cnn import *
 from explainer import *
 from plots import *
@@ -34,7 +33,6 @@ from helpfunctions import *
 #                    'guided_gradcam_gaussian', 'noisetunnel', 'Integrated_Gradients']
 image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 image_ids_roar_exp = [0, 3, 4, 6]
-image_ids_roar_exp = [3]
 image_labels = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1), ('3_Z8_4_0_0', 1),
                 ('3_Z8_4_1_2', 1), ('3_Z1_3_1_1', 0), ('3_Z2_1_0_2', 0)]
 trained_roar_models = './data/models/trained_model_roar'
@@ -49,7 +47,7 @@ n_classes = 2
 # applying the explainers to an roar trained image
 # interpretation/explaination of modified roar Images
 # Axes: removed % of image features and explainers
-def eval_roar_expl_im(mode, DEVICE, explainers):
+def roar_comparison_explained(mode, DEVICE, explainers):
     # explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
     roar_expl_im_values = [0, 10, 20, 30, 50, 70, 90, 100]
     w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
@@ -117,7 +115,7 @@ def eval_roar_expl_im(mode, DEVICE, explainers):
 # plotting the roar trained images
 # comparison of modified roar Images
 # Axes: removed % of image features and explainers
-def eval_roar_mod_im_comp(mode, roar_explainers, cv_iter):
+def roar_comparison(mode, roar_explainers, cv_iter):
     # roar_explainers = ['random'] + roar_explainers
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     print('plotting modified images according to roar')
@@ -134,27 +132,23 @@ def eval_roar_mod_im_comp(mode, roar_explainers, cv_iter):
             with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
                 mask = pickle.load(f)
                 print('appling ' + ex + ' to image')
-                for c_r, i in enumerate(roar_values):
+                for c_r, roar_per in enumerate(roar_values):
                     id = str(3) + '_' + image_ids[k]
                     all_ds = Spectralloader([image_labels[k]], root, mode)
-                    sub_path = str(i) + '%_of_' + ex + '.sav'
+                    sub_path = str(roar_per) + '%_of_' + ex + '.sav'
                     path = './data/plots/values/' + sub_path
-                    if i == 0:
-                        path = './data/plots/values/original.sav'
+                    if roar_per == 0:
+                        acc = get_cross_val_acc('original', roar_per, cv_iter)
                     else:
-                        all_ds.apply_roar_single_image(i, mask, id, 'comp', ex)
+                        all_ds.apply_roar_single_image(roar_per, mask, id, 'comp', ex)
+                        acc = get_cross_val_acc(ex, roar_per, cv_iter)
                     image, label = all_ds.get_by_id(id)
-                    acc = 0
-                    for j in range(cv_iter):
-                        acc += pickle.load(open(path, 'rb'))
-                    acc /= cv_iter
-                    # acc = 100
                     # create ROAR plot
                     ax = fig.add_subplot(len(roar_values), len(roar_explainers),
                                          (c_ex + 1) + c_r * len(roar_explainers))
                     ax.tick_params(axis='both', which='both', length=0)
                     if c_ex == 0:
-                        ax.set_ylabel(str(i) + '%', fontsize=40)
+                        ax.set_ylabel(str(roar_per) + '%', fontsize=40)
                     if c_r == 0:
                         ax.set_title(ex + '\n' + str(acc) + '%', fontsize=40)
                     else:
