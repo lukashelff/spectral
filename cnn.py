@@ -105,13 +105,13 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             train_loss[epoch] = total_loss / n_samples
             train_acc[epoch] = n_correct / n_samples * 100
 
-            print(
-                f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                f"  train loss: {train_loss[epoch]:9.3f} |"
-                f"  train acc:  {train_acc[epoch]:9.3f}% |"
-                f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
-
-            )
+            # print(
+            #     f"Epoch {epoch + 1}/{N_EPOCHS} |"
+            #     f"  train loss: {train_loss[epoch]:9.3f} |"
+            #     f"  train acc:  {train_acc[epoch]:9.3f}% |"
+            #     f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
+            #
+            # )
 
             # Eval
             model.eval()
@@ -135,12 +135,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_loss[epoch] = total_loss / n_samples
             valid_acc[epoch] = n_correct / n_samples * 100
 
-            print(
-                f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                f"  valid loss: {valid_loss[epoch]:9.3f} |"
-                f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-                f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            )
+            # print(
+            #     f"Epoch {epoch + 1}/{N_EPOCHS} |"
+            #     f"  valid loss: {valid_loss[epoch]:9.3f} |"
+            #     f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+            #     f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
+            # )
 
             print()
 
@@ -186,7 +186,7 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
         for explainer in roar_explainers:
             cv_it = 0
             for train_index, test_index in sss.split(all_data, labels):
-                if cv_it == 0:
+                if cv_it == 4:
                     train_labels = []
                     valid_labels = []
                     for i in train_index:

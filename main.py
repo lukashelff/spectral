@@ -41,7 +41,7 @@ DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
-roar_train = False
+roar_train = True
 plot_roar_curve = False
 roar_mod_im_comp = False
 roar_expl_im = False
@@ -55,9 +55,8 @@ def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel']
     # roar_explainers = ['LRP']
-    roar_explainers = ['Integrated_Gradients']
+    roar_explainers = ['random']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
-    roar_values = [20]
     mode = 'rgb'
     shuffle_dataset = True
     random_seed = 42
@@ -97,7 +96,7 @@ def main():
                                                   shuffle=True, num_workers=64)
                    for x in ['train', 'val']}
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-    imagenet_model = train(200, 15, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
+    imagenet_model = train(200, 20, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
 
 
 
