@@ -186,7 +186,7 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
         for explainer in roar_explainers:
             cv_it = 0
             for train_index, test_index in sss.split(all_data, labels):
-                if cv_it == 4:
+                if cv_it == 0:
                     train_labels = []
                     valid_labels = []
                     for i in train_index:

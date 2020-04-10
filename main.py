@@ -37,7 +37,8 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+image_net = False
 retrain = False
 plot_for_image_id, plot_classes, plot_categories = False, False, False
 roar_create_mask = False
@@ -53,9 +54,10 @@ def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                       'noisetunnel']
-    # roar_explainers = ['LRP']
-    roar_explainers = ['random']
+                       'noisetunnel', 'random', 'Integrated_Gradients']
+    roar_explainers = ['Integrated_Gradients']
+    # roar_explainers = ['random']
+    roar_values = [10, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     mode = 'rgb'
     shuffle_dataset = True
@@ -77,26 +79,27 @@ def main():
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
 
+    if image_net:
+        data_transforms = {
+            'train': transforms.Compose([
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+            ]),
+            'val': transforms.Compose([
+                transforms.ToTensor(),
+            ]),
+        }
 
-    data_transforms = {
-        'train': transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-        ]),
-        'val': transforms.Compose([
-            transforms.ToTensor(),
-        ]),
-    }
+        data_dir = 'data/tiny-imagenet-200'
+        image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
+                                                    data_transforms[x])
+                          for x in ['train', 'val']}
 
-    data_dir = 'data/tiny-imagenet-200'
-    image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
-                                                data_transforms[x])
-                      for x in ['train', 'val']}
-    dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=100,
-                                                  shuffle=True, num_workers=64)
-                   for x in ['train', 'val']}
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-    imagenet_model = train(200, 20, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
+        dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=100,
+                                                      shuffle=True, num_workers=64)
+                       for x in ['train', 'val']}
+        dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+        imagenet_model = train(200, 20, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
 
 
 
