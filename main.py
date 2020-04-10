@@ -40,7 +40,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
     mode = 'imagenet'
     retrain = True
     plot_for_image_id, plot_classes, plot_categories = False, False, False
@@ -70,8 +70,8 @@ def main():
     roar_values = [99]
     if mode == 'imagenet':
         n_classes = 200
-        N_EPOCHS = 20
-        lr = 0.01
+        N_EPOCHS = 100
+        lr = 0.001
         batch_size = 100
         cv_iterations = 1
     train_labels, valid_labels, all_data, labels = load_labels(mode)
@@ -91,7 +91,7 @@ def main():
     #         'train': transforms.Compose([
     #             transforms.RandomHorizontalFlip(),
     #             transforms.ToTensor(),
-    #         ]),
+    #         ]),10
     #         'val': transforms.Compose([
     #             transforms.ToTensor(),
     #         ]),

@@ -29,6 +29,14 @@ def display_rgb(img, title, path, name):
     im.save(path + name)
 
 
+def show_image(img, title):
+    plt.title(title)
+    img_tr = np.transpose(img, (1, 2, 0))
+    plt.imshow(img_tr)
+    plt.show()
+    im = Image.fromarray((img_tr * 255).astype(np.uint8))
+
+
 def to_rgb(image):
     return np.transpose(image, (1, 2, 0))
 

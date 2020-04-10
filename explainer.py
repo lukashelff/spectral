@@ -1,34 +1,28 @@
 import os
+import pickle
 
-import torch
-from PIL import Image as PImage
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn import preprocessing
-from captum.attr import IntegratedGradients, NoiseTunnel, DeepLift
+import torch
+from PIL import Image as PImage
+from captum.attr import GuidedGradCam
+from captum.attr import IntegratedGradients, NoiseTunnel
 from captum.attr import Saliency
 from captum.attr import visualization as viz
-from captum.attr import GuidedGradCam
 from captum.attr._core.guided_grad_cam import LayerGradCam
-from captum.attr._core.lrp import LRP
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
-import pickle
-from torchsummary import summary
-
+from sklearn import preprocessing
 from tqdm import tqdm
 
-from spectralloader import Spectralloader
-
 # import from local lib
-import innvestigator
-import settings as set
+# import innvestigator
+# import settings as set
 
 
 # create single explainer of the image for the specified explainer
 def explain_single(model, image, ori_label, explainer, bounded):
-    from main import DEVICE
     input = image.unsqueeze(0)
     input.requires_grad = True
     model.eval()
@@ -120,21 +114,21 @@ def explain_single(model, image, ori_label, explainer, bounded):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # lrp FROM LOCAL LIB
         # print(model)
-        original_trained_model = './data/models/trained_model_original.pt'
-        data_LRP_stored = './data/exp/lrp'
-        print("Layerwise_Relevance_Propagation")
-        set.settings["model_path"] = original_trained_model
-        set.settings["data_path"] = data_LRP_stored
-        set.settings["ADNI_DIR"] = ''
-        set.settings["train_h5"] = ''
-        set.settings["val_h5"] = ''
-        set.settings["holdout_h5"] = ''
-        # Convert to innvestigate model
-        inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
-                                                    method="e-rule",
-                                                    beta=.5)
-        model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
-        heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
+        # original_trained_model = './data/models/trained_model_original.pt'
+        # data_LRP_stored = './data/exp/lrp'
+        # print("Layerwise_Relevance_Propagation")
+        # set.settings["model_path"] = original_trained_model
+        # set.settings["data_path"] = data_LRP_stored
+        # set.settings["ADNI_DIR"] = ''
+        # set.settings["train_h5"] = ''
+        # set.settings["val_h5"] = ''
+        # set.settings["holdout_h5"] = ''
+        # # Convert to innvestigate model
+        # inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
+        #                                             method="e-rule",
+        #                                             beta=.5)
+        # model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
+        # heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
 

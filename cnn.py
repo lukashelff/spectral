@@ -46,7 +46,7 @@ def get_model(DEVICE, n_classes):
     ###### tiny imagenet
     model.avgpool = nn.AdaptiveAvgPool2d(1)
     num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 200)
+    model.fc = nn.Linear(num_ftrs, n_classes)
 
 
 
@@ -76,7 +76,7 @@ def get_model(DEVICE, n_classes):
     # print(model)
     # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
     freeze_all(model.parameters())
-    model.fc = nn.Linear(512, n_classes)
+    # model.fc = nn.Linear(512, n_classes)
     model.share_memory()
     model = model.to(DEVICE)
     return model
@@ -167,12 +167,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_acc[epoch] = n_correct / n_samples * 100
             exp_lr_scheduler.step()
 
-            # print(
-            #     f"Epoch {epoch + 1}/{N_EPOCHS} |"
-            #     f"  valid loss: {valid_loss[epoch]:9.3f} |"
-            #     f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-            #     f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            # )
+            print(
+                f"Epoch {epoch + 1}/{N_EPOCHS} |"
+                # f"  valid loss: {valid_loss[epoch]:9.3f} |"
+                # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+                f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
+            )
 
             print()
 
@@ -181,6 +181,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         title = roar.replace('_', ' ') + ' image features removed'
     else:
         title = roar + ' model 0% removed'
+
+    fig = plt.figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     plt.plot(train_acc, color='skyblue', label='train acc')
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
@@ -189,7 +191,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
-    plt.axis([0, N_EPOCHS, 50, 100])
+    plt.axis([0, N_EPOCHS, 00, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/plots/accuracy' + roar + '.png')
     plt.show()
@@ -200,7 +202,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
     plt.savefig('./data/plots/loss' + roar + '.png')
-    plt.close('all')
+    plt.close(fig)
     path_values = './data/plots/values/'
     # add accuracy values
     if not os.path.exists(path_values):
@@ -282,16 +284,21 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
         print('loading dataset')
         val_ds = Spectralloader(valid_data, root, mode)
         train_ds = Spectralloader(train_data, root, mode)
+        im, label = train_ds.__getitem__(0)
+        path = './data/exp/pred_img_example/'
+        # display the modified image and save to pred images in data/exp/pred_img_example
+        show_image(im, 'original image ')
+
         train_parallel(0, None, DEVICE, 'original', val_ds, train_ds,
                                                     batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it)
 
-        # p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
-        #                                             batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it))
+        p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
+                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it))
         cv_it += 1
-    #     p.start()
-    #     processes.append(p)
-    # for p in processes:
-    #     p.join()
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
 
 
 def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,

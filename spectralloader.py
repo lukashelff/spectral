@@ -9,6 +9,7 @@ import random
 from tqdm import tqdm
 import sys
 import multiprocessing as mp
+import cv2
 
 from torchvision import transforms
 import torchvision.datasets as t_datasets
@@ -140,6 +141,7 @@ class Spectralloader(Dataset):
                     ids.append(k)
 
         if mode == 'imagenet':
+            size = 224
             data_transforms = {
                 'train': transforms.Compose([
                     transforms.RandomHorizontalFlip(),
@@ -160,7 +162,7 @@ class Spectralloader(Dataset):
                     image, label = image_datasets['train'].__getitem__(i)
                     add_to_data(image, str(i))
                     # upscale to improve acc
-                    # add_to_data(cv2.resize(image,(size,size), interpolation = cv2.INTER_CUBIC), str(i))
+                    add_to_data(cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC), str(i))
             # for i in range(image_datasets['val'].__len__()):
             #     image, label = image_datasets['val'].__getitem__(i)
             #     add_to_data(image, str(i + image_datasets['train'].__len__()))
