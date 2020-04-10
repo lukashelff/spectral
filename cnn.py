@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit
+from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torchsummary import summary
 from torchvision import models
@@ -41,6 +42,31 @@ def freeze_all(model_params):
 
 def get_model(DEVICE, n_classes):
     model = models.resnet18(pretrained=True)
+    ###### tiny imagenet
+    model.avgpool = nn.AdaptiveAvgPool2d(1)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 200)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ####### for plant based DS
     # print model
     # model.to('cuda:0')
     # summary(model, (3, 255, 213), batch_size=20)
@@ -66,11 +92,13 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(
-        get_trainable(model.parameters()),
-        lr=learning_rate,
-        # momentum=0.9,
-    )
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    # optimizer = torch.optim.Adam(
+    #     get_trainable(model.parameters()),
+    #     lr=learning_rate,
+    #     # momentum=0.9,
+    # )
     text = 'training on DS with ' + roar + ' in cv it:' + str(cv_iteration)
 
     with tqdm(total=N_EPOCHS, desc=text) as progress:

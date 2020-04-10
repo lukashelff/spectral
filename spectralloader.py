@@ -1,12 +1,18 @@
+import os
+
 import torch
 import tqdm as tqdm
 from torch.utils.data import Dataset, DataLoader
 import pickle
 import numpy as np
 import random
-import tqdm
+from tqdm import tqdm
 import sys
 import multiprocessing as mp
+
+from torchvision import transforms
+import torchvision.datasets as t_datasets
+
 import helpfunctions
 
 
@@ -77,14 +83,14 @@ class Spectralloader(Dataset):
 
         """
 
-    def __init__(self, labels, root, mode, transform=None):
-        # inputs:
+    def __init__(self, ids_and_labels, root, mode, transform=None):
+        # Parameter:
         # labels: list of all labels
         # Variables:
         # ids: list of all ids in order of data
         # data: dictionary of all IDs with their corresponding images and label
-        #  data[id]['image'] = image, data[id]['label'] = label,
-        self.data, self.ids = self.load_images_for_labels(root, labels, mode=mode)
+        #  data[id]['image'] = image, data[id]['label'] = label
+        self.data, self.ids = self.load_images_for_labels(root, ids_and_labels, mode=mode)
         # print('total length of ids ' + str(self.__len__()) + ' with data indexed to ' + str(len(self.data)))
 
     def __getitem__(self, index):
@@ -123,27 +129,6 @@ class Spectralloader(Dataset):
         data = {}
         ids = []
 
-        # loads all the images have existing entry labels
-        def load_image(path):
-            dict = pickle.load(open(path + '/data.p', 'rb'))
-            shape = dict['memmap_shape']
-            samples = dict['samples']
-            data_all = np.memmap(path + '/memmap.dat', mode='r', shape=shape, dtype='float32')
-            # labels_ids = [i[0] for i in labels]
-            for k, i in enumerate(samples):
-                # only add if we have a label for the image
-                # if i['id'].replace(',', '_') in labels_ids:
-                if mode == 'rgb':
-                    # ims.append(data_all[k][:, :, [50, 88, 151]].reshape(3, 255, 213))
-                    # ims.append(data_all[k][:, :, [50, 88, 151]])
-                    data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
-                    add_to_data(data, i['id'].replace(',', '_'))
-                    # ims.append(data)
-                elif mode == 'spec':
-                    # ims.append(data_all[k].reshape(3, 255, 213))
-                    # ims.append(data_all[k])
-                    add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
-
         # add image with corresponding label and id to the DS
         def add_to_data(image, id):
             for (k, i) in labels:
@@ -154,15 +139,52 @@ class Spectralloader(Dataset):
                     data[id]['id'] = k
                     ids.append(k)
 
-        for i in range(1, 5):
-            if i == 1:
-                for k in range(1, 14):
-                    load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
-            else:
-                for k in range(1, 19):
-                    if not (k == 16 and i == 4):
-                        load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
+        if mode == 'imagenet':
+            data_transforms = {
+                'train': transforms.Compose([
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                ]),
+                'val': transforms.Compose([
+                    transforms.ToTensor(),
+                ]),
+            }
+            data_dir = 'data/tiny-imagenet-200'
+            image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
+                                                        data_transforms[x])
+                              for x in ['train', 'val']}
+            text = 'loading images of DS: '
+            with tqdm(total=image_datasets['train'].__len__(), desc=text) as progress:
+                for i in range(image_datasets['train'].__len__()):
+                    progress.update(1)
+                    image, label = image_datasets['train'].__getitem__(i)
+                    add_to_data(image, str(i))
+            # for i in range(image_datasets['val'].__len__()):
+            #     image, label = image_datasets['val'].__getitem__(i)
+            #     add_to_data(image, str(i + image_datasets['train'].__len__()))
+        else:
+            # loads all the images have existing entry labels
+            def load_image(path):
+                dict = pickle.load(open(path + '/data.p', 'rb'))
+                shape = dict['memmap_shape']
+                samples = dict['samples']
+                data_all = np.memmap(path + '/memmap.dat', mode='r', shape=shape, dtype='float32')
+                # labels_ids = [i[0] for i in labels]
+                for k, i in enumerate(samples):
+                    # only add if we have a label for the image
+                    data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
+                    add_to_data(data, i['id'].replace(',', '_'))
+                    # elif mode == 'spec': reserved for spectral implementation
+                    #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
 
+            for i in range(1, 5):
+                if i == 1:
+                    for k in range(1, 14):
+                        load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
+                else:
+                    for k in range(1, 19):
+                        if not (k == 16 and i == 4):
+                            load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
         return data, ids
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
@@ -233,23 +255,55 @@ class Spectralloader(Dataset):
 
 
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
-def load_labels():
-    mp.set_start_method('spawn')
-    path_test = 'data/test_fileids.txt'
-    path_train = 'data/train_fileids.txt'
+# returns Array of tuples(String, int) with ID and class information e.g. (test_9925.JPEG n01910747)
+# train Array of tuples(String, int) with ID and class information
+# valid Array of tuples(String, int) with ID and class information
+# all_data Array of tuples(String, int) with ID and class information
+# all_labels Array of int with class information
+def load_labels(mode):
     valid = []
     train = []
-    valid_s = open(path_test, 'r').readlines()
-    train_s = open(path_train, 'r').readlines()
     all_labels = []
-    for i in valid_s:
-        data = i.split(';')
-        valid.append((data[0], int(data[1])))
-        all_labels.append(int(data[1]))
-    for i in train_s:
-        data = i.split(';')
-        train.append((data[0], int(data[1])))
-        all_labels.append(int(data[1]))
+
+    # load all imagenet labels use the index as the id as a unique identifier
+    if mode == 'imagenet':
+        data_transforms = {
+            'train': transforms.Compose([
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+            ]),
+            'val': transforms.Compose([
+                transforms.ToTensor(),
+            ]),
+        }
+        data_dir = 'data/tiny-imagenet-200'
+        image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
+                                                    data_transforms[x])
+                          for x in ['train', 'val']}
+        val_labels = image_datasets['val'].targets
+        train_labels = image_datasets['train'].targets
+        train, all_labels = [(c, i) for c, i in enumerate(train_labels)], train_labels
+        # for i in range(image_datasets['train'].__len__()):
+        #     _, label = image_datasets['train'].__getitem__(i)
+        #     train.append((str(i), label))
+        #     all_labels.append(label)
+        # for i in range(image_datasets['val'].__len__()):
+        #     _, label = image_datasets['val'].__getitem__(i)
+        #     valid.append((str(i + image_datasets['train'].__len__()), label))
+        #     all_labels.append(label)
+        return train, None, train, all_labels
+    else:
+        mp.set_start_method('spawn')
+        path_test = 'data/test_fileids.txt'
+        path_train = 'data/train_fileids.txt'
+        valid_s = open(path_test, 'r').readlines()
+        train_s = open(path_train, 'r').readlines()
+        for i in valid_s:
+            data = i.split(';')
+            valid.append((data[0], int(data[1])))
+            all_labels.append(int(data[1]))
+        for i in train_s:
+            data = i.split(';')
+            train.append((data[0], int(data[1])))
+            all_labels.append(int(data[1]))
     return train, valid, train + valid, all_labels
-
-

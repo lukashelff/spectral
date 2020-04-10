@@ -37,69 +37,57 @@ from explainer import *
 from plots import *
 from helpfunctions import *
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-image_net = False
-retrain = False
-plot_for_image_id, plot_classes, plot_categories = False, False, False
-roar_create_mask = False
-roar_train = True
-plot_roar_curve = False
-roar_mod_im_comp = False
-roar_expl_im = False
-N_EPOCHS = 150
-lr = 0.00015
+
+
+
 
 
 def main():
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    mode = 'imagenet'
+    retrain = True
+    plot_for_image_id, plot_classes, plot_categories = False, False, False
+    roar_create_mask = False
+    roar_train = False
+    plot_roar_curve = False
+    roar_mod_im_comp = False
+    roar_expl_im = False
+    # CNN default learning parameters
+    N_EPOCHS = 120
+    lr = 0.00015
+    n_classes = 2
+    batch_size = 20
+    cv_iterations = 5
+    classes = ('healthy', 'diseased')
+
+    # Training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    roar_explainers = ['Integrated_Gradients']
-    # roar_explainers = ['random']
-    roar_values = [10, 30, 40, 50, 60, 70, 80, 90, 95]
+    # roar_explainers = ['Integrated_Gradients']
+    roar_explainers = ['random']
+    # missing random 99%, IG 20%
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
-    mode = 'rgb'
-    shuffle_dataset = True
-    random_seed = 42
-    classes = ('healthy', 'diseased')
-    batch_size = 20
-    n_classes = 2
-    cv_iterations = 5
-    trained_roar_models = './data/models/trained_model_roar'
-    original_trained_model = './data/models/trained_model_original.pt'
-    train_labels, valid_labels, all_data, labels = load_labels()
+    roar_values = [10, 30, 40, 50, 60, 70, 80, 90, 95]
+    roar_values = [99]
+    if mode == 'imagenet':
+        n_classes = 200
+        N_EPOCHS = 20
+        lr = 0.01
+        batch_size = 100
+        cv_iterations = 1
+    train_labels, valid_labels, all_data, labels = load_labels(mode)
     sss = StratifiedShuffleSplit(n_splits=cv_iterations, test_size=482, random_state=0)
     # save the explainer images of the figures
+    trained_roar_models = './data/models/trained_model_roar'
+    original_trained_model = './data/models/trained_model_original.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/exp/'
     subpath_heapmaps = 'heapmaps/heapmaps'
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
-
-
-    if image_net:
-        data_transforms = {
-            'train': transforms.Compose([
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-            ]),
-            'val': transforms.Compose([
-                transforms.ToTensor(),
-            ]),
-        }
-
-        data_dir = 'data/tiny-imagenet-200'
-        image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
-                                                    data_transforms[x])
-                          for x in ['train', 'val']}
-
-        dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=100,
-                                                      shuffle=True, num_workers=64)
-                       for x in ['train', 'val']}
-        dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-        imagenet_model = train(200, 20, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'imagenet', 0)
 
 
 
