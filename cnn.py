@@ -18,6 +18,7 @@ import helpfunctions
 import concurrent.futures as futures
 from helpfunctions import display_rgb
 from spectralloader import Spectralloader
+# from train_model import train_model
 
 def get_trainable(model_params):
     return (p for p in model_params if p.requires_grad)
@@ -92,7 +93,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
     # optimizer = torch.optim.Adam(
     #     get_trainable(model.parameters()),
@@ -100,6 +101,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     #     # momentum=0.9,
     # )
     text = 'training on DS with ' + roar + ' in cv it:' + str(cv_iteration)
+
+
 
     with tqdm(total=N_EPOCHS, desc=text) as progress:
 
@@ -162,6 +165,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
             valid_loss[epoch] = total_loss / n_samples
             valid_acc[epoch] = n_correct / n_samples * 100
+            exp_lr_scheduler.step()
 
             # print(
             #     f"Epoch {epoch + 1}/{N_EPOCHS} |"
@@ -273,23 +277,21 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
     if not os.path.exists('./data/models/'):
         os.makedirs('./data/models/')
     for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
-        train_data = []
-        valid_data = []
-        for i in train_index:
-            train_data.append(all_data[i])
-        for i in test_index:
-            valid_data.append(all_data[i])
+        train_data = [all_data[i] for i in train_index]
+        valid_data = [all_data[i] for i in test_index]
         print('loading dataset')
-        train_ds = Spectralloader(train_data, root, mode)
         val_ds = Spectralloader(valid_data, root, mode)
+        train_ds = Spectralloader(train_data, root, mode)
+        train_parallel(0, None, DEVICE, 'original', val_ds, train_ds,
+                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it)
 
-        p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
-                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it))
+        # p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
+        #                                             batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it))
         cv_it += 1
-        p.start()
-        processes.append(p)
-    for p in processes:
-        p.join()
+    #     p.start()
+    #     processes.append(p)
+    # for p in processes:
+    #     p.join()
 
 
 def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
@@ -323,8 +325,8 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
         display_rgb(im, 'image with ' + str(roar_val) + '% of ' + explainer + 'values removed', path, name)
 
         # create Dataloaders
-        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=1, )
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=1, )
+        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
         model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it)
         torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(roar_val) + '.pt')

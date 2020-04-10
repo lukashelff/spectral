@@ -131,11 +131,11 @@ class Spectralloader(Dataset):
 
         # add image with corresponding label and id to the DS
         def add_to_data(image, id):
-            for (k, i) in labels:
+            for (k, label) in labels:
                 if k == id:
                     data[id] = {}
                     data[id]['image'] = image
-                    data[id]['label'] = i
+                    data[id]['label'] = label
                     data[id]['id'] = k
                     ids.append(k)
 
@@ -159,11 +159,13 @@ class Spectralloader(Dataset):
                     progress.update(1)
                     image, label = image_datasets['train'].__getitem__(i)
                     add_to_data(image, str(i))
+                    # upscale to improve acc
+                    # add_to_data(cv2.resize(image,(size,size), interpolation = cv2.INTER_CUBIC), str(i))
             # for i in range(image_datasets['val'].__len__()):
             #     image, label = image_datasets['val'].__getitem__(i)
             #     add_to_data(image, str(i + image_datasets['train'].__len__()))
         else:
-            # loads all the images have existing entry labels
+            # loads all the images have existing entry labels in the plant DS
             def load_image(path):
                 dict = pickle.load(open(path + '/data.p', 'rb'))
                 shape = dict['memmap_shape']
@@ -282,7 +284,7 @@ def load_labels(mode):
                           for x in ['train', 'val']}
         val_labels = image_datasets['val'].targets
         train_labels = image_datasets['train'].targets
-        train, all_labels = [(c, i) for c, i in enumerate(train_labels)], train_labels
+        train, all_labels = [(str(c), i) for c, i in enumerate(train_labels)], train_labels
         # for i in range(image_datasets['train'].__len__()):
         #     _, label = image_datasets['train'].__getitem__(i)
         #     train.append((str(i), label))
@@ -291,7 +293,9 @@ def load_labels(mode):
         #     _, label = image_datasets['val'].__getitem__(i)
         #     valid.append((str(i + image_datasets['train'].__len__()), label))
         #     all_labels.append(label)
-        return train, None, train, all_labels
+        # train (ID,label) = (String, int)
+        # all_labels Array of labels
+        return None, None, train, all_labels
     else:
         mp.set_start_method('spawn')
         path_test = 'data/test_fileids.txt'

@@ -7,6 +7,7 @@ import torchvision
 from PIL import Image as PImage
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
+import torchvision.datasets as t_datasets
 from torchvision.datasets.folder import ImageFolder, default_loader
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -36,10 +37,6 @@ from cnn import *
 from explainer import *
 from plots import *
 from helpfunctions import *
-
-
-
-
 
 
 def main():
@@ -89,7 +86,27 @@ def main():
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
-
+    # if mode == 'imagenet':
+    #     data_transforms = {
+    #         'train': transforms.Compose([
+    #             transforms.RandomHorizontalFlip(),
+    #             transforms.ToTensor(),
+    #         ]),
+    #         'val': transforms.Compose([
+    #             transforms.ToTensor(),
+    #         ]),
+    #     }
+    #
+    #     data_dir = 'data/tiny-imagenet-200'
+    #
+    #     image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
+    #                                               data_transforms[x])
+    #                       for x in ['train', 'val']}
+    #     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=100,
+    #                                                   shuffle=True, num_workers=64)
+    #                    for x in ['train', 'val']}
+    #     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+    #     train(n_classes, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'original', 0)
 
     # loading Datasets
     if plot_classes or plot_categories:
