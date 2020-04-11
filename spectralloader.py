@@ -160,9 +160,9 @@ class Spectralloader(Dataset):
                 for i in range(image_datasets['train'].__len__()):
                     progress.update(1)
                     image, label = image_datasets['train'].__getitem__(i)
-                    add_to_data(image, str(i))
+                    add_to_data(np.float32(image), str(i))
                     # upscale to improve acc
-                    add_to_data(cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC), str(i))
+                    # add_to_data(cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC), str(i))
             # for i in range(image_datasets['val'].__len__()):
             #     image, label = image_datasets['val'].__getitem__(i)
             #     add_to_data(image, str(i + image_datasets['train'].__len__()))
