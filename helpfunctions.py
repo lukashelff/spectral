@@ -34,7 +34,7 @@ def show_image(img, title):
     img_tr = np.transpose(img, (1, 2, 0))
     plt.imshow(img_tr)
     plt.show()
-    im = Image.fromarray((img_tr * 255).astype(np.uint8))
+    # im = Image.fromarray((img_tr * 255).astype(np.uint8))
 
 
 def to_rgb(image):
