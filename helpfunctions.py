@@ -79,19 +79,19 @@ def figure_to_image(fig):
     return np.fromstring(canvas.tostring_rgb(), dtype='uint8')
 
 
-def get_cross_val_acc(ex, roar_per, cv_iter):
+def get_cross_val_acc(ex, roar_per, cv_iter, mode):
     j = 0
     acc = 0
     try:
         if ex == 'original':
             for j in range(cv_iter):
                 sub_path = ex + '_cv_it_' + str(j + 1) + '.sav'
-                path = './data/plots/values/' + sub_path
+                path = './data/' + mode + '/' + 'plots/values/' + sub_path
                 acc += pickle.load(open(path, 'rb'))
         else:
             for j in range(cv_iter):
                 sub_path = str(roar_per) + '%_of_' + ex + '_cv_it_' + str(j) + '.sav'
-                path = './data/plots/values/' + sub_path
+                path = './data/' + mode + '/' + 'plots/values/' + sub_path
                 acc += pickle.load(open(path, 'rb'))
 
         return acc / cv_iter

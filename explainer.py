@@ -154,8 +154,8 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
             for k in roar_explainers:
                 progress.update(1)
                 heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
-        if not os.path.exists(path + '/heapmaps'):
-            os.makedirs(path + '/heapmaps')
+        if not os.path.exists(path + '/heatmaps'):
+            os.makedirs(path + '/heatmaps')
         for k in roar_explainers:
             pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
 

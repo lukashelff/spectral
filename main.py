@@ -41,10 +41,11 @@ from helpfunctions import *
 
 def main():
     DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
-    mode = 'imagenet'
+    modes = ['plants', 'imagenet']
+    mode = modes[1]
     retrain = True
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = False
+    roar_create_mask = True
     roar_train = False
     plot_roar_curve = False
     roar_mod_im_comp = False
@@ -70,18 +71,19 @@ def main():
     roar_values = [99]
     if mode == 'imagenet':
         n_classes = 200
-        N_EPOCHS = 100
+        N_EPOCHS = 20
         lr = 0.001
         batch_size = 100
         cv_iterations = 1
     train_labels, valid_labels, all_data, labels = load_labels(mode)
     sss = StratifiedShuffleSplit(n_splits=cv_iterations, test_size=482, random_state=0)
     # save the explainer images of the figures
-    trained_roar_models = './data/models/trained_model_roar'
-    original_trained_model = './data/models/trained_model_original.pt'
+
+    trained_roar_models = './data/' + mode + '/' + 'models/trained_model_roar'
+    original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
-    path_exp = './data/exp/'
-    subpath_heapmaps = 'heapmaps/heapmaps'
+    path_exp = './data/' + mode + '/' + 'exp/'
+    subpath_heatmaps = 'heatmaps/heatmaps'
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
@@ -136,15 +138,15 @@ def main():
         print('creating explainer plots for specified images')
         plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original')
 
-    # create a mask containing the heapmap of all specified images
+    # create a mask containing the heatmap of all specified images
     if roar_create_mask:
         print('creating for ROAR mask')
-        create_mask(original_model, all_ds, path_exp, subpath_heapmaps, DEVICE, roar_explainers)
+        create_mask(original_model, all_ds, path_exp, subpath_heatmaps, DEVICE, roar_explainers)
         print('mask for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
-        train_roar_ds(path_exp + subpath_heapmaps, roar_values, trained_roar_models, all_data, labels, batch_size,
+        train_roar_ds(path_exp + subpath_heatmaps, roar_values, trained_roar_models, all_data, labels, batch_size,
                       n_classes, N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode)
 
     # plot the acc curves of all trained ROAR models

@@ -151,7 +151,7 @@ class Spectralloader(Dataset):
                     transforms.ToTensor(),
                 ]),
             }
-            data_dir = 'data/tiny-imagenet-200'
+            data_dir = 'data/' + mode + '/' + 'tiny-imagenet-200'
             image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
                                                         data_transforms[x])
                               for x in ['train', 'val']}
@@ -280,7 +280,7 @@ def load_labels(mode):
                 transforms.ToTensor(),
             ]),
         }
-        data_dir = 'data/tiny-imagenet-200'
+        data_dir = 'data/' + mode + '/' + 'tiny-imagenet-200'
         image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
                                                     data_transforms[x])
                           for x in ['train', 'val']}
@@ -300,8 +300,8 @@ def load_labels(mode):
         return None, None, train, all_labels
     else:
         mp.set_start_method('spawn')
-        path_test = 'data/test_fileids.txt'
-        path_train = 'data/train_fileids.txt'
+        path_test = 'data/' + mode + '/' + 'test_fileids.txt'
+        path_train = 'data/' + mode + '/' + 'train_fileids.txt'
         valid_s = open(path_test, 'r').readlines()
         train_s = open(path_train, 'r').readlines()
         for i in valid_s:

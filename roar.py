@@ -39,7 +39,7 @@ trained_roar_models = './data/models/trained_model_roar'
 original_trained_model = './data/models/trained_model_original.pt'
 root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
 path_exp = './data/exp/'
-subpath_heapmaps = 'heapmaps/heapmaps'
+subpath_heatmaps = 'heatmaps/heatmaps'
 subpath = 'roar/'
 n_classes = 2
 
@@ -72,8 +72,8 @@ def roar_comparison_explained(mode, DEVICE, explainers):
             if c_e == 0:
                 ax.set_ylabel('original image', fontsize=40)
         for c_ex, ex in enumerate(explainers):
-            # loading heapmap of corresponding explainer
-            with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
+            # loading heatmap of corresponding explainer
+            with open(path_exp + subpath_heatmaps + ex + '.pkl', 'rb') as f:
                 mask = pickle.load(f)
                 print('applying ' + ex + ' to image')
                 for c_r, i in enumerate(roar_expl_im_values):
@@ -128,15 +128,15 @@ def roar_comparison(mode, roar_explainers, cv_iter):
         if not os.path.exists(path_exp + subpath):
             os.makedirs(path_exp + subpath)
         for c_ex, ex in enumerate(roar_explainers):
-            # loading heapmap of corresponding explainer
-            with open(path_exp + subpath_heapmaps + ex + '.pkl', 'rb') as f:
+            # loading heatmap of corresponding explainer
+            with open(path_exp + subpath_heatmaps + ex + '.pkl', 'rb') as f:
                 mask = pickle.load(f)
                 print('appling ' + ex + ' to image')
                 for c_r, roar_per in enumerate(roar_values):
                     id = str(3) + '_' + image_ids[k]
                     all_ds = Spectralloader([image_labels[k]], root, mode)
                     sub_path = str(roar_per) + '%_of_' + ex + '.sav'
-                    path = './data/plots/values/' + sub_path
+                    path = './data/' + mode + '/' + 'plots/values/' + sub_path
                     if roar_per == 0:
                         acc = get_cross_val_acc('original', roar_per, cv_iter)
                     else:

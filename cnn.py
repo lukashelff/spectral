@@ -83,7 +83,7 @@ def get_model(DEVICE, n_classes):
 
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
-def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration):
+def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
     train_balanced_acc = np.zeros(N_EPOCHS)
@@ -201,9 +201,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
-    plt.savefig('./data/plots/loss' + roar + '.png')
+    plt.savefig('./data/' + mode + '/' + 'plots/loss' + roar + '.png')
     plt.close(fig)
-    path_values = './data/plots/values/'
+    path_values = './data/' + mode + '/' + 'plots/values/'
     # add accuracy values
     if not os.path.exists(path_values):
         os.makedirs(path_values)
@@ -276,8 +276,8 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
 def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model):
     cv_it = 0
     processes = []
-    if not os.path.exists('./data/models/'):
-        os.makedirs('./data/models/')
+    if not os.path.exists('./data/' + mode + '/' + 'models/'):
+        os.makedirs('./data/' + mode + '/' + 'models/')
     for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
         train_data = [all_data[i] for i in train_index]
         valid_data = [all_data[i] for i in test_index]
@@ -285,15 +285,15 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
         val_ds = Spectralloader(valid_data, root, mode)
         train_ds = Spectralloader(train_data, root, mode)
         im, label = train_ds.__getitem__(0)
-        path = './data/exp/pred_img_example/'
+        path = './data/' + mode + '/' + 'exp/pred_img_example/'
         # display the modified image and save to pred images in data/exp/pred_img_example
-        show_image(im, 'original image ')
+        # show_image(im, 'original image ')
 
-        train_parallel(0, None, DEVICE, 'original', val_ds, train_ds,
-                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it)
+        # train_parallel(0, None, DEVICE, 'original', val_ds, train_ds,
+        #                                             batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode)
 
         p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
-                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it))
+                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode))
         cv_it += 1
         p.start()
         processes.append(p)
@@ -302,7 +302,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
 
 
 def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
-                   trained_roar_models, cv_it):
+                   trained_roar_models, cv_it,mode):
     if explainer == 'original':
         train_dl = DataLoader(train_ds_org, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_dl = DataLoader(val_ds_org, batch_size=batch_size, shuffle=False, num_workers=4, )
@@ -326,7 +326,7 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
         # futures.wait(fs)
         # print example image
         im, label = train_ds.__getitem__(0)
-        path = './data/exp/pred_img_example/'
+        path = './data/' + mode + '/' + 'exp/pred_img_example/'
         name = 'ROAR_' + str(roar_val) + '_of_' + explainer + '.jpeg'
         # display the modified image and save to pred images in data/exp/pred_img_example
         display_rgb(im, 'image with ' + str(roar_val) + '% of ' + explainer + 'values removed', path, name)

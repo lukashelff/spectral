@@ -31,6 +31,7 @@ from explainer import explain
 from matplotlib.pyplot import figure
 from helpfunctions import get_cross_val_acc
 
+
 def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healthy, subpath_diseased,
              subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes):
     # get index for each class
@@ -192,8 +193,8 @@ def plot_single_explainer(pathroot, subpath, explainers, image_names, title, roa
     plt.show()
 
 
-def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy, plot_classes, explainers):
-    path_root = './data/exp/'
+def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy, plot_classes, explainers, mode):
+    path_root = './data' + mode + '/' + '/exp/'
     subpath_healthy = 'healthy/'
     subpath_diseased = 'diseased/'
     subpath_classification = 'classification/'
@@ -216,9 +217,9 @@ def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy
                               'comparison between detected healthy images', '')
 
 
-def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
+def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar,mode):
     classes = ('healthy', 'diseased')
-    path_root = './data/exp/'
+    path_root = './data/' + mode + '/' + 'exp/'
     subpath_single_image = 'single_image/'
     image_labels = np.zeros((len(image_ids), 4))
     image_pred = np.zeros((len(image_ids), 4))
@@ -255,7 +256,7 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar):
 
 
 # crossval acc for every removed percentage of each explainer
-def plot_dev_acc(roar_values, roar_explainers, cv_iter):
+def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
     # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
     val = get_cross_val_acc('original', 0, cv_iter)
@@ -274,6 +275,6 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter):
     plt.ylabel('model accuracy')
     plt.axis([roar_values[0], 100, 50, 90])
     plt.legend(loc='lower left')
-    plt.savefig('./data/plots/accuracy_roar_comparison')
+    plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison')
     plt.show()
     plt.close(fig)
