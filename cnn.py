@@ -93,8 +93,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes)
     criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-    # exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
     optimizer = torch.optim.Adam(
         get_trainable(model.parameters()),
         lr=learning_rate,
@@ -163,7 +163,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
             valid_loss[epoch] = total_loss / n_samples
             valid_acc[epoch] = n_correct / n_samples * 100
-            # exp_lr_scheduler.step()
+            exp_lr_scheduler.step()
 
             print(
                 f"Epoch {epoch + 1}/{N_EPOCHS} |"
