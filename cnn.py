@@ -42,7 +42,7 @@ def freeze_all(model_params):
 
 
 def get_model(DEVICE, n_classes):
-    model = models.resnet18(pretrained=True)
+    model = models.resnet18()
     ###### tiny imagenet
     model.avgpool = nn.AdaptiveAvgPool2d(1)
     num_ftrs = model.fc.in_features
@@ -274,8 +274,6 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
 def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model):
     cv_it = 0
     processes = []
-    if not os.path.exists('./data/' + mode + '/' + 'models/'):
-        os.makedirs('./data/' + mode + '/' + 'models/')
     for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
         train_data = [all_data[i] for i in train_index]
         valid_data = [all_data[i] for i in test_index]
@@ -304,7 +302,7 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
     if explainer == 'original':
         train_dl = DataLoader(train_ds_org, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_dl = DataLoader(val_ds_org, batch_size=batch_size, shuffle=False, num_workers=4, )
-        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it)
+        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it, mode)
         torch.save(original_model.state_dict(), trained_roar_models)
 
     else:
@@ -333,7 +331,7 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
-        model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it)
+        model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it, mode)
         torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(roar_val) + '.pt')
 
 

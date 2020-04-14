@@ -259,14 +259,14 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar,mod
 def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
     # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
-    val = get_cross_val_acc('original', 0, cv_iter)
+    val = get_cross_val_acc('original', 0, cv_iter, mode)
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     plt.plot([roar_values[0], roar_values[-1]], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
     # plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
     for c, ex in enumerate(roar_explainers):
         acc_vals = []
         for roar_per in roar_values:
-            acc = get_cross_val_acc(ex, roar_per, cv_iter)
+            acc = get_cross_val_acc(ex, roar_per, cv_iter, mode)
             acc_vals.append(acc)
         acc_vals.append(50)
         plt.plot(roar_values + [100], acc_vals, label=ex)

@@ -56,6 +56,7 @@ def main():
     n_classes = 2
     batch_size = 20
     cv_iterations = 5
+    test_size = 482
     classes = ('healthy', 'diseased')
 
     # Training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
@@ -75,10 +76,14 @@ def main():
         lr = 0.001
         batch_size = 100
         cv_iterations = 1
+        test_size = 5000
     train_labels, valid_labels, all_data, labels = load_labels(mode)
-    sss = StratifiedShuffleSplit(n_splits=cv_iterations, test_size=482, random_state=0)
+    sss = StratifiedShuffleSplit(n_splits=cv_iterations, test_size=test_size, random_state=0)
     # save the explainer images of the figures
-
+    if not os.path.exists('./data/'):
+        os.makedirs('./data/')
+    if not os.path.exists('./data/' + mode + '/' + 'models/'):
+        os.makedirs('./data/' + mode + '/' + 'models/')
     trained_roar_models = './data/' + mode + '/' + 'models/trained_model_roar'
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
@@ -133,10 +138,10 @@ def main():
         # evaluate images and their classification
         print('creating explainer plots for specific classes')
         plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_classes, plot_categories,
-                                  explainers)
+                                  explainers, mode)
     if plot_for_image_id:
         print('creating explainer plots for specified images')
-        plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original')
+        plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
 
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:
@@ -151,7 +156,7 @@ def main():
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
-        plot_dev_acc(roar_values, roar_explainers, cv_iterations)
+        plot_dev_acc(roar_values, roar_explainers, cv_iterations, mode)
 
     # comparison of modified roar Images
     if roar_mod_im_comp:

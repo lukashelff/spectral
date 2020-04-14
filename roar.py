@@ -35,10 +35,7 @@ image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8
 image_ids_roar_exp = [0, 3, 4, 6]
 image_labels = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1), ('3_Z8_4_0_0', 1),
                 ('3_Z8_4_1_2', 1), ('3_Z1_3_1_1', 0), ('3_Z2_1_0_2', 0)]
-trained_roar_models = './data/models/trained_model_roar'
-original_trained_model = './data/models/trained_model_original.pt'
 root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
-path_exp = './data/exp/'
 subpath_heatmaps = 'heatmaps/heatmaps'
 subpath = 'roar/'
 n_classes = 2
@@ -50,6 +47,9 @@ n_classes = 2
 def roar_comparison_explained(mode, DEVICE, explainers):
     # explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
     roar_expl_im_values = [0, 10, 20, 30, 50, 70, 90, 100]
+    path_exp = './data/' + mode + '/' + 'exp/'
+    trained_roar_models = './data/' + mode + '/' + 'models/trained_model_roar'
+
     w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
     for k in image_ids_roar_exp:
         id = str(3) + '_' + image_ids[k]
@@ -82,6 +82,7 @@ def roar_comparison_explained(mode, DEVICE, explainers):
                     all_ds = Spectralloader([image_labels[k]], root, mode)
                     if i == 0:
                         model = get_model(DEVICE, n_classes)
+                        original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
                         model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
                     else:
                         model = get_model(DEVICE, n_classes)
@@ -118,6 +119,8 @@ def roar_comparison_explained(mode, DEVICE, explainers):
 def roar_comparison(mode, roar_explainers, cv_iter):
     # roar_explainers = ['random'] + roar_explainers
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
+    path_exp = './data/' + mode + '/' + 'exp/'
+
     print('plotting modified images according to roar')
     w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 3
     for k in image_ids_roar_exp:
@@ -138,10 +141,10 @@ def roar_comparison(mode, roar_explainers, cv_iter):
                     sub_path = str(roar_per) + '%_of_' + ex + '.sav'
                     path = './data/' + mode + '/' + 'plots/values/' + sub_path
                     if roar_per == 0:
-                        acc = get_cross_val_acc('original', roar_per, cv_iter)
+                        acc = get_cross_val_acc('original', roar_per, cv_iter, mode)
                     else:
                         all_ds.apply_roar_single_image(roar_per, mask, id, 'comp', ex)
-                        acc = get_cross_val_acc(ex, roar_per, cv_iter)
+                        acc = get_cross_val_acc(ex, roar_per, cv_iter, mode)
                     image, label = all_ds.get_by_id(id)
                     # create ROAR plot
                     ax = fig.add_subplot(len(roar_values), len(roar_explainers),
