@@ -86,12 +86,14 @@ class Spectralloader(Dataset):
 
     def __init__(self, ids_and_labels, root, mode, transform=None):
         # Parameter:
-        # labels: list of all labels
+        # ids_and_labels: list of all IDs with their corresponding labels
         # Variables:
+        # mode: either 'imagenet' or 'plants' determine the correct DS to load from
         # ids: list of all ids in order of data
         # data: dictionary of all IDs with their corresponding images and label
         #  data[id]['image'] = image, data[id]['label'] = label
-        self.data, self.ids = self.load_images_for_labels(root, ids_and_labels, mode=mode)
+        self.mode = mode
+        self.data, self.ids = self.load_images_for_labels(root, ids_and_labels)
         # print('total length of ids ' + str(self.__len__()) + ' with data indexed to ' + str(len(self.data)))
 
     def __getitem__(self, index):
@@ -119,14 +121,17 @@ class Spectralloader(Dataset):
 
     def get_by_id(self, id):
         try:
-            # index = self.ids.index(ID)
-            return self.data[id]['image'], self.data[id]['label']
+            size = 224
+            image, label = self.data[id]['image'], self.data[id]['label']
+            if self.mode == 'imagenet':
+                image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
+            return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
             return None, None
 
     # returns an Array of IDs and a dictionary of all IDs with their corresponding images and label
-    def load_images_for_labels(self, root_path, labels, mode):
+    def load_images_for_labels(self, root_path, labels):
         data = {}
         ids = []
 
@@ -140,7 +145,7 @@ class Spectralloader(Dataset):
                     data[id]['id'] = k
                     ids.append(k)
 
-        if mode == 'imagenet':
+        if self.mode == 'imagenet':
             size = 224
             data_transforms = {
                 'train': transforms.Compose([
@@ -151,15 +156,19 @@ class Spectralloader(Dataset):
                     transforms.ToTensor(),
                 ]),
             }
-            data_dir = 'data/' + mode + '/' + 'tiny-imagenet-200'
+            data_dir = 'data/' + self.mode + '/' + 'tiny-imagenet-200'
             image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
                                                         data_transforms[x])
                               for x in ['train', 'val']}
-            text = 'loading images of DS: '
+            text = 'loading images of ' + self.mode + ' DS: '
             with tqdm(total=image_datasets['train'].__len__(), desc=text) as progress:
                 for i in range(image_datasets['train'].__len__()):
                     progress.update(1)
                     image, label = image_datasets['train'].__getitem__(i)
+                    image = np.transpose(image, (1, 2, 0))
+                    image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
+                    image = np.transpose(image, (2, 0, 1))
+
                     add_to_data(np.float32(image), str(i))
                     # upscale to improve acc
                     # add_to_data(cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC), str(i))

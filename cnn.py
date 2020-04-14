@@ -18,6 +18,8 @@ import helpfunctions
 import concurrent.futures as futures
 from helpfunctions import *
 from spectralloader import Spectralloader
+
+
 # from train_model import train_model
 
 def get_trainable(model_params):
@@ -42,31 +44,12 @@ def freeze_all(model_params):
 
 
 def get_model(DEVICE, n_classes):
-    model = models.resnet18()
+    model = models.resnet18(pretrained=True)
     ###### tiny imagenet
     model.avgpool = nn.AdaptiveAvgPool2d(1)
     num_ftrs = model.fc.in_features
     freeze_all(model.parameters())
     model.fc = nn.Linear(num_ftrs, n_classes)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     ####### for plant based DS
     # print model
@@ -100,7 +83,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         lr=learning_rate,
         # momentum=0.9,
     )
-    text = 'training on DS with ' + roar + ' in cv it:' + str(cv_iteration)
+    text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
 
     with tqdm(total=N_EPOCHS, desc=text) as progress:
 
@@ -191,7 +174,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.xlabel('training epoch')
     plt.axis([0, N_EPOCHS, 00, 100])
     plt.legend(loc='lower right')
-    plt.savefig('./data/plots/accuracy' + roar + '.png')
+    plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar + '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
     plt.plot(valid_loss, color='orange', label='valid_loss')
@@ -205,100 +188,105 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     # add accuracy values
     if not os.path.exists(path_values):
         os.makedirs(path_values)
-    pickle.dump(round(valid_balanced_acc[N_EPOCHS - 1], 2), open(path_values + roar + '_cv_it_' + str(cv_iteration) + '.sav', 'wb'))
+    pickle.dump(round(valid_balanced_acc[N_EPOCHS - 1], 2),
+                open(path_values + roar + '_cv_it_' + str(cv_iteration) + '.sav', 'wb'))
     return model
 
 
 # ROAR remove and retrain
 def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batch_size, n_classes,
                   N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode):
+    # num_processes = len(roar_explainers)
+    # pool = mp.Pool(1)
+    for explainer in roar_explainers:
+        cv_it = 0
+        for train_index, test_index in sss.split(all_data, labels):
+            if cv_it == 0:
+                train_labels = []
+                valid_labels = []
+                for i in train_index:
+                    train_labels.append(all_data[i])
+                for i in test_index:
+                    valid_labels.append(all_data[i])
+                train_ds = Spectralloader(train_labels, root, mode)
+                val_ds = Spectralloader(valid_labels, root, mode)
+                path_root = path + explainer + '.pkl'
+                with open(path_root, 'rb') as f:
+                    mask = pickle.load(f)
+                    processes = []
+                    for i in roar_values:
+                        # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+                        #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
+                        # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
 
-        # num_processes = len(roar_explainers)
-        # pool = mp.Pool(1)
-        for explainer in roar_explainers:
-            cv_it = 0
-            for train_index, test_index in sss.split(all_data, labels):
-                if cv_it == 0:
-                    train_labels = []
-                    valid_labels = []
-                    for i in train_index:
-                        train_labels.append(all_data[i])
-                    for i in test_index:
-                        valid_labels.append(all_data[i])
-                    train_ds = Spectralloader(train_labels, root, mode)
-                    val_ds = Spectralloader(valid_labels, root, mode)
-                    path_root = path + explainer + '.pkl'
-                    with open(path_root, 'rb') as f:
-                        mask = pickle.load(f)
-                        processes = []
-                        for i in roar_values:
-                            # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
-                            #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                            # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
+                        p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
+                                                                    batch_size, n_classes, N_EPOCHS, lr,
+                                                                    trained_roar_models, cv_it))
+                        p.start()
+                        processes.append(p)
+                    for p in processes:
+                        p.join()
+            cv_it += 1
+        torch.cuda.empty_cache()
 
-                            p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
-                                                                   batch_size, n_classes, N_EPOCHS, lr, trained_roar_models, cv_it))
-                            p.start()
-                            processes.append(p)
-                        for p in processes:
-                            p.join()
-                cv_it += 1
-            torch.cuda.empty_cache()
-    # pool.close()
-    # pool.join()
 
-    # print('------------------------------------------------------------')
-    # print('removing ' + str(i) + ' % of the image features & train after ' + explainer)  #
-    # val_ds = deepcopy(val_ds_org)
-    # print('applying ROAR heatmap to validation DS')
-    # val_ds.apply_roar(i, mask, DEVICE, explainer)
-    # val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
-    # # print example image
-    # im, label = val_ds.get_by_id('4_Z15_1_1_0')
-    # path = './data/exp/pred_img_example/'
-    # name = explainer + 'ROAR' + str(i)
-    # # display the modified image and save to pred images in data/exp/pred_img_example
-    # # display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
-    # train_ds = deepcopy(train_ds_org)
-    # print('applying ROAR heatmap to training DS')
-    # train_ds.apply_roar(i, mask, DEVICE, explainer)
-    # train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
-    # print('training on ROAR DS, ' + str(i) + ' % removed')
-    # model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,
-    #               str(i) + '%_of_' + explainer)
-    # print('saving roar model')
-    # torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')
+# pool.close()
+# pool.join()
+
+# print('------------------------------------------------------------')
+# print('removing ' + str(i) + ' % of the image features & train after ' + explainer)  #
+# val_ds = deepcopy(val_ds_org)
+# print('applying ROAR heatmap to validation DS')
+# val_ds.apply_roar(i, mask, DEVICE, explainer)
+# val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
+# # print example image
+# im, label = val_ds.get_by_id('4_Z15_1_1_0')
+# path = './data/exp/pred_img_example/'
+# name = explainer + 'ROAR' + str(i)
+# # display the modified image and save to pred images in data/exp/pred_img_example
+# # display_rgb(im, 'image with ' + str(i) + '% of ' + explainer + ' values removed ', path, name)
+# train_ds = deepcopy(train_ds_org)
+# print('applying ROAR heatmap to training DS')
+# train_ds.apply_roar(i, mask, DEVICE, explainer)
+# train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
+# print('training on ROAR DS, ' + str(i) + ' % removed')
+# model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE,
+#               str(i) + '%_of_' + explainer)
+# print('saving roar model')
+# torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(i) + '.pt')
 
 
 ## train for each created split
-def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE, original_trained_model):
+def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE,
+                    original_trained_model):
     cv_it = 0
     processes = []
     for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
         train_data = [all_data[i] for i in train_index]
         valid_data = [all_data[i] for i in test_index]
-        print('loading dataset')
+        print('loading validation dataset')
         val_ds = Spectralloader(valid_data, root, mode)
+        print('loading training dataset')
         train_ds = Spectralloader(train_data, root, mode)
         im, label = train_ds.__getitem__(0)
         path = './data/' + mode + '/' + 'exp/pred_img_example/'
         # display the modified image and save to pred images in data/exp/pred_img_example
         # show_image(im, 'original image ')
 
-        # train_parallel(0, None, DEVICE, 'original', val_ds, train_ds,
-        #                                             batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode)
+        train_parallel(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
+                       original_trained_model, cv_it, mode)
 
-        p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
-                                                    batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode))
+        # p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
+        #                                             batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode))
         cv_it += 1
-        p.start()
-        processes.append(p)
-    for p in processes:
-        p.join()
+    #     p.start()
+    #     processes.append(p)
+    # for p in processes:
+    #     p.join()
 
 
 def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
-                   trained_roar_models, cv_it,mode):
+                   trained_roar_models, cv_it, mode):
     if explainer == 'original':
         train_dl = DataLoader(train_ds_org, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_dl = DataLoader(val_ds_org, batch_size=batch_size, shuffle=False, num_workers=4, )
@@ -331,10 +319,10 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
-        model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it, mode)
+        model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it,
+                      mode)
         torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(roar_val) + '.pt')
 
 
 def apply_parallel(ds, i, mask, DEVICE, explainer):
     ds.apply_roar(i, mask, DEVICE, explainer)
-

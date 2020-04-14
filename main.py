@@ -45,7 +45,7 @@ def main():
     mode = modes[1]
     retrain = True
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
+    roar_create_mask = False
     roar_train = False
     plot_roar_curve = False
     roar_mod_im_comp = False
@@ -84,6 +84,11 @@ def main():
         os.makedirs('./data/')
     if not os.path.exists('./data/' + mode + '/' + 'models/'):
         os.makedirs('./data/' + mode + '/' + 'models/')
+    if not os.path.exists('./data/' + mode + '/' + 'plots/'):
+        os.makedirs('./data/' + mode + '/' + 'plots/')
+    if not os.path.exists('./data/' + mode + '/' + 'plots/values/'):
+        os.makedirs('./data/' + mode + '/' + 'plots/values/')
+
     trained_roar_models = './data/' + mode + '/' + 'models/trained_model_roar'
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
