@@ -135,7 +135,7 @@ def main():
         train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE,
                         original_trained_model)
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
-        original_model = get_model(DEVICE, n_classes)
+        original_model = get_model(DEVICE, n_classes, mode)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
 
     # save the created explainer Image

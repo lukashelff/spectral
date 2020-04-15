@@ -43,23 +43,24 @@ def freeze_all(model_params):
         param.requires_grad = False
 
 
-def get_model(DEVICE, n_classes):
+def get_model(DEVICE, n_classes, mode):
     model = models.resnet18(pretrained=True)
-    ###### tiny imagenet
-    model.avgpool = nn.AdaptiveAvgPool2d(1)
-    num_ftrs = model.fc.in_features
-    freeze_all(model.parameters())
-    model.fc = nn.Linear(num_ftrs, n_classes)
+    if mode == 'imagenet':
+        model.avgpool = nn.AdaptiveAvgPool2d(1)
+        num_ftrs = model.fc.in_features
+        freeze_all(model.parameters())
+        model.fc = nn.Linear(num_ftrs, n_classes)
+    if mode == 'plants':
 
-    ####### for plant based DS
+        # use for LRP because AdaptiveAvgPool2d is not supported
+        # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
+        freeze_all(model.parameters())
+        model.fc = nn.Linear(512, n_classes)
+
     # print model
-    # model.to('cuda:0')
     # summary(model, (3, 255, 213), batch_size=20)
-    # model.to(DEVICE)
-    # print('=========================')
     # print(model)
-    # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
-    # model.fc = nn.Linear(512, n_classes)
+
     model.share_memory()
     model = model.to(DEVICE)
     return model
@@ -74,7 +75,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     valid_acc = np.zeros(N_EPOCHS)
     valid_balanced_acc = np.zeros(N_EPOCHS)
 
-    model = get_model(DEVICE, n_classes)
+    model = get_model(DEVICE, n_classes, mode)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)

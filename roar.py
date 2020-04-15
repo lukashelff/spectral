@@ -81,11 +81,11 @@ def roar_comparison_explained(mode, DEVICE, explainers):
                     # loading model of explainer for corresponding remove value
                     all_ds = Spectralloader([image_labels[k]], root, mode)
                     if i == 0:
-                        model = get_model(DEVICE, n_classes)
+                        model = get_model(DEVICE, n_classes, mode)
                         original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
                         model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
                     else:
-                        model = get_model(DEVICE, n_classes)
+                        model = get_model(DEVICE, n_classes, mode)
                         model.load_state_dict(
                             torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
                         all_ds.apply_roar_single_image(i, mask, id, 'mean', ex)
