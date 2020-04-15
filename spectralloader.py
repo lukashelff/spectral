@@ -124,7 +124,8 @@ class Spectralloader(Dataset):
             size = 224
             image, label = self.data[id]['image'], self.data[id]['label']
             if self.mode == 'imagenet':
-                image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
+                image = image
+                # image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
@@ -165,9 +166,9 @@ class Spectralloader(Dataset):
                 for i in range(image_datasets['train'].__len__()):
                     progress.update(1)
                     image, label = image_datasets['train'].__getitem__(i)
-                    # image = np.transpose(image, (1, 2, 0))
-                    # image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
-                    # image = np.transpose(image, (2, 0, 1))
+                    image = np.transpose(image, (1, 2, 0))
+                    image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
+                    image = np.transpose(image, (2, 0, 1))
 
                     add_to_data(np.float32(image), str(i))
                     # upscale to improve acc

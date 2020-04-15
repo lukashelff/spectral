@@ -51,7 +51,6 @@ def get_model(DEVICE, n_classes, mode):
         freeze_all(model.parameters())
         model.fc = nn.Linear(num_ftrs, n_classes)
     if mode == 'plants':
-
         # use for LRP because AdaptiveAvgPool2d is not supported
         # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
         freeze_all(model.parameters())
@@ -77,18 +76,21 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes, mode)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-    optimizer = torch.optim.Adam(
-        get_trainable(model.parameters()),
-        lr=learning_rate,
-        # momentum=0.9,
-    )
+    if mode == 'plants':
+        optimizer = torch.optim.Adam(
+            get_trainable(model.parameters()),
+            lr=learning_rate,
+            # momentum=0.9,
+        )
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
+    text_org = text
 
     with tqdm(total=N_EPOCHS, desc=text) as progress:
 
         for epoch in range(N_EPOCHS):
+            # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             progress.update(1)
             # Train
             model.train()
@@ -150,10 +152,10 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             exp_lr_scheduler.step()
 
             print(
-                f"Epoch {epoch + 1}/{N_EPOCHS} |"
+                # f"Epoch {epoch + 1}/{N_EPOCHS} |"
                 # f"  valid loss: {valid_loss[epoch]:9.3f} |"
                 # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-                f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
+                # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             )
 
             print()

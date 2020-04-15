@@ -40,13 +40,13 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
-    mode = modes[1]
-    retrain = True
+    mode = modes[0]
+    retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
     roar_create_mask = False
-    roar_train = False
+    roar_train = True
     plot_roar_curve = False
     roar_mod_im_comp = False
     roar_expl_im = False
