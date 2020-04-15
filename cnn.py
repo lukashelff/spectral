@@ -91,7 +91,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         for epoch in range(N_EPOCHS):
             # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             progress.update(1)
-            progress.set_description(text + ' | current balanced acc: ' + valid_balanced_acc[epoch])
+            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch]))
             # Train
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
@@ -293,8 +293,8 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
 def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
                    trained_roar_models, cv_it, mode):
     if explainer == 'original':
-        train_dl = DataLoader(train_ds_org, batch_size=batch_size, shuffle=True, num_workers=4, )
-        val_dl = DataLoader(val_ds_org, batch_size=batch_size, shuffle=False, num_workers=4, )
+        train_dl = DataLoader(train_ds_org, batch_size=batch_size, shuffle=True, num_workers=64, )
+        val_dl = DataLoader(val_ds_org, batch_size=batch_size, shuffle=False, num_workers=64, )
         original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it, mode)
         torch.save(original_model.state_dict(), trained_roar_models)
 
@@ -321,8 +321,8 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
         display_rgb(im, 'image with ' + str(roar_val) + '% of ' + explainer + 'values removed', path, name)
 
         # create Dataloaders
-        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
+        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=64, )
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=64, )
         # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
         model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it,
                       mode)
