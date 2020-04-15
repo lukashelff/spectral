@@ -190,15 +190,18 @@ class Spectralloader(Dataset):
                     add_to_data(data, i['id'].replace(',', '_'))
                     # elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
+            with tqdm(total=67) as progress:
 
-            for i in range(1, 5):
-                if i == 1:
-                    for k in range(1, 14):
-                        load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
-                else:
-                    for k in range(1, 19):
-                        if not (k == 16 and i == 4):
+                for i in range(1, 5):
+                    if i == 1:
+                        for k in range(1, 14):
+                            progress.update(1)
                             load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
+                    else:
+                        for k in range(1, 19):
+                            progress.update(1)
+                            if not (k == 16 and i == 4):
+                                load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
         return data, ids
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
@@ -258,7 +261,7 @@ class Spectralloader(Dataset):
         # pool.close()
         # pool.join()
         # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
-        with tqdm.tqdm(total=length, desc=text) as progress:
+        with tqdm(total=length, desc=text) as progress:
             for d in range(0, length):
                 id = self.get_id_by_index(d)
                 progress.update(1)
