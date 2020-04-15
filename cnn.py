@@ -76,22 +76,22 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes, mode)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-    if mode == 'plants':
-        optimizer = torch.optim.Adam(
-            get_trainable(model.parameters()),
-            lr=learning_rate,
-            # momentum=0.9,
-        )
+    optimizer = torch.optim.Adam(
+        get_trainable(model.parameters()),
+        lr=learning_rate,
+        # momentum=0.9,
+    )
+    if mode == 'imagenet':
+        optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
-    text_org = text
 
-    with tqdm(total=N_EPOCHS, desc=text) as progress:
+    with tqdm(total=N_EPOCHS, ncols=160) as progress:
 
         for epoch in range(N_EPOCHS):
             # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             progress.update(1)
+            progress.set_description(text + ' | current balanced acc: ' + valid_balanced_acc[epoch])
             # Train
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
@@ -149,16 +149,16 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
             valid_loss[epoch] = total_loss / n_samples
             valid_acc[epoch] = n_correct / n_samples * 100
-            exp_lr_scheduler.step()
+            if mode == 'imagenet':
+                exp_lr_scheduler.step()
 
-            print(
-                # f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                # f"  valid loss: {valid_loss[epoch]:9.3f} |"
-                # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-                # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            )
+            # print(
+            #     # f"Epoch {epoch + 1}/{N_EPOCHS} |"
+            #     # f"  valid loss: {valid_loss[epoch]:9.3f} |"
+            #     # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+            #     # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
+            # )
 
-            print()
 
     # plot acc, balanced acc and loss
     if roar != "original":

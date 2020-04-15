@@ -40,7 +40,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[0]
     retrain = False
