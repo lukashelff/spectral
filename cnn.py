@@ -198,39 +198,39 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
 # ROAR remove and retrain
 def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batch_size, n_classes,
-                  N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode):
+                  N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode, cv_it_to_calc):
     # num_processes = len(roar_explainers)
     # pool = mp.Pool(1)
     for explainer in roar_explainers:
         cv_it = 0
         for train_index, test_index in sss.split(all_data, labels):
-            # if cv_it == 0:
-            train_labels = []
-            valid_labels = []
-            for i in train_index:
-                train_labels.append(all_data[i])
-            for i in test_index:
-                valid_labels.append(all_data[i])
-            print('loading training dataset')
-            train_ds = Spectralloader(train_labels, root, mode)
-            print('loading validation dataset')
-            val_ds = Spectralloader(valid_labels, root, mode)
-            path_root = path + explainer + '.pkl'
-            with open(path_root, 'rb') as f:
-                mask = pickle.load(f)
-                processes = []
-                for i in roar_values:
-                    # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
-                    #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                    # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
+            if cv_it in cv_it_to_calc:
+                train_labels = []
+                valid_labels = []
+                for i in train_index:
+                    train_labels.append(all_data[i])
+                for i in test_index:
+                    valid_labels.append(all_data[i])
+                print('loading training dataset')
+                train_ds = Spectralloader(train_labels, root, mode)
+                print('loading validation dataset')
+                val_ds = Spectralloader(valid_labels, root, mode)
+                path_root = path + explainer + '.pkl'
+                with open(path_root, 'rb') as f:
+                    mask = pickle.load(f)
+                    processes = []
+                    for i in roar_values:
+                        # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+                        #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
+                        # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
 
-                    p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
-                                                                batch_size, n_classes, N_EPOCHS, lr,
-                                                                trained_roar_models, cv_it, mode))
-                    p.start()
-                    processes.append(p)
-                for p in processes:
-                    p.join()
+                        p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
+                                                                    batch_size, n_classes, N_EPOCHS, lr,
+                                                                    trained_roar_models, cv_it, mode))
+                        p.start()
+                        processes.append(p)
+                    for p in processes:
+                        p.join()
             cv_it += 1
         torch.cuda.empty_cache()
 
@@ -321,8 +321,8 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
         display_rgb(im, 'image with ' + str(roar_val) + '% of ' + explainer + 'values removed', path, name)
 
         # create Dataloaders
-        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=64, )
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=64, )
+        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=8, )
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=8, )
         # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
         model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it,
                       mode)
