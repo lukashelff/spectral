@@ -144,10 +144,10 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     heat_maps = {}
     for k in roar_explainers:
         heat_maps[k] = {}
-    text = 'creating mask for '
+    text = 'creating heatmaps for '
     for i in roar_explainers:
         text = text + i + ' '
-    with tqdm(total=len(roar_explainers) * d_length, desc=text) as progress:
+    with tqdm(total=len(roar_explainers) * d_length, desc=text, ncols=100 + len(roar_explainers) * 15) as progress:
         for i in range(0, d_length):
             image, label = dataset.__getitem__(i)
             image = torch.from_numpy(image).to(DEVICE)

@@ -26,7 +26,6 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 from spectralloader import Spectralloader
-from cnn import train
 from explainer import explain
 from matplotlib.pyplot import figure
 from helpfunctions import get_cross_val_acc

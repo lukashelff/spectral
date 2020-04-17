@@ -40,13 +40,13 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
-    mode = modes[0]
+    mode = modes[1]
     retrain = True
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
-    roar_train = True
+    roar_create_mask = False
+    roar_train = False
     plot_roar_curve = False
     roar_mod_im_comp = False
     roar_expl_im = False
@@ -64,12 +64,7 @@ def main():
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    roar_explainers = ['Integrated_Gradients']
-    # roar_explainers = ['random']
-    # missing random 99%, IG 20%
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
-    roar_values = [10, 30, 40, 50, 60, 70, 80, 90, 95]
-    roar_values = [20]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         n_classes = 200
@@ -112,7 +107,7 @@ def main():
     # train model or use trained model from last execution
     if retrain:
         train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE,
-                        original_trained_model)
+                        original_trained_model, cv_it_to_calc)
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
         original_model = get_model(DEVICE, n_classes, mode)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
