@@ -68,8 +68,8 @@ def main():
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         n_classes = 200
-        N_EPOCHS = 20
-        lr = 0.001
+        N_EPOCHS = 100
+        lr = 0.01
         batch_size = 100
         cv_iterations_total = 1
         test_size = 5000

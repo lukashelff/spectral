@@ -150,8 +150,10 @@ class Spectralloader(Dataset):
             size = 224
             data_transforms = {
                 'train': transforms.Compose([
-                    transforms.RandomHorizontalFlip(),
+                    transforms.RandomRotation(20),
+                    transforms.RandomHorizontalFlip(0.5),
                     transforms.ToTensor(),
+                    transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ]),
                 'val': transforms.Compose([
                     transforms.ToTensor(),
@@ -190,6 +192,7 @@ class Spectralloader(Dataset):
                     add_to_data(data, i['id'].replace(',', '_'))
                     # elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
+
             with tqdm(total=67) as progress:
 
                 for i in range(1, 5):
