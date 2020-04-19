@@ -1,20 +1,19 @@
+import glob
 import os
 
-import torch
 import tqdm as tqdm
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import pickle
 import numpy as np
 import random
 from tqdm import tqdm
-import sys
 import multiprocessing as mp
 import cv2
+from shutil import move
+from os import rmdir
 
 from torchvision import transforms
 import torchvision.datasets as t_datasets
-
-import helpfunctions
 
 
 class Spectralloader(Dataset):
@@ -168,13 +167,7 @@ class Spectralloader(Dataset):
                 for i in range(image_datasets['train'].__len__()):
                     progress.update(1)
                     image, label = image_datasets['train'].__getitem__(i)
-                    image = np.transpose(image, (1, 2, 0))
-                    image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
-                    image = np.transpose(image, (2, 0, 1))
-
                     add_to_data(np.float32(image), str(i))
-                    # upscale to improve acc
-                    # add_to_data(cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC), str(i))
             # for i in range(image_datasets['val'].__len__()):
             #     image, label = image_datasets['val'].__getitem__(i)
             #     add_to_data(image, str(i + image_datasets['train'].__len__()))
@@ -329,3 +322,53 @@ def load_labels(mode):
             train.append((data[0], int(data[1])))
             all_labels.append(int(data[1]))
     return train, valid, train + valid, all_labels
+
+
+def upscale_imagenet():
+    target_size = 224
+    all_images = glob.glob('data/imagenet/tiny-imagenet-200/*/*/*/*')
+
+    def resize_img(image_path, size):
+        img = cv2.imread(image_path)
+        img = cv2.resize(img, (size, size), interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(image_path, img)
+
+    text = 'upscaling images from imagenet'
+    with tqdm(total=len(all_images), desc=text) as progress:
+        for image in all_images:
+            resize_img(image, target_size)
+            progress.update(1)
+
+
+def val_format():
+    target_folder = './data/imagenet/tiny-imagenet-200/val/'
+    test_folder = './data/imagenet/tiny-imagenet-200/test/'
+
+    val_dict = {}
+    with open('./data/imagenet/tiny-imagenet-200/val/val_annotations.txt', 'r') as f:
+        for line in f.readlines():
+            split_line = line.split('\t')
+            val_dict[split_line[0]] = split_line[1]
+
+    paths = glob.glob('./data/imagenet/tiny-imagenet-200/val/images/*')
+    for path in paths:
+        file = path.split('/')[-1]
+        folder = val_dict[file]
+        if not os.path.exists(target_folder + str(folder)):
+            os.mkdir(target_folder + str(folder))
+            os.mkdir(target_folder + str(folder) + '/images')
+        if not os.path.exists(test_folder + str(folder)):
+            os.mkdir(test_folder + str(folder))
+            os.mkdir(test_folder + str(folder) + '/images')
+
+    for path in paths:
+        file = path.split('/')[-1]
+        folder = val_dict[file]
+        if len(glob.glob(target_folder + str(folder) + '/images/*')) < 25:
+            dest = target_folder + str(folder) + '/images/' + str(file)
+        else:
+            dest = test_folder + str(folder) + '/images/' + str(file)
+        move(path, dest)
+
+    rmdir('./data/imagenet/tiny-imagenet-200/val/images')
+

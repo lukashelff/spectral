@@ -52,7 +52,6 @@ def get_model(DEVICE, n_classes, mode):
         features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
         model.classifier = nn.Sequential(*features)  # Replace the model classifier
 
-
         # resnet18 impl
         # model = models.resnet18(pretrained=True)
         # model.avgpool = nn.AdaptiveAvgPool2d(1)
@@ -91,9 +90,11 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         lr=learning_rate,
         # momentum=0.9,
     )
+    exp_lr_scheduler = None
     if mode == 'imagenet':
-        # optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
+        optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.5)
+        exp_lr_scheduler = None
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
 
     with tqdm(total=N_EPOCHS, ncols=160) as progress:
@@ -102,6 +103,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             progress.update(1)
             progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch]))
+            if exp_lr_scheduler is not None:
+                exp_lr_scheduler.step()
             # Train
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
@@ -159,8 +162,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
             valid_loss[epoch] = total_loss / n_samples
             valid_acc[epoch] = n_correct / n_samples * 100
-            if mode == 'imagenet':
-                exp_lr_scheduler.step()
+            progress.update(1)
 
             # print(
             #     # f"Epoch {epoch + 1}/{N_EPOCHS} |"
@@ -168,7 +170,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             #     # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
             #     # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             # )
-
 
     # plot acc, balanced acc and loss
     if roar != "original":
