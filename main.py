@@ -54,7 +54,7 @@ def main():
     N_EPOCHS = 120
     lr = 0.00015
     n_classes = 2
-    batch_size = 20
+    batch_size = 10
     cv_iterations_total = 5
     test_size = 482
     classes = ('healthy', 'diseased')
@@ -68,7 +68,7 @@ def main():
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         n_classes = 200
-        N_EPOCHS = 20
+        N_EPOCHS = 15
         lr = 0.001
         batch_size = 100
         cv_iterations_total = 1
