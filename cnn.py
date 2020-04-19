@@ -45,19 +45,19 @@ def freeze_all(model_params):
 
 def get_model(DEVICE, n_classes, mode):
     if mode == 'imagenet':
-        model = models.vgg16(pretrained=True)
-        freeze_all(model.parameters())
-        num_features = model.classifier[6].in_features
-        features = list(model.classifier.children())[:-1]  # Remove last layer
-        features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
-        model.classifier = nn.Sequential(*features)  # Replace the model classifier
+        # model = models.vgg16(pretrained=True)
+        # freeze_all(model.parameters())
+        # num_features = model.classifier[6].in_features
+        # features = list(model.classifier.children())[:-1]  # Remove last layer
+        # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
+        # model.classifier = nn.Sequential(*features)  # Replace the model classifier
 
         # resnet18 impl
-        # model = models.resnet18(pretrained=True)
-        # model.avgpool = nn.AdaptiveAvgPool2d(1)
-        # num_ftrs = model.fc.in_features
-        # freeze_all(model.parameters())
-        # model.fc = nn.Linear(num_ftrs, n_classes)
+        model = models.resnet18(pretrained=True)
+        model.avgpool = nn.AdaptiveAvgPool2d(1)
+        num_ftrs = model.fc.in_features
+        freeze_all(model.parameters())
+        model.fc = nn.Linear(num_ftrs, n_classes)
     if mode == 'plants':
         model = models.resnet18(pretrained=True)
         # use for LRP because AdaptiveAvgPool2d is not supported
@@ -76,6 +76,10 @@ def get_model(DEVICE, n_classes, mode):
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
+    lr_step_size = 7
+    lr_gamma = 0.1
+    optimizer_name = 'SGD'
+    model_name = 'resnet'
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
     train_balanced_acc = np.zeros(N_EPOCHS)
@@ -85,25 +89,26 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes, mode)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(
-        get_trainable(model.parameters()),
-        lr=learning_rate,
-        # momentum=0.9,
-    )
+    if optimizer_name == 'adam':
+        optimizer = torch.optim.Adam(
+            get_trainable(model.parameters()),
+            lr=learning_rate,
+            # momentum=0.9,
+        )
+    else:
+        optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
+
     exp_lr_scheduler = None
     if mode == 'imagenet':
-        optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.5)
-        exp_lr_scheduler = None
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
 
     with tqdm(total=N_EPOCHS, ncols=160) as progress:
 
         for epoch in range(N_EPOCHS):
             # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            progress.update(1)
             progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch]))
-            if exp_lr_scheduler is not None:
+            if exp_lr_scheduler is not None and epoch != 0:
                 exp_lr_scheduler.step()
             # Train
             model.train()
@@ -182,8 +187,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title(title + ',\nfinal bal acc: ' + str(
-        round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
+    plt.title(title + ' with lr_step_size: ' + str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
+              ', optimizer: ' + optimizer_name + ' on model: ' + model_name
+              + '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
     plt.axis([0, N_EPOCHS, 00, 100])
