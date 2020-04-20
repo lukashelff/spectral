@@ -81,7 +81,7 @@ def get_model(DEVICE, n_classes, mode):
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
     lr_step_size = 7
     lr_gamma = 0.1
-    optimizer_name = 'adam'
+    optimizer_name = 'SGD'
     model_name = 'vgg'
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
@@ -92,6 +92,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes, mode)
     criterion = nn.CrossEntropyLoss()
+    exp_lr_scheduler = None
     if optimizer_name == 'adam':
         optimizer = torch.optim.Adam(
             get_trainable(model.parameters()),
@@ -116,6 +117,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             for batch_i, (X, y) in enumerate(train_dl):
+                if X.shape != torch.Size([100, 3, 224, 224]):
+                    print(X.shape)
                 X, y = X.to(DEVICE), y.to(DEVICE)
                 optimizer.zero_grad()
                 y_ = model(X)
@@ -144,7 +147,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                 f"Epoch {epoch + 1}/{N_EPOCHS} |"
                 f"  train loss: {train_loss[epoch]:9.3f} |"
                 f"  train acc:  {train_acc[epoch]:9.3f}% |"
-                f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
+                # f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
 
             )
 
@@ -175,7 +178,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                 f"Epoch {epoch + 1}/{N_EPOCHS} |"
                 f"  valid loss: {valid_loss[epoch]:9.3f} |"
                 f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-                f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
+                # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             )
 
     # plot acc, balanced acc and loss
