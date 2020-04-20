@@ -170,7 +170,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_loss[epoch] = round(total_loss / n_samples, 2)
             valid_acc[epoch] = round(n_correct / n_samples * 100, 2)
             progress.update(1)
-            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch - 1]) +
+            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch]) +
                                      f"Epoch {epoch + 1}/{N_EPOCHS} |"
                                      f"  train loss: {train_loss[epoch]:9.3f} |"
                                      f"  train acc:  {train_acc[epoch]:9.3f}% |"
