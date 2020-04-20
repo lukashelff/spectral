@@ -92,6 +92,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     model = get_model(DEVICE, n_classes, mode)
     criterion = nn.CrossEntropyLoss()
+    exp_lr_scheduler = None
     if optimizer_name == 'adam':
         optimizer = torch.optim.Adam(
             get_trainable(model.parameters()),
