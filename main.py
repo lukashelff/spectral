@@ -76,8 +76,7 @@ def main():
         N_EPOCHS = 100
         lr = 0.1
         batch_size = 100
-        N_EPOCHS = 20
-        print('nr epochs: ' + str(N_EPOCHS)
+        print('nr epochs: ' + str(N_EPOCHS))
         print('batch_size ' + str(batch_size))
         print('lr ' + str(lr))
         cv_iterations_total = 1
