@@ -81,7 +81,7 @@ def get_model(DEVICE, n_classes, mode):
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
     lr_step_size = 7
     lr_gamma = 0.1
-    optimizer_name = 'SGD'
+    optimizer_name = 'adam'
     model_name = 'vgg'
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
@@ -108,6 +108,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     with tqdm(total=N_EPOCHS, ncols=200) as progress:
 
         for epoch in range(N_EPOCHS):
+            if epoch == 0:
+                progress.set_description(text)
+                progress.refresh()
             if exp_lr_scheduler is not None and epoch != 0:
                 exp_lr_scheduler.step()
             # Train
@@ -372,8 +375,8 @@ def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
     data_dir = './data/imagenet/tiny-imagenet-200/'
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomRotation(20),
-            transforms.RandomHorizontalFlip(0.5),
+            # transforms.RandomRotation(20),
+            # transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
             transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
