@@ -105,11 +105,17 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     # exp_lr_scheduler = None
-    with tqdm(total=N_EPOCHS, ncols=160) as progress:
+    with tqdm(total=N_EPOCHS, ncols=200) as progress:
 
         for epoch in range(N_EPOCHS):
             # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch - 1]))
+            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch - 1]) +
+                                     f"Epoch {epoch + 1}/{N_EPOCHS} |"
+                                     # f"  train loss: {train_loss[epoch]:9.3f} |"
+                                     f"  train acc:  {train_acc[epoch]:9.3f}% |"
+                                     # f"  valid loss: {valid_loss[epoch]:9.3f} |"
+                                     f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+                                     )
             progress.refresh()
             if exp_lr_scheduler is not None and epoch != 0:
                 exp_lr_scheduler.step()
@@ -139,14 +145,14 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                 pred += y_label_.tolist()
                 all_y += y.tolist()
 
-            train_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-            train_loss[epoch] = total_loss / n_samples
-            train_acc[epoch] = n_correct / n_samples * 100
+            train_balanced_acc[epoch] = round(balanced_accuracy_score(all_y, pred) * 100, 2)
+            train_loss[epoch] = round(total_loss / n_samples, 2)
+            train_acc[epoch] = round(n_correct / n_samples * 100, 2)
 
             print(
-                f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                f"  train loss: {train_loss[epoch]:9.3f} |"
-                f"  train acc:  {train_acc[epoch]:9.3f}% |"
+                # f"Epoch {epoch + 1}/{N_EPOCHS} |"
+                # f"  train loss: {train_loss[epoch]:9.3f} |"
+                # f"  train acc:  {train_acc[epoch]:9.3f}% |"
                 # f"  balanced acc:  {train_balanced_acc[epoch]:9.3f}%"
 
             )
@@ -169,15 +175,23 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                     pred += y_label_.tolist()
                     all_y += y.tolist()
 
-            valid_balanced_acc[epoch] = balanced_accuracy_score(all_y, pred) * 100
-            valid_loss[epoch] = total_loss / n_samples
-            valid_acc[epoch] = n_correct / n_samples * 100
+            valid_balanced_acc[epoch] = round(balanced_accuracy_score(all_y, pred) * 100, 2)
+            valid_loss[epoch] = round(total_loss / n_samples, 2)
+            valid_acc[epoch] = round(n_correct / n_samples * 100, 2)
             progress.update(1)
+            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch - 1]) +
+                                     f"Epoch {epoch + 1}/{N_EPOCHS} |"
+                                     f"  train loss: {train_loss[epoch]:9.3f} |"
+                                     f"  train acc:  {train_acc[epoch]:9.3f}% |"
+                                     f"  valid loss: {valid_loss[epoch]:9.3f} |"
+                                     f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+                                     )
+            progress.refresh()
 
             print(
-                f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                f"  valid loss: {valid_loss[epoch]:9.3f} |"
-                f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+                # f"Epoch {epoch + 1}/{N_EPOCHS} |"
+                # f"  valid loss: {valid_loss[epoch]:9.3f} |"
+                # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
                 # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             )
 
