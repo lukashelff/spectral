@@ -209,6 +209,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar +
                 '_lr_' + str(learning_rate) +
+                '_no_normalization_' +
                 '_lr_step_size_' + str(lr_step_size) +
                 '_lr_gamma_' + str(lr_gamma) +
                 '_optimizer_' + optimizer_name +
@@ -380,11 +381,11 @@ def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
-            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'val': transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'test': transforms.Compose([
             transforms.ToTensor(),
