@@ -18,6 +18,9 @@ import helpfunctions
 import concurrent.futures as futures
 from helpfunctions import *
 from spectralloader import Spectralloader
+import torchvision.datasets as t_datasets
+import torch.utils.data as data
+import torchvision.transforms as transforms
 
 
 # from train_model import train_model
@@ -100,12 +103,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     if mode == 'imagenet':
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
-    exp_lr_scheduler = None
+    # exp_lr_scheduler = None
     with tqdm(total=N_EPOCHS, ncols=160) as progress:
 
         for epoch in range(N_EPOCHS):
             # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch]))
+            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch - 1]))
             progress.refresh()
             if exp_lr_scheduler is not None and epoch != 0:
                 exp_lr_scheduler.step()
@@ -186,7 +189,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title(title + 'with lr ' + str(learning_rate) + ', lr_step_size: ' + str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
+    plt.title(title + 'with lr ' + str(learning_rate) + ', lr_step_size: ' + str(lr_step_size) + ', lr_gamma: ' + str(
+        lr_gamma) +
               ', optimizer: ' + optimizer_name + ' on model: ' + model_name
               + '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
@@ -354,3 +358,30 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, 
 
 def apply_parallel(ds, i, mask, DEVICE, explainer):
     ds.apply_roar(i, mask, DEVICE, explainer)
+
+
+def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
+    data_dir = './data/imagenet/tiny-imagenet-200/'
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.RandomRotation(20),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.ToTensor(),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+        ]),
+        'val': transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+        ]),
+        'test': transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+        ])
+    }
+
+    image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
+                      for x in ['train', 'val', 'test']}
+
+    dataloaders = {x: data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, num_workers=4)
+                   for x in ['train', 'val', 'test']}
+    train(200, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'original', 0, mode)

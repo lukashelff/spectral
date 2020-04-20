@@ -40,7 +40,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
@@ -73,37 +73,13 @@ def main():
             val_format()
             upscale_imagenet()
         n_classes = 200
-        N_EPOCHS = 30
-        lr = 0.005
+        N_EPOCHS = 20
+        lr = 0.001
         batch_size = 100
         cv_iterations_total = 1
         test_size = 5000
+        train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode)
 
-        data_dir = './data/imagenet/tiny-imagenet-200/'
-        data_transforms = {
-            'train': transforms.Compose([
-                transforms.RandomRotation(20),
-                transforms.RandomHorizontalFlip(0.5),
-                transforms.ToTensor(),
-                transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-            ]),
-            'val': transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-            ]),
-            'test': transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-            ])
-        }
-
-        image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
-                          for x in ['train', 'val', 'test']}
-
-        dataloaders = {x: data.DataLoader(image_datasets[x], batch_size=100, shuffle=True, num_workers=4)
-                       for x in ['train', 'val', 'test']}
-        train(n_classes, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'original', cv_it_to_calc,
-              mode)
     train_labels, valid_labels, all_data, labels = load_labels(mode)
     sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
     # save the explainer images of the figures
