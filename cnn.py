@@ -108,15 +108,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     with tqdm(total=N_EPOCHS, ncols=200) as progress:
 
         for epoch in range(N_EPOCHS):
-            # text = text_org + f" | balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch - 1]) +
-                                     f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                                     # f"  train loss: {train_loss[epoch]:9.3f} |"
-                                     f"  train acc:  {train_acc[epoch]:9.3f}% |"
-                                     # f"  valid loss: {valid_loss[epoch]:9.3f} |"
-                                     f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-                                     )
-            progress.refresh()
             if exp_lr_scheduler is not None and epoch != 0:
                 exp_lr_scheduler.step()
             # Train
