@@ -83,6 +83,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     lr_gamma = 0.1
     optimizer_name = 'adam'
     model_name = 'vgg'
+    print(model_name)
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
     train_balanced_acc = np.zeros(N_EPOCHS)
@@ -105,7 +106,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     # exp_lr_scheduler = None
-    with tqdm(total=N_EPOCHS, ncols=200) as progress:
+    with tqdm(total=N_EPOCHS, ncols=180) as progress:
 
         for epoch in range(N_EPOCHS):
             if epoch == 0:
@@ -117,8 +118,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             for batch_i, (X, y) in enumerate(train_dl):
-                if X.shape != torch.Size([100, 3, 224, 224]):
-                    print(X.shape)
                 X, y = X.to(DEVICE), y.to(DEVICE)
                 optimizer.zero_grad()
                 y_ = model(X)
@@ -173,11 +172,10 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_loss[epoch] = round(total_loss / n_samples, 2)
             valid_acc[epoch] = round(n_correct / n_samples * 100, 2)
             progress.update(1)
-            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch]) +
-                                     f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                                     f"  train loss: {train_loss[epoch]:9.3f} |"
+            progress.set_description(text + ' | ' +
+                                     # f"  train loss: {train_loss[epoch]:9.3f} |"
                                      f"  train acc:  {train_acc[epoch]:9.3f}% |"
-                                     f"  valid loss: {valid_loss[epoch]:9.3f} |"
+                                     # f"  valid loss: {valid_loss[epoch]:9.3f} |"
                                      f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
                                      )
             progress.refresh()
@@ -196,23 +194,27 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         title = roar + ' model 0% removed'
 
     fig = plt.figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
-    plt.plot(train_acc, color='skyblue', label='train acc')
-    plt.plot(valid_acc, color='orange', label='valid_acc')
+    if mode != 'imagenet':
+        plt.plot(train_acc, color='skyblue', label='train acc')
+        plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title(title + 'with lr ' + str(learning_rate) + ', lr_step_size: ' + str(lr_step_size) + ', lr_gamma: ' + str(
+    plt.title(title + ' with lr ' + str(learning_rate) + ', lr_step_size: ' + str(lr_step_size) + ', lr_gamma: ' + str(
         lr_gamma) +
               ', optimizer: ' + optimizer_name + ' on model: ' + model_name
               + '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
-    plt.axis([0, N_EPOCHS, 00, 100])
+    plt.axis([0, N_EPOCHS - 1, 00, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar +
+                '_lr_' + str(learning_rate) +
                 '_lr_step_size_' + str(lr_step_size) +
                 '_lr_gamma_' + str(lr_gamma) +
                 '_optimizer_' + optimizer_name +
-                '_model_' + model_name + '.png')
+                '_model_' + model_name +
+                '_batch_size_' + str(50) +
+                '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
     plt.plot(valid_loss, color='orange', label='valid_loss')

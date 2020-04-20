@@ -40,7 +40,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
@@ -75,7 +75,10 @@ def main():
         n_classes = 200
         N_EPOCHS = 20
         lr = 0.001
-        batch_size = 100
+        batch_size = 50
+        print('batch_size ' + str(batch_size))
+        print('lr ' + str(lr))
+
         cv_iterations_total = 1
         test_size = 5000
         train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode)
