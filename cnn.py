@@ -45,19 +45,19 @@ def freeze_all(model_params):
 
 def get_model(DEVICE, n_classes, mode):
     if mode == 'imagenet':
-        # model = models.vgg16(pretrained=True)
-        # freeze_all(model.parameters())
-        # num_features = model.classifier[6].in_features
-        # features = list(model.classifier.children())[:-1]  # Remove last layer
-        # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
-        # model.classifier = nn.Sequential(*features)  # Replace the model classifier
+        model = models.vgg16(pretrained=True)
+        freeze_all(model.parameters())
+        num_features = model.classifier[6].in_features
+        features = list(model.classifier.children())[:-1]  # Remove last layer
+        features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
+        model.classifier = nn.Sequential(*features)  # Replace the model classifier
 
         # resnet18 impl
-        model = models.resnet18(pretrained=True)
-        model.avgpool = nn.AdaptiveAvgPool2d(1)
-        num_ftrs = model.fc.in_features
-        freeze_all(model.parameters())
-        model.fc = nn.Linear(num_ftrs, n_classes)
+        # model = models.resnet18(pretrained=True)
+        # model.avgpool = nn.AdaptiveAvgPool2d(1)
+        # num_ftrs = model.fc.in_features
+        # freeze_all(model.parameters())
+        # model.fc = nn.Linear(num_ftrs, n_classes)
     if mode == 'plants':
         model = models.resnet18(pretrained=True)
         # use for LRP because AdaptiveAvgPool2d is not supported
@@ -79,7 +79,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     lr_step_size = 7
     lr_gamma = 0.1
     optimizer_name = 'adam'
-    model_name = 'resnet'
+    model_name = 'vgg'
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
     train_balanced_acc = np.zeros(N_EPOCHS)
@@ -97,12 +97,10 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         )
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-
-    exp_lr_scheduler = None
     if mode == 'imagenet':
-        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
-
+    exp_lr_scheduler = None
     with tqdm(total=N_EPOCHS, ncols=160) as progress:
 
         for epoch in range(N_EPOCHS):
