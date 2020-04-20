@@ -79,8 +79,8 @@ def get_model(DEVICE, n_classes, mode):
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
-    lr_step_size = 7
-    lr_gamma = 0.1
+    lr_step_size = 1
+    lr_gamma = 0.9
     optimizer_name = 'SGD'
     model_name = 'vgg'
     train_loss = np.zeros(N_EPOCHS)
@@ -170,7 +170,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_loss[epoch] = round(total_loss / n_samples, 2)
             valid_acc[epoch] = round(n_correct / n_samples * 100, 2)
             progress.update(1)
-            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch - 1]) +
+            progress.set_description(text + ' | current balanced acc: ' + str(valid_balanced_acc[epoch]) +
                                      f"Epoch {epoch + 1}/{N_EPOCHS} |"
                                      f"  train loss: {train_loss[epoch]:9.3f} |"
                                      f"  train acc:  {train_acc[epoch]:9.3f}% |"
@@ -372,8 +372,8 @@ def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
     data_dir = './data/imagenet/tiny-imagenet-200/'
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomRotation(20),
-            transforms.RandomHorizontalFlip(0.5),
+            # transforms.RandomRotation(20),
+            # transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
             transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),

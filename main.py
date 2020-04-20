@@ -73,8 +73,8 @@ def main():
             val_format()
             upscale_imagenet()
         n_classes = 200
-        N_EPOCHS = 20
-        lr = 0.001
+        N_EPOCHS = 100
+        lr = 0.1
         batch_size = 100
         cv_iterations_total = 1
         test_size = 5000
