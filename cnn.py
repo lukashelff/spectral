@@ -79,9 +79,9 @@ def get_model(DEVICE, n_classes, mode):
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
-    lr_step_size = 7
-    lr_gamma = 0.1
-    optimizer_name = 'adam'
+    lr_step_size = 1
+    lr_gamma = 0.9
+    optimizer_name = 'SGD'
     model_name = 'vgg'
     print(model_name)
     train_loss = np.zeros(N_EPOCHS)
@@ -118,6 +118,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             for batch_i, (X, y) in enumerate(train_dl):
+                if X.shape != torch.Size([100, 3, 224, 224]):
+                    print(X.shape)
                 X, y = X.to(DEVICE), y.to(DEVICE)
                 optimizer.zero_grad()
                 y_ = model(X)
@@ -195,10 +197,10 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     fig = plt.figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     if mode != 'imagenet':
-        plt.plot(train_acc, color='skyblue', label='train acc')
-        plt.plot(valid_acc, color='orange', label='valid_acc')
-    plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
-    plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
+        plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
+        plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
+    plt.plot(train_acc, color='skyblue', label='train acc')
+    plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.title(title + ' with lr ' + str(learning_rate) + ', lr_step_size: ' + str(lr_step_size) + ', lr_gamma: ' + str(
         lr_gamma) +
               ', optimizer: ' + optimizer_name + ' on model: ' + model_name
@@ -214,7 +216,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                 '_lr_gamma_' + str(lr_gamma) +
                 '_optimizer_' + optimizer_name +
                 '_model_' + model_name +
-                '_batch_size_' + str(50) +
+                '_batch_size_' + str(100) +
                 '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
@@ -381,11 +383,11 @@ def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
-            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'val': transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'test': transforms.Compose([
             transforms.ToTensor(),
