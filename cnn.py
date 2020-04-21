@@ -84,7 +84,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     lr_gamma = 0.1
     optimizer_name = 'adam'
     model_name = 'vgg'
-    print(model_name)
+    # print(model_name)
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
     train_balanced_acc = np.zeros(N_EPOCHS)
@@ -106,7 +106,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     if mode == 'imagenet':
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
-    # exp_lr_scheduler = None
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
 
         for epoch in range(N_EPOCHS):
@@ -213,7 +212,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar +
                 # '_lr_' + str(learning_rate) +
-                # '_no_normalization_' +
                 # '_lr_step_size_' + str(lr_step_size) +
                 # '_lr_gamma_' + str(lr_gamma) +
                 # '_optimizer_' + optimizer_name +

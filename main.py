@@ -47,7 +47,7 @@ def main():
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = False
+    roar_create_mask = True
     roar_train = False
     plot_roar_curve = False
     roar_mod_im_comp = False
@@ -68,6 +68,7 @@ def main():
                        'noisetunnel', 'random', 'Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
+    roar_values = [10, 30, 70, 90]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:
@@ -76,10 +77,10 @@ def main():
         n_classes = 200
         N_EPOCHS = 20
         lr = 0.001
-        batch_size = 100
-        print('nr epochs: ' + str(N_EPOCHS))
-        print('batch_size ' + str(batch_size))
-        print('lr ' + str(lr))
+        batch_size = 20
+        # print('nr epochs: ' + str(N_EPOCHS))
+        # print('batch_size ' + str(batch_size))
+        # print('lr ' + str(lr))
         cv_iterations_total = 1
         test_size = 10000
         # train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode)
