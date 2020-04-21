@@ -79,8 +79,8 @@ def get_model(DEVICE, n_classes, mode):
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
-    lr_step_size = 1
-    lr_gamma = 0.9
+    lr_step_size = 3
+    lr_gamma = 0.63
     optimizer_name = 'SGD'
     model_name = 'vgg'
     print(model_name)

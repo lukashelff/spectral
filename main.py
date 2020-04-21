@@ -40,7 +40,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
@@ -73,8 +73,8 @@ def main():
             val_format()
             upscale_imagenet()
         n_classes = 200
-        N_EPOCHS = 100
-        lr = 0.1
+        N_EPOCHS = 30
+        lr = 0.01
         batch_size = 100
         print('nr epochs: ' + str(N_EPOCHS))
         print('batch_size ' + str(batch_size))
