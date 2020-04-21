@@ -82,7 +82,7 @@ def main():
         # print('batch_size ' + str(batch_size))
         # print('lr ' + str(lr))
         cv_iterations_total = 1
-        test_size = 10000
+        test_size = 5000
         # train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode)
 
     train_labels, valid_labels, all_data, labels = load_labels(mode)
