@@ -47,11 +47,11 @@ def main():
     resize_imagenet = False
     retrain = True
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
-    roar_train = True
-    plot_roar_curve = True
-    roar_mod_im_comp = True
-    roar_expl_im = True
+    roar_create_mask = False
+    roar_train = False
+    plot_roar_curve = False
+    roar_mod_im_comp = False
+    roar_expl_im = False
     # CNN default learning parameters
     N_EPOCHS = 120
     lr = 0.00015

@@ -174,11 +174,11 @@ class Spectralloader(Dataset):
                       ncols=180) as progress:
                 for i in range(len_train):
                     image, label = image_datasets['train'].__getitem__(i)
-                    add_to_data(image, str(i))
+                    add_to_data(np.array(image), str(i))
                     progress.update(1)
                 for i in range(len_val):
                     image, label = image_datasets['val'].__getitem__(i)
-                    add_to_data(image, str(i + len_train))
+                    add_to_data(np.array(image), str(i + len_train))
                     progress.update(1)
         else:
             # loads all the images have existing entry labels in the plant DS
