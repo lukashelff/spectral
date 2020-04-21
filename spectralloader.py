@@ -176,9 +176,9 @@ class Spectralloader(Dataset):
                 for i in range(len_train):
                     image, label = image_datasets['train'].__getitem__(i)
                     add_to_data(np.array(image), str(i))
-                for i in range(len_val):
-                    image, label = image_datasets['val'].__getitem__(i)
-                    add_to_data(np.array(image), str(i + len_train))
+                # for i in range(len_val):
+                #     image, label = image_datasets['val'].__getitem__(i)
+                #     add_to_data(np.array(image), str(i + len_train))
         else:
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
@@ -292,8 +292,9 @@ def load_labels(mode):
         image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x)) for x in ['train', 'val']}
         train_labels = image_datasets['train'].targets
         train = [(str(c), i) for c, i in enumerate(train_labels)]
-        val_labels = image_datasets['val'].targets
-        valid = [(str(len(train_labels) + c), len(train_labels) + i) for c, i in enumerate(val_labels)]
+        val_labels = []
+        # val_labels = image_datasets['val'].targets
+        # valid = [(str(len(train_labels) + c), len(train_labels) + i) for c, i in enumerate(val_labels)]
 
         return None, None, train + valid, train_labels + val_labels
     else:
