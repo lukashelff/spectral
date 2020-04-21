@@ -147,8 +147,8 @@ class Spectralloader(Dataset):
                     data[id]['image'] = image
                     data[id]['label'] = label
                     ids.append(k)
-                    # mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-                    # print('Memory usage in KB after: ' + str(mem))
+                    mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                    print('Memory usage in KB after: ' + str(mem))
 
         if self.mode == 'imagenet':
             data_transforms = {
@@ -166,7 +166,7 @@ class Spectralloader(Dataset):
                 ]),
             }
             data_dir = 'data/' + self.mode + '/' + 'tiny-imagenet-200'
-            image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
+            image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x))
                               for x in ['train', 'val']}
             len_train = image_datasets['train'].__len__()
             len_val = image_datasets['val'].__len__()
@@ -175,10 +175,10 @@ class Spectralloader(Dataset):
                       ncols=180) as progress:
                 for i in range(len_train):
                     image, label = image_datasets['train'].__getitem__(i)
-                    add_to_data(np.array(image), str(i))
-                # for i in range(len_val):
-                #     image, label = image_datasets['val'].__getitem__(i)
-                #     add_to_data(np.array(image), str(i + len_train))
+                    add_to_data(image, str(i))
+                for i in range(len_val):
+                    image, label = image_datasets['val'].__getitem__(i)
+                    add_to_data(image, str(i + len_train))
         else:
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
@@ -293,8 +293,8 @@ def load_labels(mode):
         train_labels = image_datasets['train'].targets
         train = [(str(c), i) for c, i in enumerate(train_labels)]
         val_labels = []
-        # val_labels = image_datasets['val'].targets
-        # valid = [(str(len(train_labels) + c), len(train_labels) + i) for c, i in enumerate(val_labels)]
+        val_labels = image_datasets['val'].targets
+        valid = [(str(len(train_labels) + c), len(train_labels) + i) for c, i in enumerate(val_labels)]
 
         return None, None, train + valid, train_labels + val_labels
     else:
