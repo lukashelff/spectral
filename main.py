@@ -81,7 +81,7 @@ def main():
         print('batch_size ' + str(batch_size))
         print('lr ' + str(lr))
         cv_iterations_total = 1
-        test_size = 5000
+        test_size = 10000
         # train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode)
 
     train_labels, valid_labels, all_data, labels = load_labels(mode)
@@ -119,6 +119,7 @@ def main():
     if retrain:
         train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE,
                         original_trained_model, cv_it_to_calc)
+
     if plot_categories or plot_classes or plot_for_image_id or roar_create_mask:
         original_model = get_model(DEVICE, n_classes, mode)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))

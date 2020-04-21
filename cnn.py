@@ -183,12 +183,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                                      )
             progress.refresh()
 
-            print(
+            # print(
                 # f"Epoch {epoch + 1}/{N_EPOCHS} |"
                 # f"  valid loss: {valid_loss[epoch]:9.3f} |"
                 # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
                 # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
-            )
+            # )
 
     # plot acc, balanced acc and loss
     if roar != "original":
@@ -202,22 +202,23 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
     plt.plot(train_acc, color='skyblue', label='train acc')
     plt.plot(valid_acc, color='orange', label='valid_acc')
-    plt.title(title + ' with lr ' + str(learning_rate) + ', lr_step_size: ' + str(lr_step_size) + ', lr_gamma: ' + str(
-        lr_gamma) +
-              ', optimizer: ' + optimizer_name + ' on model: ' + model_name
-              + '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
+    plt.title(title +
+              ' with lr ' + str(learning_rate) + ', lr_step_size: ' +
+              str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
+              ', optimizer: ' + optimizer_name + ' on model: ' + model_name +
+              '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
     plt.axis([0, N_EPOCHS - 1, 00, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar +
-                '_lr_' + str(learning_rate) +
-                '_no_normalization_' +
-                '_lr_step_size_' + str(lr_step_size) +
-                '_lr_gamma_' + str(lr_gamma) +
-                '_optimizer_' + optimizer_name +
-                '_model_' + model_name +
-                '_batch_size_' + str(100) +
+                # '_lr_' + str(learning_rate) +
+                # '_no_normalization_' +
+                # '_lr_step_size_' + str(lr_step_size) +
+                # '_lr_gamma_' + str(lr_gamma) +
+                # '_optimizer_' + optimizer_name +
+                # '_model_' + model_name +
+                # '_batch_size_' + str(100) +
                 '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')

@@ -167,17 +167,19 @@ class Spectralloader(Dataset):
             data_dir = 'data/' + self.mode + '/' + 'tiny-imagenet-200'
             image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
                               for x in ['train', 'val']}
+            len_train = image_datasets['train'].__len__()
+            len_val = image_datasets['val'].__len__()
             text = 'loading images of ' + self.mode + ' DS: '
-            with tqdm(total=image_datasets['train'].__len__(), desc=text, ncols=180) as progress:
-                for i in range(image_datasets['train'].__len__()):
-
-                    progress.update(1)
+            with tqdm(total=len_train + len_val, desc=text,
+                      ncols=180) as progress:
+                for i in range(len_train):
                     image, label = image_datasets['train'].__getitem__(i)
                     add_to_data(image, str(i))
-
-            # for i in range(image_datasets['val'].__len__()):
-            #     image, label = image_datasets['val'].__getitem__(i)
-            #     add_to_data(image, str(i + image_datasets['train'].__len__()))
+                    progress.update(1)
+                for i in range(len_val):
+                    image, label = image_datasets['val'].__getitem__(i)
+                    add_to_data(image, str(i + len_train))
+                    progress.update(1)
         else:
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
@@ -290,11 +292,11 @@ def load_labels(mode):
         data_dir = 'data/' + mode + '/' + 'tiny-imagenet-200'
         image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x)) for x in ['train', 'val']}
         train_labels = image_datasets['train'].targets
-        train, all_labels = [(str(c), i) for c, i in enumerate(train_labels)], train_labels
-        # val_labels = image_datasets['val'].targets
-        # valid, all_labels = [(str(c), i) for c, i in enumerate(val_labels)], val_labels
+        train = [(str(c), i) for c, i in enumerate(train_labels)]
+        val_labels = image_datasets['val'].targets
+        valid = [(str(len(train_labels) + c), len(train_labels) + i) for c, i in enumerate(val_labels)]
 
-        return None, None, train, all_labels
+        return None, None, train + valid, train_labels + val_labels
     else:
         # mp.set_start_method('spawn')
         path_test = 'data/' + mode + '/' + 'test_fileids.txt'
