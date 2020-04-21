@@ -143,7 +143,7 @@ class Spectralloader(Dataset):
             for (k, label) in labels:
                 if k == id:
                     data[id] = {}
-                    data[id]['image'] = image
+                    data[id]['image'] = np.array(image)
                     data[id]['label'] = label
                     ids.append(k)
                     # mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
