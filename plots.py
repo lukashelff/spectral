@@ -266,6 +266,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
         acc_vals = []
         for roar_per in roar_values:
             acc = get_cross_val_acc(ex, roar_per, cv_iter, mode)
+            print(acc)
             acc_vals.append(acc)
         acc_vals.append(50)
         plt.plot(roar_values + [100], acc_vals, label=ex)

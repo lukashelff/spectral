@@ -1,6 +1,6 @@
 import glob
 import os
-
+import mmap
 import tqdm as tqdm
 from torch.utils.data import Dataset
 import pickle
@@ -11,6 +11,10 @@ import multiprocessing as mp
 import cv2
 from shutil import move
 from os import rmdir
+from sys import getsizeof
+import gc
+import resource
+import torch
 
 from torchvision import transforms
 import torchvision.datasets as t_datasets
@@ -91,9 +95,10 @@ class Spectralloader(Dataset):
         # ids: list of all ids in order of data
         # data: dictionary of all IDs with their corresponding images and label
         #  data[id]['image'] = image, data[id]['label'] = label
+        gc.enable()
         self.mode = mode
         self.data, self.ids = self.load_images_for_labels(root, ids_and_labels)
-        # print('total length of ids ' + str(self.__len__()) + ' with data indexed to ' + str(len(self.data)))
+        gc.disable()
 
     def __getitem__(self, index):
         # return only 1 sample and label according to "Index"
@@ -120,11 +125,9 @@ class Spectralloader(Dataset):
 
     def get_by_id(self, id):
         try:
-            size = 224
             image, label = self.data[id]['image'], self.data[id]['label']
             if self.mode == 'imagenet':
                 image = image
-                # image = cv2.resize(np.float32(image), (size, size), interpolation=cv2.INTER_CUBIC)
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
@@ -142,32 +145,36 @@ class Spectralloader(Dataset):
                     data[id] = {}
                     data[id]['image'] = image
                     data[id]['label'] = label
-                    data[id]['id'] = k
                     ids.append(k)
+                    # mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                    # print('Memory usage in KB after: ' + str(mem))
 
         if self.mode == 'imagenet':
-            size = 224
             data_transforms = {
                 'train': transforms.Compose([
-                    transforms.RandomRotation(20),
-                    transforms.RandomHorizontalFlip(0.5),
+                    # transforms.RandomRotation(20),
+                    # transforms.RandomHorizontalFlip(0.5),
                     transforms.ToTensor(),
+                    # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
                     transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ]),
                 'val': transforms.Compose([
                     transforms.ToTensor(),
+                    # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                    transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ]),
             }
             data_dir = 'data/' + self.mode + '/' + 'tiny-imagenet-200'
-            image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
-                                                        data_transforms[x])
+            image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
                               for x in ['train', 'val']}
             text = 'loading images of ' + self.mode + ' DS: '
-            with tqdm(total=image_datasets['train'].__len__(), desc=text) as progress:
+            with tqdm(total=image_datasets['train'].__len__(), desc=text, ncols=180) as progress:
                 for i in range(image_datasets['train'].__len__()):
+
                     progress.update(1)
                     image, label = image_datasets['train'].__getitem__(i)
-                    add_to_data(np.float32(image), str(i))
+                    add_to_data(image, str(i))
+
             # for i in range(image_datasets['val'].__len__()):
             #     image, label = image_datasets['val'].__getitem__(i)
             #     add_to_data(image, str(i + image_datasets['train'].__len__()))
@@ -178,7 +185,6 @@ class Spectralloader(Dataset):
                 shape = dict['memmap_shape']
                 samples = dict['samples']
                 data_all = np.memmap(path + '/memmap.dat', mode='r', shape=shape, dtype='float32')
-                # labels_ids = [i[0] for i in labels]
                 for k, i in enumerate(samples):
                     # only add if we have a label for the image
                     data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
@@ -198,6 +204,7 @@ class Spectralloader(Dataset):
                             progress.update(1)
                             if not (k == 16 and i == 4):
                                 load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
+        print('size of data ' + str(getsizeof(data)))
         return data, ids
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
@@ -280,35 +287,16 @@ def load_labels(mode):
 
     # load all imagenet labels use the index as the id as a unique identifier
     if mode == 'imagenet':
-        data_transforms = {
-            'train': transforms.Compose([
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-            ]),
-            'val': transforms.Compose([
-                transforms.ToTensor(),
-            ]),
-        }
         data_dir = 'data/' + mode + '/' + 'tiny-imagenet-200'
-        image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x),
-                                                    data_transforms[x])
-                          for x in ['train', 'val']}
-        val_labels = image_datasets['val'].targets
+        image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x)) for x in ['train', 'val']}
         train_labels = image_datasets['train'].targets
         train, all_labels = [(str(c), i) for c, i in enumerate(train_labels)], train_labels
-        # for i in range(image_datasets['train'].__len__()):
-        #     _, label = image_datasets['train'].__getitem__(i)
-        #     train.append((str(i), label))
-        #     all_labels.append(label)
-        # for i in range(image_datasets['val'].__len__()):
-        #     _, label = image_datasets['val'].__getitem__(i)
-        #     valid.append((str(i + image_datasets['train'].__len__()), label))
-        #     all_labels.append(label)
-        # train (ID,label) = (String, int)
-        # all_labels Array of labels
+        # val_labels = image_datasets['val'].targets
+        # valid, all_labels = [(str(c), i) for c, i in enumerate(val_labels)], val_labels
+
         return None, None, train, all_labels
     else:
-        mp.set_start_method('spawn')
+        # mp.set_start_method('spawn')
         path_test = 'data/' + mode + '/' + 'test_fileids.txt'
         path_train = 'data/' + mode + '/' + 'train_fileids.txt'
         valid_s = open(path_test, 'r').readlines()
@@ -371,4 +359,3 @@ def val_format():
         move(path, dest)
 
     rmdir('./data/imagenet/tiny-imagenet-200/val/images')
-

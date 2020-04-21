@@ -1,4 +1,5 @@
 from copy import deepcopy
+from sys import getsizeof
 
 import numpy as np
 import torch
@@ -79,9 +80,9 @@ def get_model(DEVICE, n_classes, mode):
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
-    lr_step_size = 3
-    lr_gamma = 0.63
-    optimizer_name = 'SGD'
+    lr_step_size = 7
+    lr_gamma = 0.1
+    optimizer_name = 'adam'
     model_name = 'vgg'
     print(model_name)
     train_loss = np.zeros(N_EPOCHS)
@@ -313,6 +314,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             valid_data = [all_data[i] for i in test_index]
             print('loading validation dataset')
             val_ds = Spectralloader(valid_data, root, mode)
+            print('size of val_ds ' + str(getsizeof(val_ds)))
             print('loading training dataset')
             train_ds = Spectralloader(train_data, root, mode)
             im, label = train_ds.__getitem__(0)
@@ -383,15 +385,18 @@ def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
-            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'val': transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'test': transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ])
     }
 
