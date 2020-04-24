@@ -118,8 +118,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             for batch_i, (X, y) in enumerate(train_dl):
-                if X.shape != torch.Size([100, 3, 224, 224]):
-                    print(X.shape)
                 X, y = X.to(DEVICE), y.to(DEVICE)
                 optimizer.zero_grad()
                 y_ = model(X)
@@ -183,10 +181,10 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             progress.refresh()
 
             # print(
-                # f"Epoch {epoch + 1}/{N_EPOCHS} |"
-                # f"  valid loss: {valid_loss[epoch]:9.3f} |"
-                # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
-                # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
+            # f"Epoch {epoch + 1}/{N_EPOCHS} |"
+            # f"  valid loss: {valid_loss[epoch]:9.3f} |"
+            # f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+            # f"  balanced acc:  {valid_balanced_acc[epoch]:9.3f}%"
             # )
 
     # plot acc, balanced acc and loss
@@ -324,8 +322,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             train_parallel(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
                            original_trained_model, cv_it, mode)
 
-            # p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds,
-            #                                             batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode))
+            # p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode))
 
         cv_it += 1
     #     p.start()
@@ -384,18 +381,18 @@ def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'val': transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ]),
         'test': transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-            # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
         ])
     }
 

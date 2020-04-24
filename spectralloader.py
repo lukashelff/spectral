@@ -99,6 +99,9 @@ class Spectralloader(Dataset):
         self.mode = mode
         self.data, self.ids = self.load_images_for_labels(root, ids_and_labels)
         gc.disable()
+        self.percentage = None
+        self.mask = None
+        self.explainer = None
 
     def __getitem__(self, index):
         # return only 1 sample and label according to "Index"
@@ -127,7 +130,32 @@ class Spectralloader(Dataset):
         try:
             image, label = self.data[id]['image'], self.data[id]['label']
             if self.mode == 'imagenet':
-                image = image
+                if self.percentage is None:
+                    trans1 = transforms.Compose([
+                        # transforms.RandomRotation(20),
+                        # transforms.RandomHorizontalFlip(0.5),
+                        transforms.ToTensor(),
+                        transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                    ])
+                    image = trans1(image)
+                else:
+                    id, image = self.apply_roar_single_image(self.percentage, self.mask, id, "mean", self.explainer)
+            return image, label
+        except ValueError:
+            print('image with id: ' + id + ' not in dataset')
+            return None, None
+
+    def get_original_by_id(self, id):
+        try:
+            image, label = self.data[id]['image'], self.data[id]['label']
+            if self.mode == 'imagenet':
+                trans1 = transforms.Compose([
+                    # transforms.RandomRotation(20),
+                    # transforms.RandomHorizontalFlip(0.5),
+                    transforms.ToTensor(),
+                    transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                ])
+                image = trans1(image)
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
@@ -135,6 +163,11 @@ class Spectralloader(Dataset):
 
     # returns an Array of IDs and a dictionary of all IDs with their corresponding images and label
     def load_images_for_labels(self, root_path, labels):
+        # filename = 'data/' + self.mode + '/tiny-imagenet-200/current_training/images.dat'
+        # file = open(filename, "r+")
+        # size = os.path.getsize(filename)
+        #
+        # map = mmap.mmap()
         data = {}
         ids = []
 
@@ -150,22 +183,8 @@ class Spectralloader(Dataset):
                     # print('Memory usage in KB after: ' + str(mem))
 
         if self.mode == 'imagenet':
-            data_transforms = {
-                'train': transforms.Compose([
-                    # transforms.RandomRotation(20),
-                    # transforms.RandomHorizontalFlip(0.5),
-                    transforms.ToTensor(),
-                    # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-                    transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                ]),
-                'val': transforms.Compose([
-                    transforms.ToTensor(),
-                    # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-                    transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                ]),
-            }
             data_dir = 'data/' + self.mode + '/' + 'tiny-imagenet-200'
-            image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
+            image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x))
                               for x in ['train', 'val']}
             len_train = image_datasets['train'].__len__()
             len_val = image_datasets['val'].__len__()
@@ -180,6 +199,10 @@ class Spectralloader(Dataset):
                     image, label = image_datasets['val'].__getitem__(i)
                     add_to_data(image, str(i + len_train))
                     progress.update(1)
+            # map = mmap.mmap(data, 0)
+            # map.write(data)
+            # with open('./data/' + self.mode + '/' + 'im_mmap/', "w") as f:
+            #     f.write("Hello Python!\n")
         else:
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
@@ -207,12 +230,13 @@ class Spectralloader(Dataset):
                             if not (k == 16 and i == 4):
                                 load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
         print('size of data ' + str(getsizeof(data)))
+
         return data, ids
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
         im = None
         try:
-            im, label = self.get_by_id(id)
+            im, label = self.get_original_by_id(id)
         except ValueError:
             print('No roar img for id: ' + id)
         if im is not None:
@@ -251,26 +275,33 @@ class Spectralloader(Dataset):
                         val[0][i[0]][i[1]] = 238 / 255
                         val[1][i[0]][i[1]] = 173 / 255
                         val[2][i[0]][i[1]] = 14 / 255
-            self.update_data(id, val)
+            if self.mode == "plants":
+                self.update_data(id, val)
+            else:
+                return id, val
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
     def apply_roar(self, percentage, masks, DEVICE, explainer):
-        length = self.__len__()
-        text = 'removing ' + str(percentage) + '% of ' + explainer
-        # parallel execution not working
-        # pool = mp.Pool(20)
-        # for d in range(0, length):
-        #     id = self.get_id_by_index(d)
-        #     pool.apply_async(self.parallel_roar, (percentage, masks, id, "mean", explainer))
-        # pool.close()
-        # pool.join()
-        # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
-        with tqdm(total=length, desc=text) as progress:
-            for d in range(0, length):
-                id = self.get_id_by_index(d)
-                progress.update(1)
-                self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+        self.percentage = percentage
+        self.mask = masks
+        self.explainer = explainer
+        if self.mode == 'plants':
+            length = self.__len__()
+            text = 'removing ' + str(percentage) + '% of ' + explainer
+            # parallel execution not working
+            # pool = mp.Pool(20)
+            # for d in range(0, length):
+            #     id = self.get_id_by_index(d)
+            #     pool.apply_async(self.parallel_roar, (percentage, masks, id, "mean", explainer))
+            # pool.close()
+            # pool.join()
+            # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
+            with tqdm(total=length, desc=text) as progress:
+                for d in range(0, length):
+                    id = self.get_id_by_index(d)
+                    progress.update(1)
+                    self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
 
     def parallel_roar(self, percentage, masks, id, mean, explainer):
         self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
@@ -286,6 +317,8 @@ def load_labels(mode):
     valid = []
     train = []
     all_labels = []
+    val_labels = []
+    train_labels = []
 
     # load all imagenet labels use the index as the id as a unique identifier
     if mode == 'imagenet':
@@ -293,10 +326,9 @@ def load_labels(mode):
         image_datasets = {x: t_datasets.ImageFolder(os.path.join(data_dir, x)) for x in ['train', 'val']}
         train_labels = image_datasets['train'].targets
         train = [(str(c), i) for c, i in enumerate(train_labels)]
-        val_labels = image_datasets['val'].targets
-        valid = [(str(len(train_labels) + c), len(train_labels) + i) for c, i in enumerate(val_labels)]
-
-        return None, None, train + valid, train_labels + val_labels
+        # val_labels = image_datasets['val'].targets
+        # valid = [(str(len(train_labels) + c), len(train_labels) + i) for c, i in enumerate(val_labels)]
+        all_labels = train_labels + val_labels
     else:
         # mp.set_start_method('spawn')
         path_test = 'data/' + mode + '/' + 'test_fileids.txt'
