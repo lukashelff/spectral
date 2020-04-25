@@ -137,7 +137,7 @@ class Spectralloader(Dataset):
                         transforms.ToTensor(),
                         transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                     ])
-                    image = trans1(image)
+                    image = trans1(image).squeeze().cpu().detach().numpy()
                 else:
                     id, image = self.apply_roar_single_image(self.percentage, self.mask, id, "mean", self.explainer)
             return image, label
@@ -155,7 +155,7 @@ class Spectralloader(Dataset):
                     transforms.ToTensor(),
                     transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ])
-                image = trans1(image)
+                image = trans1(image).squeeze().cpu().detach().numpy()
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')

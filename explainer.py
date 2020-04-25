@@ -32,6 +32,10 @@ def explain_single(model, image, ori_label, explainer, bounded):
     output = model(image_mod)
     _, pred = torch.max(output, 1)
     label = pred.item()
+    if h == 224:
+        last_layer = model.features[-3]
+    else:
+        last_layer = model.layer4
 
     def cut_and_shape(data):
         # # consider only the positive values
@@ -51,21 +55,21 @@ def explain_single(model, image, ori_label, explainer, bounded):
 
     if explainer == 'gradcam':
         # GradCam
-        gco = LayerGradCam(model, model.layer4)
+        gco = LayerGradCam(model, last_layer)
         attr_gco = attribute_image_features(gco, input)
         att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
         gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
         heat_map = np.asarray(gradcam)
 
     elif explainer == 'guided_gradcam':
-        gc = GuidedGradCam(model, model.layer4)
+        gc = GuidedGradCam(model, last_layer)
         attr_gc = attribute_image_features(gc, input)
         heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
 
     elif explainer == 'guided_gradcam_gaussian':
-        gc = GuidedGradCam(model, model.layer4)
+        gc = GuidedGradCam(model, last_layer)
         attr_gc = attribute_image_features(gc, input)
         heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
         heat_map = ndi.gaussian_filter(heat_map, 7)
@@ -132,8 +136,8 @@ def explain_single(model, image, ori_label, explainer, bounded):
         if bounded:
             heat_map = cut_top_per(heat_map)
 
-    assert (heat_map.shape == torch.Size([213, 255])), "heatmap shape: " + str(heat_map.shape) +\
-                                                       " does not match image shape: " + str(torch.Size([213, 255]))
+    assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(heat_map.shape) +\
+                                                       " does not match image shape: " + str(torch.Size([h, w]))
     return heat_map
 
 

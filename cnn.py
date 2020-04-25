@@ -260,15 +260,16 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
                     for i in roar_values:
                         # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
                         #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                        # train_parallel(i, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr, trained_roar_models)
+                        train_parallel(i, mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS,
+                                       lr, trained_roar_models, cv_it, mode)
 
-                        p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
-                                                                    batch_size, n_classes, N_EPOCHS, lr,
-                                                                    trained_roar_models, cv_it, mode))
-                        p.start()
-                        processes.append(p)
-                    for p in processes:
-                        p.join()
+                    #     p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
+                    #                                                 batch_size, n_classes, N_EPOCHS, lr,
+                    #                                                 trained_roar_models, cv_it, mode))
+                    #     p.start()
+                    #     processes.append(p)
+                    # for p in processes:
+                    #     p.join()
             cv_it += 1
         torch.cuda.empty_cache()
 
