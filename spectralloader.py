@@ -123,8 +123,6 @@ class Spectralloader(Dataset):
     def update_data(self, id, val, dir):
         try:
             if self.mode == 'imagenet':
-                plt.imshow(val)
-                plt.show()
                 index = dir.find('/tiny-imagenet-200')
                 roar_link = dir[:index] + '/roar_images' + dir[index:]
                 index = roar_link.find('.JPEG')
@@ -134,8 +132,8 @@ class Spectralloader(Dataset):
                     os.makedirs(roar_link[:index] + '/images')
 
                 # do not create new image if exist
-                # if not os.path.isfile(roar_link):
-                im = Image.fromarray(val)
+                if not os.path.isfile(roar_link):
+                    im = Image.fromarray(val)
                 im = self.transform(im)
                 im.save(roar_link)
                 self.data[id] = (roar_link, id)
