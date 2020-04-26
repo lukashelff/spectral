@@ -15,6 +15,7 @@ from sys import getsizeof
 import gc
 import resource
 import torch
+from PIL import Image
 
 from torchvision import transforms
 import torchvision.datasets as t_datasets
@@ -113,9 +114,15 @@ class Spectralloader(Dataset):
         return len(self.ids)
 
     # update value in dataset with the new specified value
-    def update_data(self, id, val):
+    def update_data(self, id, val, dir):
         try:
-            self.data[id]['image'] = val
+            if self.mode == 'imagenet':
+                index = dir.find('.JPEG')
+                roar_link = dir[:index] + '_roar' + dir[index:]
+                val.save(roar_link)
+                self.data[id] = (roar_link, id)
+            else:
+                self.data[id]['image'] = val
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
 
@@ -128,18 +135,9 @@ class Spectralloader(Dataset):
 
     def get_by_id(self, id):
         try:
-            image, label = self.data[id]['image'], self.data[id]['label']
-            if self.mode == 'imagenet':
-                if self.percentage is None:
-                    trans1 = transforms.Compose([
-                        # transforms.RandomRotation(20),
-                        # transforms.RandomHorizontalFlip(0.5),
-                        transforms.ToTensor(),
-                        transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                    ])
-                    image = trans1(image).squeeze().cpu().detach().numpy()
-                else:
-                    id, image = self.apply_roar_single_image(self.percentage, self.mask, id, "mean", self.explainer)
+            image, label = self.get_original_by_id(id)
+            # if self.mode == 'imagenet' and self.percentage is not None:
+            # id, image = self.apply_roar_single_image(self.percentage, self.mask, id, "mean", self.explainer)
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
@@ -147,8 +145,9 @@ class Spectralloader(Dataset):
 
     def get_original_by_id(self, id):
         try:
-            image, label = self.data[id]['image'], self.data[id]['label']
             if self.mode == 'imagenet':
+                image_path, label = self.data[id]
+                image = Image.open(image_path)
                 trans1 = transforms.Compose([
                     # transforms.RandomRotation(20),
                     # transforms.RandomHorizontalFlip(0.5),
@@ -156,6 +155,9 @@ class Spectralloader(Dataset):
                     transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ])
                 image = trans1(image).squeeze().cpu().detach().numpy()
+            else:
+                image, label = self.data[id]['image'], self.data[id]['label']
+
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
@@ -163,11 +165,6 @@ class Spectralloader(Dataset):
 
     # returns an Array of IDs and a dictionary of all IDs with their corresponding images and label
     def load_images_for_labels(self, root_path, labels):
-        # filename = 'data/' + self.mode + '/tiny-imagenet-200/current_training/images.dat'
-        # file = open(filename, "r+")
-        # size = os.path.getsize(filename)
-        #
-        # map = mmap.mmap()
         data = {}
         ids = []
 
@@ -188,21 +185,8 @@ class Spectralloader(Dataset):
                               for x in ['train', 'val']}
             len_train = image_datasets['train'].__len__()
             len_val = image_datasets['val'].__len__()
-            text = 'loading images of ' + self.mode + ' DS: '
-            with tqdm(total=len_train + len_val, desc=text,
-                      ncols=180) as progress:
-                for i in range(len_train):
-                    image, label = image_datasets['train'].__getitem__(i)
-                    add_to_data(image, str(i))
-                    progress.update(1)
-                for i in range(len_val):
-                    image, label = image_datasets['val'].__getitem__(i)
-                    add_to_data(image, str(i + len_train))
-                    progress.update(1)
-            # map = mmap.mmap(data, 0)
-            # map.write(data)
-            # with open('./data/' + self.mode + '/' + 'im_mmap/', "w") as f:
-            #     f.write("Hello Python!\n")
+            data = image_datasets['train'].imgs
+            ids = list(range(len_train))
         else:
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
@@ -229,24 +213,26 @@ class Spectralloader(Dataset):
                             progress.update(1)
                             if not (k == 16 and i == 4):
                                 load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
-        print('size of data ' + str(getsizeof(data)))
-
         return data, ids
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
         im = None
+        im_dir = None
         try:
             im, label = self.get_original_by_id(id)
+            if self.mode == 'imagenet':
+                im_dir = im
+                im = Image.open(im_dir)
+
         except ValueError:
             print('No roar img for id: ' + id)
         if im is not None:
             mean = np.mean(im)
-            mask = masks[id]
+            mask = masks[str(id)]
             # only take percentile of values with duplicated zeros deleted
             mask_flat = mask.flatten()
             percentile = np.percentile(mask_flat, 100 - percentage)
             c, h, w = im.shape
-            val = im
             bigger = 0
             indices_of_same_values = []
             for i in range(0, w):
@@ -254,13 +240,13 @@ class Spectralloader(Dataset):
                     if mask[j][i] > percentile:
                         bigger += 1
                         if new_val == "mean":
-                            val[0][j][i] = mean
-                            val[1][j][i] = mean
-                            val[2][j][i] = mean
+                            im[0][j][i] = mean
+                            im[1][j][i] = mean
+                            im[2][j][i] = mean
                         else:
-                            val[0][j][i] = 238 / 255
-                            val[1][j][i] = 173 / 255
-                            val[2][j][i] = 14 / 255
+                            im[0][j][i] = 238 / 255
+                            im[1][j][i] = 173 / 255
+                            im[2][j][i] = 14 / 255
                     if mask[j][i] == percentile:
                         indices_of_same_values.append([j, i])
             if len(indices_of_same_values) > 5:
@@ -268,17 +254,14 @@ class Spectralloader(Dataset):
                 selection = random.sample(indices_of_same_values, missing)
                 for i in selection:
                     if new_val == "mean":
-                        val[0][i[0]][i[1]] = mean
-                        val[1][i[0]][i[1]] = mean
-                        val[2][i[0]][i[1]] = mean
+                        im[0][i[0]][i[1]] = mean
+                        im[1][i[0]][i[1]] = mean
+                        im[2][i[0]][i[1]] = mean
                     else:
-                        val[0][i[0]][i[1]] = 238 / 255
-                        val[1][i[0]][i[1]] = 173 / 255
-                        val[2][i[0]][i[1]] = 14 / 255
-            if self.mode == "plants":
-                self.update_data(id, val)
-            else:
-                return id, val
+                        im[0][i[0]][i[1]] = 238 / 255
+                        im[1][i[0]][i[1]] = 173 / 255
+                        im[2][i[0]][i[1]] = 14 / 255
+            self.update_data(id, im, im)
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
@@ -300,8 +283,8 @@ class Spectralloader(Dataset):
             with tqdm(total=length, desc=text) as progress:
                 for d in range(0, length):
                     id = self.get_id_by_index(d)
-                    progress.update(1)
                     self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+                    progress.update(1)
 
     def parallel_roar(self, percentage, masks, id, mean, explainer):
         self.apply_roar_single_image(percentage, masks, id, "mean", explainer)

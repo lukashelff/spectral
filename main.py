@@ -47,8 +47,8 @@ def main():
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
-    roar_train = False
+    roar_create_mask = False
+    roar_train = True
     plot_roar_curve = False
     roar_mod_im_comp = False
     roar_expl_im = False
@@ -66,7 +66,7 @@ def main():
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    roar_explainers = ['gradcam']
+    roar_explainers = ['gradcam', 'random']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 30, 70, 90]
