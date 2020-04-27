@@ -4,9 +4,10 @@ import pickle
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
 
 #  from RGB to learning
+from torchvision.transforms import transforms
+
 to_RGB = (1, 2, 0)
 #                 from learning to RGB
 to_learning = (2, 0, 1)
@@ -29,7 +30,9 @@ def display_rgb(img, title, path, name):
     img_tr = np.transpose(img, (1, 2, 0))
     plt.imshow(img_tr)
     plt.show()
-    im = Image.fromarray((img_tr * 255).astype(np.uint8))
+    trans = transforms.ToPILImage()
+    im = trans(img_tr)
+    # im = Image.fromarray((img_tr * 255).astype(np.uint8))
     if not os.path.exists(path):
         os.makedirs(path)
     im.save(path + name)

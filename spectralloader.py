@@ -19,6 +19,7 @@ from os import rmdir
 import gc
 import time
 from copy import deepcopy
+from PIL import Image
 from helpfunctions import *
 
 from torchvision import transforms
@@ -108,6 +109,7 @@ class Spectralloader(Dataset):
         #  data[id]['image'] = image, data[id]['label'] = label
         gc.enable()
         self.mode = mode
+        self.train = train
         self.data, self.ids = self.load_images_for_labels(root, ids_and_labels, train)
         gc.disable()
         self.percentage = None
@@ -115,12 +117,17 @@ class Spectralloader(Dataset):
         self.explainer = None
         self.roar_done = False
         self.DEVICE = None
-        self.update_roar_images = False
-        self.transform = transforms.Compose([
+        self.update_roar_images = True
+        self.normalize_tensor = transforms.Compose([
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
-            transforms.ToTensor(),
             transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+            transforms.ToPILImage()
+        ])
+        self.pil_to_tensor = transforms.Compose([
+            transforms.ToTensor()
+        ])
+        self.tensor_to_pil = transforms.Compose([
             transforms.ToPILImage()
         ])
 
@@ -139,7 +146,7 @@ class Spectralloader(Dataset):
             if self.mode == 'imagenet':
 
                 # do not create new image if exist
-                im = Image.fromarray(np.transpose(val, to_RGB))
+                im = self.tensor_to_pil(val)
                 im.save(roar_link)
                 _, label = self.data[id]
                 self.data[id] = (roar_link, label)
@@ -155,12 +162,37 @@ class Spectralloader(Dataset):
             print('Index out of bound: ' + str(index))
             return None
 
+    def get_item_original(self, id):
+        if self.mode == 'imagenet':
+            image_path, label = self.data[id]
+            im = Image.open(image_path)
+            image = self.pil_to_tensor(im)
+        else:
+            image, label = self.get_by_id(id)
+        return image, label
+
     def get_by_id(self, id):
         try:
             if self.mode == 'imagenet':
                 image_path, label = self.data[id]
                 im = Image.open(image_path)
-                image = np.transpose(im, to_learning)
+                if self.train == 'train':
+                    norm = transforms.Compose([
+                        transforms.ToTensor(),
+                        # transforms.RandomRotation(20),
+                        # transforms.RandomHorizontalFlip(0.5),
+                        transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                    ])
+                else:
+                    norm = transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                    ])
+                image = norm(im)
+                # if not self.roar_done:
+                #     image = norm(im)
+                # else:
+                #     image = self.pil_to_tensor(im)
             else:
                 image, label = self.data[id]['image'], self.data[id]['label']
 
@@ -235,71 +267,81 @@ class Spectralloader(Dataset):
         start_time = time.time()
         im = None
         try:
-            im_dir, label = self.data[id]
+            im, label = self.get_item_original(id)
+            if self.mode == 'imagenet':
+                if method == 'mean':
+                    method_text = ''
+                else:
+                    # comparison value to better detect removed values
+                    # modify method only significant images get roared
+                    method_text = '/' + method
+                im_dir, label = self.data[id]
+                index = im_dir.find('/tiny-imagenet-200')
+                roar_link = im_dir[:index] + '/roar_images' + method_text + im_dir[index:]
+                index = roar_link.find('.JPEG')
+                roar_link = roar_link[:index] + '_' + self.explainer + '_' + str(self.percentage) + roar_link[index:]
+                index = roar_link.find('/images')
+                if not os.path.exists(roar_link[:index] + '/images'):
+                    os.makedirs(roar_link[:index] + '/images')
+
+            if self.mode == 'imagenet' and os.path.exists(roar_link) and not self.update_roar_images:
+                self.data[id] = (roar_link, label)
+            else:
+                if self.mode == 'imagenet':
+                    # if method == 'mean':
+                    #     im = self.normalize_tensor(im)
+                    im = deepcopy(im).cpu().detach().numpy()
+                if im is not None:
+                    mean = np.mean(im)
+                    # im.to(self.DEVICE)
+                    mask = masks[str(id)]
+                    # only take percentile of values with duplicated zeros deleted
+                    mask_flat = mask.flatten()
+                    percentile = np.percentile(mask_flat, 100 - percentage)
+                    c, h, w = im.shape
+                    bigger = 0
+                    indices_of_same_values = []
+                    max_i = 255
+                    if self.mode == 'imagenet':
+                        max_i = 1
+                    for i in range(0, w):
+                        for j in range(0, h):
+                            if mask[j][i] > percentile:
+                                bigger += 1
+                                if method == "mean":
+                                    im[0][j][i] = mean
+                                    im[1][j][i] = mean
+                                    im[2][j][i] = mean
+                                else:
+                                    im[0][j][i] = 238 / max_i
+                                    im[1][j][i] = 173 / max_i
+                                    im[2][j][i] = 14 / max_i
+                            if mask[j][i] == percentile:
+                                indices_of_same_values.append([j, i])
+                    if len(indices_of_same_values) > 5:
+                        missing = max(int(0.01 * percentage * w * h - bigger), 0)
+                        selection = random.sample(indices_of_same_values, missing)
+                        for i in selection:
+                            if method == "mean":
+                                im[0][i[0]][i[1]] = mean
+                                im[1][i[0]][i[1]] = mean
+                                im[2][i[0]][i[1]] = mean
+                            else:
+                                im[0][i[0]][i[1]] = 238 / max_i
+                                im[1][i[0]][i[1]] = 173 / max_i
+                                im[2][i[0]][i[1]] = 14 / max_i
+                    self.update_data(id, torch.from_numpy(im), roar_link)
+                    del im
+            # print('init: ' + str(round(t2, 3)) + ' modify: ' + str(round(t3, 3)) + ' update: ' + str(round(t4, 3)))
+            # print('used time to modify: ' + str(round(time.time() - start_time, 3)))
+
+
         except ValueError:
             print('No roar img for id: ' + id)
 
-        index = im_dir.find('/tiny-imagenet-200')
-        roar_link = im_dir[:index] + '/roar_images' + im_dir[index:]
-        index = roar_link.find('.JPEG')
-        roar_link = roar_link[:index] + '_' + self.explainer + '_' + str(self.percentage) + roar_link[index:]
-        index = roar_link.find('/images')
-        if not os.path.exists(roar_link[:index] + '/images'):
-            os.makedirs(roar_link[:index] + '/images')
 
-        if self.mode == 'imagenet' and os.path.exists(roar_link) and not self.update_roar_images:
-            self.data[id] = (roar_link, label)
-        else:
-            try:
-                im, label = self.get_by_id(id)
-                if self.mode == 'imagenet':
-                    if method == 'mean':
-                        im = np.transpose(self.transform(Image.fromarray(np.transpose(im, to_RGB))), to_learning)
-                    im = deepcopy(im)
 
-            except ValueError:
-                print('No roar img for id: ' + id)
-            if im is not None:
-                mean = np.mean(im)
-                mask = masks[str(id)]
-                # only take percentile of values with duplicated zeros deleted
-                mask_flat = mask.flatten()
-                percentile = np.percentile(mask_flat, 100 - percentage)
-                c, h, w = im.shape
-                bigger = 0
-                indices_of_same_values = []
-                max_i = 255
-                if self.mode == 'imagenet':
-                    max_i = 1
-                for i in range(0, w):
-                    for j in range(0, h):
-                        if mask[j][i] > percentile:
-                            bigger += 1
-                            if method == "mean":
-                                im[0][j][i] = mean
-                                im[1][j][i] = mean
-                                im[2][j][i] = mean
-                            else:
-                                im[0][j][i] = 238 / max_i
-                                im[1][j][i] = 173 / max_i
-                                im[2][j][i] = 14 / max_i
-                        if mask[j][i] == percentile:
-                            indices_of_same_values.append([j, i])
-                if len(indices_of_same_values) > 5:
-                    missing = max(int(0.01 * percentage * w * h - bigger), 0)
-                    selection = random.sample(indices_of_same_values, missing)
-                    for i in selection:
-                        if method == "mean":
-                            im[0][i[0]][i[1]] = mean
-                            im[1][i[0]][i[1]] = mean
-                            im[2][i[0]][i[1]] = mean
-                        else:
-                            im[0][i[0]][i[1]] = 238 / max_i
-                            im[1][i[0]][i[1]] = 173 / max_i
-                            im[2][i[0]][i[1]] = 14 / max_i
-                self.update_data(id, im, roar_link)
-        # print('init: ' + str(round(t2, 3)) + ' modify: ' + str(round(t3, 3)) + ' update: ' + str(round(t4, 3)))
-        # print('used time to modify: ' + str(round(time.time() - start_time, 3)))
+
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset

@@ -82,6 +82,9 @@ def get_model(DEVICE, n_classes, mode):
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
     lr_step_size = 7
     lr_gamma = 0.1
+    ####################
+    roar += '_my_ds'
+    ################
     optimizer_name = 'adam'
     model_name = 'vgg'
     # print(model_name)
@@ -118,7 +121,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             for batch_i, (X, y) in enumerate(train_dl):
-                X, y = X.type(torch.FloatTensor).to(DEVICE), y.to(DEVICE)
+                # print('current batch: ' + str(batch_i))
+                X, y = X.to(DEVICE), y.to(DEVICE)
                 optimizer.zero_grad()
                 y_ = model(X)
                 loss = criterion(y_, y)
@@ -156,7 +160,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             with torch.no_grad():
                 for X, y in val_dl:
-                    X, y = X.type(torch.FloatTensor).to(DEVICE), y.to(DEVICE)
+                    X, y = X.to(DEVICE), y.to(DEVICE)
                     y_ = model(X)
 
                     # Statistics
@@ -209,12 +213,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.axis([0, N_EPOCHS - 1, 00, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar +
-                # '_lr_' + str(learning_rate) +
-                # '_lr_step_size_' + str(lr_step_size) +
-                # '_lr_gamma_' + str(lr_gamma) +
-                # '_optimizer_' + optimizer_name +
-                # '_model_' + model_name +
-                # '_batch_size_' + str(100) +
+                '_lr_' + str(learning_rate) +
+                '_lr_step_size_' + str(lr_step_size) +
+                '_lr_gamma_' + str(lr_gamma) +
+                '_optimizer_' + optimizer_name +
+                '_model_' + model_name +
+                '_batch_size_' + str(100) +
                 '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
@@ -253,15 +257,13 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
                 train_ds = Spectralloader(train_labels, root, mode, 'train')
                 print('loading validation dataset')
                 val_ds = Spectralloader(valid_labels, root, mode, 'val')
-                path_root = path + explainer + '.pkl'
-                with open(path_root, 'rb') as f:
-                    mask = pickle.load(f)
-                    processes = []
-                    for i in roar_values:
-                        # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
-                        #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                        train_parallel(i, mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS,
-                                       lr, trained_roar_models, cv_it, mode)
+                path_mask = path + explainer + '.pkl'
+                processes = []
+                for i in roar_values:
+                    # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
+                    #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
+                    train_parallel(i, path_mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS,
+                                   lr, trained_roar_models, cv_it, mode)
 
                     #     p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
                     #                                                 batch_size, n_classes, N_EPOCHS, lr,
@@ -311,14 +313,13 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             train_data = [all_data[i] for i in train_index]
             valid_data = [all_data[i] for i in test_index]
             print('loading validation dataset')
-            val_ds = Spectralloader(valid_data, root, mode, 'train')
-            print('size of val_ds ' + str(getsizeof(val_ds)))
+            val_ds = Spectralloader(valid_data, root, mode, 'val')
             print('loading training dataset')
-            train_ds = Spectralloader(train_data, root, mode, 'val')
+            train_ds = Spectralloader(train_data, root, mode, 'train')
             im, label = train_ds.__getitem__(0)
             path = './data/' + mode + '/' + 'exp/pred_img_example/'
             # display the modified image and save to pred images in data/exp/pred_img_example
-            # show_image(im, 'original image ')
+            show_image(im, 'original image ')
 
             train_parallel(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
                            original_trained_model, cv_it, mode)
@@ -332,7 +333,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
     #     p.join()
 
 
-def train_parallel(roar_val, mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
+def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
                    trained_roar_models, cv_it, mode):
     if explainer == 'original':
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
@@ -347,8 +348,14 @@ def train_parallel(roar_val, mask, DEVICE, explainer, val_ds, train_ds, batch_si
         # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
         # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
         # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
-        train_ds.apply_roar(roar_val, mask, DEVICE, explainer)
-        val_ds.apply_roar(roar_val, mask, DEVICE, explainer)
+        with open(path_mask, 'rb') as f:
+            print('loading mask')
+            mask = pickle.load(f)
+            print('applying ROAR')
+            train_ds.apply_roar(roar_val, mask, DEVICE, explainer)
+            val_ds.apply_roar(roar_val, mask, DEVICE, explainer)
+        del mask
+        del f
         # p1.start()
         # p2.start()
         # p1.join()

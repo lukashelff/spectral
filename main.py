@@ -40,14 +40,14 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = False
+    roar_create_mask = True
     roar_train = True
     plot_roar_curve = False
     roar_mod_im_comp = False
@@ -66,8 +66,8 @@ def main():
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    roar_explainers = ['guided_gradcam', 'noisetunnel','Integrated_Gradients']
-    roar_explainers = ['random']
+    roar_explainers = ['guided_gradcam', 'noisetunnel', 'Integrated_Gradients']
+    roar_explainers = ['gradcam']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 30, 70, 90]
@@ -77,9 +77,9 @@ def main():
             val_format()
             upscale_imagenet()
         n_classes = 200
-        N_EPOCHS = 15
+        N_EPOCHS = 20
         lr = 0.001
-        batch_size = 20
+        batch_size = 100
         # print('nr epochs: ' + str(N_EPOCHS))
         # print('batch_size ' + str(batch_size))
         # print('lr ' + str(lr))

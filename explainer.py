@@ -80,7 +80,7 @@ def explain_single(model, image, ori_label, explainer, bounded):
         ig = IntegratedGradients(model)
         nt = NoiseTunnel(ig)
         attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                              n_samples=5,
+                                              n_samples=3,
                                               # stdevs=0.2
                                               )
         heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
@@ -92,7 +92,7 @@ def explain_single(model, image, ori_label, explainer, bounded):
         ig = IntegratedGradients(model)
         nt = NoiseTunnel(ig)
         attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                              n_samples=5,
+                                              n_samples=3,
                                               # stdevs=0.2
                                               )
         heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
