@@ -198,7 +198,6 @@ class Spectralloader(Dataset):
                 ids = list(range(len_train))
             elif train == 'val':
                 data = {c + len_train: x for c, x in enumerate(image_datasets['val'].imgs)}
-                data = image_datasets['val'].imgs
                 ids = list(range(len_train, len_all))
             elif train == 'all':
                 data = {c: x for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs)}
@@ -235,7 +234,11 @@ class Spectralloader(Dataset):
     def apply_roar_single_image(self, percentage, masks, id, method, explainer):
         start_time = time.time()
         im = None
-        im_dir, label = self.data[id]
+        try:
+            im_dir, label = self.data[id]
+        except ValueError:
+            print('No roar img for id: ' + id)
+
         index = im_dir.find('/tiny-imagenet-200')
         roar_link = im_dir[:index] + '/roar_images' + im_dir[index:]
         index = roar_link.find('.JPEG')
@@ -245,7 +248,7 @@ class Spectralloader(Dataset):
             os.makedirs(roar_link[:index] + '/images')
 
         if self.mode == 'imagenet' and os.path.exists(roar_link) and not self.update_roar_images:
-            self.data[id] = (roar_link, id)
+            self.data[id] = (roar_link, label)
         else:
             try:
                 im, label = self.get_by_id(id)

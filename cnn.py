@@ -118,7 +118,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             for batch_i, (X, y) in enumerate(train_dl):
-                X, y = X.to(DEVICE), y.to(DEVICE)
+                X, y = X.type(torch.FloatTensor).to(DEVICE), y.to(DEVICE)
                 optimizer.zero_grad()
                 y_ = model(X)
                 loss = criterion(y_, y)
@@ -156,7 +156,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
             with torch.no_grad():
                 for X, y in val_dl:
-                    X, y = X.to(DEVICE), y.to(DEVICE)
+                    X, y = X.type(torch.FloatTensor).to(DEVICE), y.to(DEVICE)
                     y_ = model(X)
 
                     # Statistics

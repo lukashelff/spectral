@@ -32,6 +32,7 @@ from helpfunctions import *
 # roar_explainers = ['guided_gradcam', 'random', 'gradcam', 'noisetunnel_gaussian',
 #                    'guided_gradcam_gaussian', 'noisetunnel', 'Integrated_Gradients']
 image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+image_ids_imagenet = [x * 500 for x in range(8)]
 image_ids_roar_exp = [0, 3, 4, 6]
 image_labels = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1), ('3_Z8_4_0_0', 1),
                 ('3_Z8_4_1_2', 1), ('3_Z1_3_1_1', 0), ('3_Z2_1_0_2', 0)]
@@ -52,7 +53,10 @@ def roar_comparison_explained(mode, DEVICE, explainers):
 
     w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
     for k in image_ids_roar_exp:
-        id = str(3) + '_' + image_ids[k]
+        if mode == 'plants':
+            id = str(3) + '_' + image_ids[k]
+        else:
+            id = image_ids_imagenet[k]
         fig = plt.figure(figsize=(w, h))
         fig.subplots_adjust(top=0.95)
         fig.suptitle(
@@ -120,14 +124,18 @@ def roar_comparison(mode, roar_explainers, cv_iter):
     # roar_explainers = ['random'] + roar_explainers
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     path_exp = './data/' + mode + '/' + 'exp/'
+    if mode == 'plants':
+        image_ids_for_mode = image_ids
+    else:
+        image_ids_for_mode = image_ids_imagenet
 
     print('plotting modified images according to roar')
     w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 3
     for k in image_ids_roar_exp:
         fig = plt.figure(figsize=(w, h))
         fig.subplots_adjust(top=0.95)
-        fig.suptitle("image " + image_ids[k] + " modificed according to ROAR framework", fontsize=80)
-        print('modifing image: ' + image_ids[k])
+        fig.suptitle("image " + image_ids_for_mode[k] + " modificed according to ROAR framework", fontsize=80)
+        print('modifing image: ' + image_ids_for_mode[k])
         if not os.path.exists(path_exp + subpath):
             os.makedirs(path_exp + subpath)
         for c_ex, ex in enumerate(roar_explainers):
@@ -136,7 +144,7 @@ def roar_comparison(mode, roar_explainers, cv_iter):
                 mask = pickle.load(f)
                 print('appling ' + ex + ' to image')
                 for c_r, roar_per in enumerate(roar_values):
-                    id = str(3) + '_' + image_ids[k]
+                    id = str(3) + '_' + image_ids_for_mode[k]
                     all_ds = Spectralloader([image_labels[k]], root, mode, 'all')
                     sub_path = str(roar_per) + '%_of_' + ex + '.sav'
                     path = './data/' + mode + '/' + 'plots/values/' + sub_path

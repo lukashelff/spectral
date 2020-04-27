@@ -147,8 +147,8 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     d_length = dataset.__len__()
     model.to(DEVICE)
     heat_maps = {}
-    for k in roar_explainers:
-        heat_maps[k] = {}
+    for ex in roar_explainers:
+        heat_maps[ex] = {}
     text = 'creating heatmaps for '
     for i in roar_explainers:
         text = text + i + ' '
@@ -156,13 +156,14 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
         for i in range(0, d_length):
             image, label = dataset.__getitem__(i)
             image = torch.Tensor(image).to(DEVICE)
-            for k in roar_explainers:
+            for ex in roar_explainers:
                 progress.update(1)
-                heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)
+                heat_maps[ex][str(dataset.get_id_by_index(i))] = explain_single(model, image, label, ex, False)
         if not os.path.exists(path + '/heatmaps'):
             os.makedirs(path + '/heatmaps')
-        for k in roar_explainers:
-            pickle.dump(heat_maps[k], open(path + subpath + k + '.pkl', 'wb'))
+        for ex in roar_explainers:
+            pickle.dump(heat_maps[ex], open(path + subpath + ex + '.pkl', 'wb'))
+            print('heatmap saved')
 
 
 # cut top x Percentage of data and clips it to max

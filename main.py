@@ -47,7 +47,7 @@ def main():
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
+    roar_create_mask = False
     roar_train = True
     plot_roar_curve = False
     roar_mod_im_comp = False
