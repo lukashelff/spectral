@@ -98,7 +98,7 @@ class Spectralloader(Dataset):
 
         """
 
-    def __init__(self, ids_and_labels, root, mode, transform=None):
+    def __init__(self, ids_and_labels, root, mode, train, transform=None):
         # Parameter:
         # ids_and_labels: list of all IDs with their corresponding labels
         # Variables:
@@ -108,7 +108,7 @@ class Spectralloader(Dataset):
         #  data[id]['image'] = image, data[id]['label'] = label
         gc.enable()
         self.mode = mode
-        self.data, self.ids = self.load_images_for_labels(root, ids_and_labels)
+        self.data, self.ids = self.load_images_for_labels(root, ids_and_labels, train)
         gc.disable()
         self.percentage = None
         self.mask = None
@@ -141,7 +141,8 @@ class Spectralloader(Dataset):
                 # do not create new image if exist
                 im = Image.fromarray(np.transpose(val, to_RGB))
                 im.save(roar_link)
-                self.data[id] = (roar_link, id)
+                _, label = self.data[id]
+                self.data[id] = (roar_link, label)
             else:
                 self.data[id]['image'] = val
         except ValueError:
@@ -169,13 +170,13 @@ class Spectralloader(Dataset):
             return None, None
 
     # returns an Array of IDs and a dictionary of all IDs with their corresponding images and label
-    def load_images_for_labels(self, root_path, labels):
+    def load_images_for_labels(self, root_path, ids_and_labels, train):
         data = {}
         ids = []
 
         # add image with corresponding label and id to the DS
         def add_to_data(image, id):
-            for (k, label) in labels:
+            for (k, label) in ids_and_labels:
                 if k == id:
                     data[id] = {}
                     data[id]['image'] = np.array(image)
@@ -190,8 +191,19 @@ class Spectralloader(Dataset):
                               for x in ['train', 'val']}
             len_train = image_datasets['train'].__len__()
             len_val = image_datasets['val'].__len__()
-            data = image_datasets['train'].imgs
-            ids = list(range(len_train))
+            len_all = len_val + len_train
+
+            if train == 'train':
+                data = {c: x for c, x in enumerate(image_datasets['train'].imgs)}
+                ids = list(range(len_train))
+            elif train == 'val':
+                data = {c + len_train: x for c, x in enumerate(image_datasets['val'].imgs)}
+                data = image_datasets['val'].imgs
+                ids = list(range(len_train, len_all))
+            elif train == 'all':
+                data = {c: x for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs)}
+                ids = list(range(len_all))
+
         else:
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
@@ -220,7 +232,7 @@ class Spectralloader(Dataset):
                                 load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
         return data, ids
 
-    def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
+    def apply_roar_single_image(self, percentage, masks, id, method, explainer):
         start_time = time.time()
         im = None
         im_dir, label = self.data[id]
@@ -236,9 +248,10 @@ class Spectralloader(Dataset):
             self.data[id] = (roar_link, id)
         else:
             try:
-                im, label = self.__getitem__(id)
+                im, label = self.get_by_id(id)
                 if self.mode == 'imagenet':
-                    im = np.transpose(self.transform(Image.fromarray(np.transpose(im, to_RGB))), to_learning)
+                    if method == 'mean':
+                        im = np.transpose(self.transform(Image.fromarray(np.transpose(im, to_RGB))), to_learning)
                     im = deepcopy(im)
 
             except ValueError:
@@ -259,12 +272,11 @@ class Spectralloader(Dataset):
                     for j in range(0, h):
                         if mask[j][i] > percentile:
                             bigger += 1
-                            if new_val == "mean":
+                            if method == "mean":
                                 im[0][j][i] = mean
                                 im[1][j][i] = mean
                                 im[2][j][i] = mean
                             else:
-
                                 im[0][j][i] = 238 / max_i
                                 im[1][j][i] = 173 / max_i
                                 im[2][j][i] = 14 / max_i
@@ -274,7 +286,7 @@ class Spectralloader(Dataset):
                     missing = max(int(0.01 * percentage * w * h - bigger), 0)
                     selection = random.sample(indices_of_same_values, missing)
                     for i in selection:
-                        if new_val == "mean":
+                        if method == "mean":
                             im[0][i[0]][i[1]] = mean
                             im[1][i[0]][i[1]] = mean
                             im[2][i[0]][i[1]] = mean
@@ -323,9 +335,6 @@ class Spectralloader(Dataset):
         #         self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
         #         progress.update(1)
         self.roar_done = True
-
-    def parallel_roar(self, percentage, masks, id, mean, explainer):
-        self.apply_roar_single_image(percentage, masks, id, mean, explainer)
 
 
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)

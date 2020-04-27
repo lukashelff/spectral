@@ -16,6 +16,7 @@ from skimage import feature
 from sklearn import preprocessing
 from tqdm import tqdm
 
+
 # import from local lib
 # import innvestigator
 # import settings as set
@@ -24,7 +25,7 @@ from tqdm import tqdm
 # create single explainer of the image for the specified explainer
 def explain_single(model, image, ori_label, explainer, bounded):
     input = image.unsqueeze(0)
-    input.requires_grad = True
+    # input.requires_grad = True
     model.eval()
     c, h, w = image.shape
     heat_map = np.random.rand(h, w)
@@ -136,8 +137,8 @@ def explain_single(model, image, ori_label, explainer, bounded):
         if bounded:
             heat_map = cut_top_per(heat_map)
 
-    assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(heat_map.shape) +\
-                                                       " does not match image shape: " + str(torch.Size([h, w]))
+    assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
+        heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
     return heat_map
 
 
@@ -154,7 +155,7 @@ def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
     with tqdm(total=len(roar_explainers) * d_length, desc=text, ncols=100 + len(roar_explainers) * 15) as progress:
         for i in range(0, d_length):
             image, label = dataset.__getitem__(i)
-            image = torch.from_numpy(image).to(DEVICE)
+            image = torch.Tensor(image).to(DEVICE)
             for k in roar_explainers:
                 progress.update(1)
                 heat_maps[k][dataset.get_id_by_index(i)] = explain_single(model, image, label, k, False)

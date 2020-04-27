@@ -59,7 +59,7 @@ def roar_comparison_explained(mode, DEVICE, explainers):
             "modified image " + id + " according to ROAR framework with applied interpretation of its saliency method",
             fontsize=80)
         print('plotting modified image:' + id + ' according to roar')
-        all_ds = Spectralloader([image_labels[k]], root, mode)
+        all_ds = Spectralloader([image_labels[k]], root, mode, 'all')
         image, label = all_ds.get_by_id(id)
         for c_e, a in enumerate(explainers):
             ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
@@ -79,7 +79,7 @@ def roar_comparison_explained(mode, DEVICE, explainers):
                 for c_r, i in enumerate(roar_expl_im_values):
                     # select 3 day image of image ID
                     # loading model of explainer for corresponding remove value
-                    all_ds = Spectralloader([image_labels[k]], root, mode)
+                    all_ds = Spectralloader([image_labels[k]], root, mode, 'all')
                     if i == 0:
                         model = get_model(DEVICE, n_classes, mode)
                         original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
@@ -137,7 +137,7 @@ def roar_comparison(mode, roar_explainers, cv_iter):
                 print('appling ' + ex + ' to image')
                 for c_r, roar_per in enumerate(roar_values):
                     id = str(3) + '_' + image_ids[k]
-                    all_ds = Spectralloader([image_labels[k]], root, mode)
+                    all_ds = Spectralloader([image_labels[k]], root, mode, 'all')
                     sub_path = str(roar_per) + '%_of_' + ex + '.sav'
                     path = './data/' + mode + '/' + 'plots/values/' + sub_path
                     if roar_per == 0:

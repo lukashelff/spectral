@@ -250,9 +250,9 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
                 for i in test_index:
                     valid_labels.append(all_data[i])
                 print('loading training dataset')
-                train_ds = Spectralloader(train_labels, root, mode)
+                train_ds = Spectralloader(train_labels, root, mode, 'train')
                 print('loading validation dataset')
-                val_ds = Spectralloader(valid_labels, root, mode)
+                val_ds = Spectralloader(valid_labels, root, mode, 'val')
                 path_root = path + explainer + '.pkl'
                 with open(path_root, 'rb') as f:
                     mask = pickle.load(f)
@@ -311,10 +311,10 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             train_data = [all_data[i] for i in train_index]
             valid_data = [all_data[i] for i in test_index]
             print('loading validation dataset')
-            val_ds = Spectralloader(valid_data, root, mode)
+            val_ds = Spectralloader(valid_data, root, mode, 'train')
             print('size of val_ds ' + str(getsizeof(val_ds)))
             print('loading training dataset')
-            train_ds = Spectralloader(train_data, root, mode)
+            train_ds = Spectralloader(train_data, root, mode, 'val')
             im, label = train_ds.__getitem__(0)
             path = './data/' + mode + '/' + 'exp/pred_img_example/'
             # display the modified image and save to pred images in data/exp/pred_img_example
@@ -332,17 +332,18 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
     #     p.join()
 
 
-def train_parallel(roar_val, mask, DEVICE, explainer, val_ds_org, train_ds_org, batch_size, n_classes, N_EPOCHS, lr,
+def train_parallel(roar_val, mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
                    trained_roar_models, cv_it, mode):
     if explainer == 'original':
-        train_dl = DataLoader(train_ds_org, batch_size=batch_size, shuffle=True, num_workers=4, )
-        val_dl = DataLoader(val_ds_org, batch_size=batch_size, shuffle=False, num_workers=4, )
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
+        val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
         original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it, mode)
         torch.save(original_model.state_dict(), trained_roar_models)
 
     else:
-        val_ds = deepcopy(val_ds_org)
-        train_ds = deepcopy(train_ds_org)
+        if mode == 'plants':
+            val_ds = deepcopy(val_ds)
+            train_ds = deepcopy(train_ds)
         # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
         # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
         # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))

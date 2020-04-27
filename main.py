@@ -40,14 +40,14 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = False
+    roar_create_mask = True
     roar_train = True
     plot_roar_curve = False
     roar_mod_im_comp = False
@@ -66,6 +66,7 @@ def main():
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'random', 'Integrated_Gradients']
+    roar_explainers = ['guided_gradcam', 'noisetunnel','Integrated_Gradients']
     roar_explainers = ['random']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
@@ -111,11 +112,11 @@ def main():
     if plot_classes or plot_categories:
         # load needed data
         print('loading validation dataset')
-        val_ds = Spectralloader(valid_labels, root, mode)
+        val_ds = Spectralloader(valid_labels, root, mode, 'val')
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
     if plot_for_image_id or roar_create_mask:
         print('loading whole dataset')
-        all_ds = Spectralloader(all_data, root, mode)
+        all_ds = Spectralloader(all_data, root, mode, 'all')
 
     # train model or use trained model from last execution
     if retrain:
