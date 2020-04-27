@@ -1,7 +1,12 @@
 import glob
 import os
 import mmap
+from multiprocessing import pool
+
+import torch
 import tqdm as tqdm
+from concurrent.futures.thread import ThreadPoolExecutor
+from concurrent.futures.process import ProcessPoolExecutor
 from torch.utils.data import Dataset
 import pickle
 import numpy as np
@@ -12,7 +17,7 @@ import cv2
 from shutil import move
 from os import rmdir
 import gc
-
+import time
 from copy import deepcopy
 from helpfunctions import *
 
@@ -78,12 +83,18 @@ class Spectralloader(Dataset):
                 (213, 255, 328)
                 RGB format
                 (213, 255, 3)
+                from RGB to learning
+                (1, 2, 0)
+                from learning to RGB
+                (2,0,1)
                 learning format
                 (3, 255, 213)
                 RGB channels
                 [50, 88, 151]
                 SWIR
                 [24, 51, 118]
+
+
 
         """
 
@@ -102,6 +113,9 @@ class Spectralloader(Dataset):
         self.percentage = None
         self.mask = None
         self.explainer = None
+        self.roar_done = False
+        self.DEVICE = None
+        self.update_roar_images = False
         self.transform = transforms.Compose([
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
@@ -120,21 +134,12 @@ class Spectralloader(Dataset):
         return len(self.ids)
 
     # update value in dataset with the new specified value
-    def update_data(self, id, val, dir):
+    def update_data(self, id, val, roar_link):
         try:
             if self.mode == 'imagenet':
-                index = dir.find('/tiny-imagenet-200')
-                roar_link = dir[:index] + '/roar_images' + dir[index:]
-                index = roar_link.find('.JPEG')
-                roar_link = roar_link[:index] + '_' + self.explainer + '_' + str(self.percentage) + roar_link[index:]
-                index = roar_link.find('/images')
-                if not os.path.exists(roar_link[:index] + '/images'):
-                    os.makedirs(roar_link[:index] + '/images')
 
                 # do not create new image if exist
-                if not os.path.isfile(roar_link):
-                    im = Image.fromarray(val)
-                im = self.transform(im)
+                im = Image.fromarray(np.transpose(val, to_RGB))
                 im.save(roar_link)
                 self.data[id] = (roar_link, id)
             else:
@@ -154,8 +159,7 @@ class Spectralloader(Dataset):
             if self.mode == 'imagenet':
                 image_path, label = self.data[id]
                 im = Image.open(image_path)
-                image = np.asarray(im)
-
+                image = np.transpose(im, to_learning)
             else:
                 image, label = self.data[id]['image'], self.data[id]['label']
 
@@ -217,76 +221,111 @@ class Spectralloader(Dataset):
         return data, ids
 
     def apply_roar_single_image(self, percentage, masks, id, new_val, explainer):
+        start_time = time.time()
         im = None
         im_dir, label = self.data[id]
-        try:
-            val, label = self.__getitem__(id)
-            im = deepcopy(val)
+        index = im_dir.find('/tiny-imagenet-200')
+        roar_link = im_dir[:index] + '/roar_images' + im_dir[index:]
+        index = roar_link.find('.JPEG')
+        roar_link = roar_link[:index] + '_' + self.explainer + '_' + str(self.percentage) + roar_link[index:]
+        index = roar_link.find('/images')
+        if not os.path.exists(roar_link[:index] + '/images'):
+            os.makedirs(roar_link[:index] + '/images')
 
-        except ValueError:
-            print('No roar img for id: ' + id)
-        if im is not None:
-            mean = np.mean(im)
-            mask = masks[str(id)]
-            # only take percentile of values with duplicated zeros deleted
-            mask_flat = mask.flatten()
-            percentile = np.percentile(mask_flat, 100 - percentage)
-            c, h, w = im.shape
-            bigger = 0
-            indices_of_same_values = []
-            for i in range(0, w):
-                for j in range(0, h):
-                    if mask[j][i] > percentile:
-                        bigger += 1
+        if self.mode == 'imagenet' and os.path.exists(roar_link) and not self.update_roar_images:
+            self.data[id] = (roar_link, id)
+        else:
+            try:
+                im, label = self.__getitem__(id)
+                if self.mode == 'imagenet':
+                    im = np.transpose(self.transform(Image.fromarray(np.transpose(im, to_RGB))), to_learning)
+                    im = deepcopy(im)
+
+            except ValueError:
+                print('No roar img for id: ' + id)
+            if im is not None:
+                mean = np.mean(im)
+                mask = masks[str(id)]
+                # only take percentile of values with duplicated zeros deleted
+                mask_flat = mask.flatten()
+                percentile = np.percentile(mask_flat, 100 - percentage)
+                c, h, w = im.shape
+                bigger = 0
+                indices_of_same_values = []
+                max_i = 255
+                if self.mode == 'imagenet':
+                    max_i = 1
+                for i in range(0, w):
+                    for j in range(0, h):
+                        if mask[j][i] > percentile:
+                            bigger += 1
+                            if new_val == "mean":
+                                im[0][j][i] = mean
+                                im[1][j][i] = mean
+                                im[2][j][i] = mean
+                            else:
+
+                                im[0][j][i] = 238 / max_i
+                                im[1][j][i] = 173 / max_i
+                                im[2][j][i] = 14 / max_i
+                        if mask[j][i] == percentile:
+                            indices_of_same_values.append([j, i])
+                if len(indices_of_same_values) > 5:
+                    missing = max(int(0.01 * percentage * w * h - bigger), 0)
+                    selection = random.sample(indices_of_same_values, missing)
+                    for i in selection:
                         if new_val == "mean":
-                            im[0][j][i] = mean
-                            im[1][j][i] = mean
-                            im[2][j][i] = mean
+                            im[0][i[0]][i[1]] = mean
+                            im[1][i[0]][i[1]] = mean
+                            im[2][i[0]][i[1]] = mean
                         else:
-                            im[0][j][i] = 238 / 255
-                            im[1][j][i] = 173 / 255
-                            im[2][j][i] = 14 / 255
-                    if mask[j][i] == percentile:
-                        indices_of_same_values.append([j, i])
-            if len(indices_of_same_values) > 5:
-                missing = max(int(0.01 * percentage * w * h - bigger), 0)
-                selection = random.sample(indices_of_same_values, missing)
-                for i in selection:
-                    if new_val == "mean":
-                        im[0][i[0]][i[1]] = mean
-                        im[1][i[0]][i[1]] = mean
-                        im[2][i[0]][i[1]] = mean
-                    else:
-                        im[0][i[0]][i[1]] = 238 / 255
-                        im[1][i[0]][i[1]] = 173 / 255
-                        im[2][i[0]][i[1]] = 14 / 255
-            self.update_data(id, im, im_dir)
+                            im[0][i[0]][i[1]] = 238 / max_i
+                            im[1][i[0]][i[1]] = 173 / max_i
+                            im[2][i[0]][i[1]] = 14 / max_i
+                self.update_data(id, im, roar_link)
+        # print('init: ' + str(round(t2, 3)) + ' modify: ' + str(round(t3, 3)) + ' update: ' + str(round(t4, 3)))
+        # print('used time to modify: ' + str(round(time.time() - start_time, 3)))
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
     def apply_roar(self, percentage, masks, DEVICE, explainer):
+
         self.percentage = percentage
         self.mask = masks
         self.explainer = explainer
+        self.DEVICE = DEVICE
         length = self.__len__()
         text = 'removing ' + str(percentage) + '% of ' + explainer
+
         # parallel execution not working
-        # pool = mp.Pool(20)
-        # for d in range(0, length):
-        #     id = self.get_id_by_index(d)
-        #     pool.apply_async(self.parallel_roar, (percentage, masks, id, "mean", explainer))
-        # pool.close()
-        # pool.join()
-        # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
+        # pool = mp.Pool(processes=4)
         with tqdm(total=length, desc=text) as progress:
+            def log_result():
+                progress.update(1)
+
+            # with ProcessPoolExecutor(max_workers=4) as executor:
+            #     executor.map(self.apply_roar_single_image,
+            #                           [(percentage, masks, self.get_id_by_index(d), "mean", explainer) for d in
+            #                            range(0, length)])
+
             for d in range(0, length):
                 id = self.get_id_by_index(d)
                 self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
-                progress.update(1)
-
+                log_result()
+                # pool.apply_async(self.apply_roar_single_image, args=(percentage, masks, id, "mean", explainer),
+                #              callback=log_result)
+        # pool.close()
+        # pool.join()
+        # r = list(tqdm.tqdm(pool.imap_unordered(self.apply_roar_single_image, data), total=length, desc=text))
+        # with tqdm(total=length, desc=text) as progress:
+        #     for d in range(0, length):
+        #         id = self.get_id_by_index(d)
+        #         self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+        #         progress.update(1)
+        self.roar_done = True
 
     def parallel_roar(self, percentage, masks, id, mean, explainer):
-        self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
+        self.apply_roar_single_image(percentage, masks, id, mean, explainer)
 
 
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)

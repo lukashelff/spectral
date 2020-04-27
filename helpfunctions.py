@@ -6,7 +6,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
+#  from RGB to learning
+to_RGB = (1, 2, 0)
+#                 from learning to RGB
+to_learning = (2, 0, 1)
 
+
+#
 # transpose image to display learned images
 def display_rgb_grid(img, title):
     print(title + ' image displayed with shape ' + str(img.shape))
