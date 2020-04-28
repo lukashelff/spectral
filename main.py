@@ -40,15 +40,15 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
-    roar_train = False
+    roar_create_mask = False
+    roar_train = True
     plot_roar_curve = False
     roar_mod_im_comp = False
     roar_expl_im = False
@@ -141,7 +141,7 @@ def main():
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:
         print('creating for ROAR mask')
-        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode)
+        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode, replace_existing=False)
         print('mask for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages

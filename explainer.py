@@ -79,8 +79,9 @@ def explain_single(model, image, ori_label, explainer, bounded):
         # IntegratedGradients Noise Tunnel
         ig = IntegratedGradients(model)
         nt = NoiseTunnel(ig)
-        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                              n_samples=3,
+        attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0,
+                                              # nt_type='smoothgrad_sq',
+                                              # n_samples=1,
                                               # stdevs=0.2
                                               )
         heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
@@ -92,7 +93,7 @@ def explain_single(model, image, ori_label, explainer, bounded):
         ig = IntegratedGradients(model)
         nt = NoiseTunnel(ig)
         attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                              n_samples=3,
+                                              n_samples=5,
                                               # stdevs=0.2
                                               )
         heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
@@ -143,9 +144,9 @@ def explain_single(model, image, ori_label, explainer, bounded):
 
 
 # create a mask with all heat_maps for specified dataset
-def create_mask(model, dataset, path, DEVICE, roar_explainers, mode):
+def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, replace_existing):
     if mode == 'imagenet':
-        create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers)
+        create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_existing)
     else:
         d_length = dataset.__len__()
         model.to(DEVICE)
@@ -170,7 +171,7 @@ def create_mask(model, dataset, path, DEVICE, roar_explainers, mode):
 
 
 # create a mask with all heat_maps for specified dataset
-def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers):
+def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_existing):
     d_length = dataset.__len__()
     model.to(DEVICE)
     heat_maps = {}
@@ -189,7 +190,7 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers):
             image = image.to(DEVICE)
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
-                if not os.path.isfile(path_item):
+                if (not os.path.isfile(path_item)) or replace_existing:
                     tmp = explain_single(model, image, label, ex, False)
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)

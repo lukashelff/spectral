@@ -295,7 +295,9 @@ class Spectralloader(Dataset):
                     if self.mode == 'plants':
                         mask = masks[str(id)]
                     else:
-                        with open(masks + '/heatmaps/' + explainer + '/' + str(id) + '.pkl') as f:
+
+
+                        with open(masks + 'heatmaps/' + explainer + '/' + str(id) + '.pkl', 'rb') as f:
                             mask = pickle.load(f)
                     # only take percentile of values with duplicated zeros deleted
                     mask_flat = mask.flatten()
@@ -336,10 +338,8 @@ class Spectralloader(Dataset):
                     del im
             # print('init: ' + str(round(t2, 3)) + ' modify: ' + str(round(t3, 3)) + ' update: ' + str(round(t4, 3)))
             # print('used time to modify: ' + str(round(time.time() - start_time, 3)))
-
-
         except ValueError:
-            print('No roar img for id: ' + id)
+            print('No roar img or mask for id: ' + str(id))
 
 
     # apply the roar to the dataset
@@ -349,7 +349,7 @@ class Spectralloader(Dataset):
             with open(path + 'heatmaps/heatmaps' + explainer + '.pkl', 'rb') as f:
                 masks = pickle.load(f)
         else:
-            masks = path + '/heatmaps/' + explainer + '/'
+            masks = path
         self.percentage = percentage
         self.explainer = explainer
         self.DEVICE = DEVICE
