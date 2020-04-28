@@ -143,27 +143,56 @@ def explain_single(model, image, ori_label, explainer, bounded):
 
 
 # create a mask with all heat_maps for specified dataset
-def create_mask(model, dataset, path, subpath, DEVICE, roar_explainers):
+def create_mask(model, dataset, path, DEVICE, roar_explainers, mode):
+    if mode == 'imagenet':
+        create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers)
+    else:
+        d_length = dataset.__len__()
+        model.to(DEVICE)
+        heat_maps = {}
+        for ex in roar_explainers:
+            heat_maps[ex] = {}
+        text = 'creating heatmaps for '
+        for i in roar_explainers:
+            text = text + i + ' '
+        with tqdm(total=len(roar_explainers) * d_length, desc=text, ncols=100 + len(roar_explainers) * 15) as progress:
+            for i in range(0, d_length):
+                image, label = dataset.__getitem__(i)
+                image = torch.Tensor(image).to(DEVICE)
+                for ex in roar_explainers:
+                    progress.update(1)
+                    heat_maps[ex][str(dataset.get_id_by_index(i))] = explain_single(model, image, label, ex, False)
+            if not os.path.exists(path + 'heatmaps'):
+                os.makedirs(path + 'heatmaps')
+            for ex in roar_explainers:
+                pickle.dump(heat_maps[ex], open(path + 'heatmaps/heatmaps' + ex + '.pkl', 'wb'))
+                print('heatmap saved')
+
+
+# create a mask with all heat_maps for specified dataset
+def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers):
     d_length = dataset.__len__()
     model.to(DEVICE)
     heat_maps = {}
+
     for ex in roar_explainers:
+        if not os.path.exists(path + '/heatmaps/' + ex):
+            os.makedirs(path + '/heatmaps/' + ex)
         heat_maps[ex] = {}
     text = 'creating heatmaps for '
     for i in roar_explainers:
         text = text + i + ' '
     with tqdm(total=len(roar_explainers) * d_length, desc=text, ncols=100 + len(roar_explainers) * 15) as progress:
         for i in range(0, d_length):
-            image, label = dataset.__getitem__(i)
-            image = torch.Tensor(image).to(DEVICE)
+            id = dataset.get_id_by_index(i)
+            image, label = dataset.get_original_by_id(id)
+            image = image.to(DEVICE)
             for ex in roar_explainers:
+                path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
+                if not os.path.isfile(path_item):
+                    tmp = explain_single(model, image, label, ex, False)
+                    pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)
-                heat_maps[ex][str(dataset.get_id_by_index(i))] = explain_single(model, image, label, ex, False)
-        if not os.path.exists(path + '/heatmaps'):
-            os.makedirs(path + '/heatmaps')
-        for ex in roar_explainers:
-            pickle.dump(heat_maps[ex], open(path + subpath + ex + '.pkl', 'wb'))
-            print('heatmap saved')
 
 
 # cut top x Percentage of data and clips it to max

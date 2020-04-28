@@ -40,7 +40,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
@@ -48,7 +48,7 @@ def main():
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
     roar_create_mask = True
-    roar_train = True
+    roar_train = False
     plot_roar_curve = False
     roar_mod_im_comp = False
     roar_expl_im = False
@@ -68,24 +68,26 @@ def main():
                        'noisetunnel', 'random', 'Integrated_Gradients']
     roar_explainers = ['guided_gradcam', 'noisetunnel', 'Integrated_Gradients']
     roar_explainers = ['gradcam']
+    original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
+
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
-    roar_values = [10, 30, 70, 90]
+    # roar_values = [10, 30, 70, 90]
+    roar_values = [10]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:
             val_format()
             upscale_imagenet()
         n_classes = 200
-        N_EPOCHS = 20
+        N_EPOCHS = 15
         lr = 0.001
-        batch_size = 100
+        batch_size = 50
         # print('nr epochs: ' + str(N_EPOCHS))
         # print('batch_size ' + str(batch_size))
         # print('lr ' + str(lr))
         cv_iterations_total = 1
         test_size = 10000
-        # train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode)
 
     train_labels, valid_labels, all_data, labels = load_labels(mode)
     sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
@@ -103,7 +105,6 @@ def main():
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/' + mode + '/' + 'exp/'
-    subpath_heatmaps = 'heatmaps/heatmaps'
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
@@ -140,12 +141,12 @@ def main():
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:
         print('creating for ROAR mask')
-        create_mask(original_model, all_ds, path_exp, subpath_heatmaps, DEVICE, roar_explainers)
+        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode)
         print('mask for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
-        train_roar_ds(path_exp + subpath_heatmaps, roar_values, trained_roar_models, all_data, labels, batch_size,
+        train_roar_ds(path_exp, roar_values, trained_roar_models, all_data, labels, batch_size,
                       n_classes, N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode, cv_it_to_calc)
 
     # plot the acc curves of all trained ROAR models

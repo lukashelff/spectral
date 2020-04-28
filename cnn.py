@@ -83,7 +83,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     lr_step_size = 7
     lr_gamma = 0.1
     ####################
-    roar += '_my_ds'
     ################
     optimizer_name = 'adam'
     model_name = 'vgg'
@@ -262,7 +261,7 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
                 for i in roar_values:
                     # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
                     #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
-                    train_parallel(i, path_mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS,
+                    train_parallel(i, path, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS,
                                    lr, trained_roar_models, cv_it, mode)
 
                     #     p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
@@ -348,14 +347,8 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
         # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
         # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
-        with open(path_mask, 'rb') as f:
-            print('loading mask')
-            mask = pickle.load(f)
-            print('applying ROAR')
-            train_ds.apply_roar(roar_val, mask, DEVICE, explainer)
-            val_ds.apply_roar(roar_val, mask, DEVICE, explainer)
-        del mask
-        del f
+        train_ds.apply_roar(roar_val, path_mask, DEVICE, explainer)
+        val_ds.apply_roar(roar_val, path_mask, DEVICE, explainer)
         # p1.start()
         # p2.start()
         # p1.join()
@@ -383,7 +376,7 @@ def apply_parallel(ds, i, mask, DEVICE, explainer):
     ds.apply_roar(i, mask, DEVICE, explainer)
 
 
-def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
+def train_imagenet(model, N_EPOCHS, lr, batch_size, DEVICE, mode):
     data_dir = './data/imagenet/tiny-imagenet-200/'
     data_transforms = {
         'train': transforms.Compose([
@@ -410,4 +403,34 @@ def train_imagenet(N_EPOCHS, lr, batch_size, DEVICE, mode):
 
     dataloaders = {x: data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, num_workers=4)
                    for x in ['train', 'val', 'test']}
-    train(200, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'original', 0, mode)
+    criterion = nn.CrossEntropyLoss()
+    model.eval()
+
+    total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
+    with torch.no_grad():
+        for X, y in dataloaders['train']:
+            X, y = X.to(DEVICE), y.to(DEVICE)
+            y_ = model(X)
+
+            # Statistics
+            _, y_label_ = torch.max(y_, 1)
+            n_correct += (y_label_ == y).sum().item()
+            loss = criterion(y_, y)
+            total_loss += loss.item() * X.shape[0]
+            n_samples += X.shape[0]
+            pred += y_label_.tolist()
+            all_y += y.tolist()
+
+    valid_balanced_acc = round(balanced_accuracy_score(all_y, pred) * 100, 2)
+    valid_loss = round(total_loss / n_samples, 2)
+    valid_acc = round(n_correct / n_samples * 100, 2)
+    print(
+                             # f"  train loss: {train_loss[epoch]:9.3f} |"
+                             # f"  train acc:  {train_acc[epoch]:9.3f}% |"
+                             f"  valid loss: {valid_loss:9.3f} |"
+                             f"  valid acc:  {valid_acc:9.3f}% |"
+                             f"  valid balanced acc:  {valid_balanced_acc:9.3f}% |"
+                             )
+
+
+    # train(200, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'original', 0, mode)

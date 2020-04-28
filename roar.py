@@ -64,7 +64,7 @@ def roar_comparison_explained(mode, DEVICE, explainers):
             fontsize=80)
         print('plotting modified image:' + id + ' according to roar')
         all_ds = Spectralloader([image_labels[k]], root, mode, 'all')
-        image, label = all_ds.get_by_id(id)
+        image, label = all_ds.get_original_by_id(id)
         for c_e, a in enumerate(explainers):
             ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
                                  c_e + 1)
@@ -153,7 +153,7 @@ def roar_comparison(mode, roar_explainers, cv_iter):
                     else:
                         all_ds.apply_roar_single_image(roar_per, mask, id, 'comp', ex)
                         acc = get_cross_val_acc(ex, roar_per, cv_iter, mode)
-                    image, label = all_ds.get_by_id(id)
+                    image, label = all_ds.get_original_by_id(id)
                     # create ROAR plot
                     ax = fig.add_subplot(len(roar_values), len(roar_explainers),
                                          (c_ex + 1) + c_r * len(roar_explainers))

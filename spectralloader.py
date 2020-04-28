@@ -115,7 +115,6 @@ class Spectralloader(Dataset):
         self.percentage = None
         self.mask = None
         self.explainer = None
-        self.roar_done = False
         self.DEVICE = None
         self.update_roar_images = True
         self.normalize_tensor = transforms.Compose([
@@ -162,7 +161,7 @@ class Spectralloader(Dataset):
             print('Index out of bound: ' + str(index))
             return None
 
-    def get_item_original(self, id):
+    def get_original_by_id(self, id):
         if self.mode == 'imagenet':
             image_path, label = self.data[id]
             im = Image.open(image_path)
@@ -267,7 +266,7 @@ class Spectralloader(Dataset):
         start_time = time.time()
         im = None
         try:
-            im, label = self.get_item_original(id)
+            im, label = self.get_original_by_id(id)
             if self.mode == 'imagenet':
                 if method == 'mean':
                     method_text = ''
@@ -293,8 +292,11 @@ class Spectralloader(Dataset):
                     im = deepcopy(im).cpu().detach().numpy()
                 if im is not None:
                     mean = np.mean(im)
-                    # im.to(self.DEVICE)
-                    mask = masks[str(id)]
+                    if self.mode == 'plants':
+                        mask = masks[str(id)]
+                    else:
+                        with open(masks + '/heatmaps/' + explainer + '/' + str(id) + '.pkl') as f:
+                            mask = pickle.load(f)
                     # only take percentile of values with duplicated zeros deleted
                     mask_flat = mask.flatten()
                     percentile = np.percentile(mask_flat, 100 - percentage)
@@ -340,15 +342,15 @@ class Spectralloader(Dataset):
             print('No roar img for id: ' + id)
 
 
-
-
-
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
-    def apply_roar(self, percentage, masks, DEVICE, explainer):
-
+    def apply_roar(self, percentage, path, DEVICE, explainer):
+        if self.mode == 'plants':
+            with open(path + 'heatmaps/heatmaps' + explainer + '.pkl', 'rb') as f:
+                masks = pickle.load(f)
+        else:
+            masks = path + '/heatmaps/' + explainer + '/'
         self.percentage = percentage
-        self.mask = masks
         self.explainer = explainer
         self.DEVICE = DEVICE
         length = self.__len__()
@@ -379,7 +381,6 @@ class Spectralloader(Dataset):
         #         id = self.get_id_by_index(d)
         #         self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
         #         progress.update(1)
-        self.roar_done = True
 
 
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)
