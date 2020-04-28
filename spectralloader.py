@@ -262,27 +262,30 @@ class Spectralloader(Dataset):
                                 load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
         return data, ids
 
+    def get_roar_directory(self, method, id):
+        if method == 'mean':
+            method_text = ''
+        else:
+            # comparison value to better detect removed values
+            # modify method only significant images get roared
+            method_text = '/' + method
+        im_dir, label = self.data[id]
+        index = im_dir.find('/tiny-imagenet-200')
+        roar_link = im_dir[:index] + '/roar_images' + method_text + im_dir[index:]
+        index = roar_link.find('.JPEG')
+        roar_link = roar_link[:index] + '_' + self.explainer + '_' + str(self.percentage) + roar_link[index:]
+        index = roar_link.find('/images')
+        if not os.path.exists(roar_link[:index] + '/images'):
+            os.makedirs(roar_link[:index] + '/images')
+        return roar_link
+
     def apply_roar_single_image(self, percentage, masks, id, method, explainer):
         start_time = time.time()
         im = None
         try:
             im, label = self.get_original_by_id(id)
             if self.mode == 'imagenet':
-                if method == 'mean':
-                    method_text = ''
-                else:
-                    # comparison value to better detect removed values
-                    # modify method only significant images get roared
-                    method_text = '/' + method
-                im_dir, label = self.data[id]
-                index = im_dir.find('/tiny-imagenet-200')
-                roar_link = im_dir[:index] + '/roar_images' + method_text + im_dir[index:]
-                index = roar_link.find('.JPEG')
-                roar_link = roar_link[:index] + '_' + self.explainer + '_' + str(self.percentage) + roar_link[index:]
-                index = roar_link.find('/images')
-                if not os.path.exists(roar_link[:index] + '/images'):
-                    os.makedirs(roar_link[:index] + '/images')
-
+                roar_link = self.get_roar_directory(method, id)
             if self.mode == 'imagenet' and os.path.exists(roar_link) and not self.update_roar_images:
                 self.data[id] = (roar_link, label)
             else:
@@ -293,54 +296,67 @@ class Spectralloader(Dataset):
                 if im is not None:
                     mean = np.mean(im)
                     if self.mode == 'plants':
+                        max_i = 255
                         mask = masks[str(id)]
                     else:
-
-
+                        max_i = 1
                         with open(masks + 'heatmaps/' + explainer + '/' + str(id) + '.pkl', 'rb') as f:
                             mask = pickle.load(f)
                     # only take percentile of values with duplicated zeros deleted
-                    mask_flat = mask.flatten()
-                    percentile = np.percentile(mask_flat, 100 - percentage)
                     c, h, w = im.shape
-                    bigger = 0
-                    indices_of_same_values = []
-                    max_i = 255
-                    if self.mode == 'imagenet':
-                        max_i = 1
-                    for i in range(0, w):
-                        for j in range(0, h):
-                            if mask[j][i] > percentile:
-                                bigger += 1
-                                if method == "mean":
-                                    im[0][j][i] = mean
-                                    im[1][j][i] = mean
-                                    im[2][j][i] = mean
-                                else:
-                                    im[0][j][i] = 238 / max_i
-                                    im[1][j][i] = 173 / max_i
-                                    im[2][j][i] = 14 / max_i
-                            if mask[j][i] == percentile:
-                                indices_of_same_values.append([j, i])
-                    if len(indices_of_same_values) > 5:
-                        missing = max(int(0.01 * percentage * w * h - bigger), 0)
-                        selection = random.sample(indices_of_same_values, missing)
-                        for i in selection:
-                            if method == "mean":
-                                im[0][i[0]][i[1]] = mean
-                                im[1][i[0]][i[1]] = mean
-                                im[2][i[0]][i[1]] = mean
-                            else:
-                                im[0][i[0]][i[1]] = 238 / max_i
-                                im[1][i[0]][i[1]] = 173 / max_i
-                                im[2][i[0]][i[1]] = 14 / max_i
+                    number_of_re_pixel = round(h * w * percentage / 100)
+                    ind = np.argpartition(mask.flatten(), -number_of_re_pixel)[-number_of_re_pixel:]
+
+                    for index in ind:
+                        i_h = index // w
+                        i_w = index - i_h * w
+                        if method == "mean":
+                            im[0][i_h][i_w] = mean
+                            im[1][i_h][i_w] = mean
+                            im[2][i_h][i_w] = mean
+                        else:
+                            im[0][i_h][i_w] = 238 / max_i
+                            im[1][i_h][i_w] = 173 / max_i
+                            im[2][i_h][i_w] = 14 / max_i
                     self.update_data(id, torch.from_numpy(im), roar_link)
-                    del im
+
+                    # mask_flat = mask.flatten()
+                    # percentile = np.percentile(mask_flat, 100 - percentage)
+                    # bigger = 0
+                    # indices_of_same_values = []
+                    #
+                    # for i in range(0, w):
+                    #     for j in range(0, h):
+                    #         if mask[j][i] > percentile:
+                    #             bigger += 1
+                    #             if method == "mean":
+                    #                 im[0][j][i] = mean
+                    #                 im[1][j][i] = mean
+                    #                 im[2][j][i] = mean
+                    #             else:
+                    #                 im[0][j][i] = 238 / max_i
+                    #                 im[1][j][i] = 173 / max_i
+                    #                 im[2][j][i] = 14 / max_i
+                    #         if mask[j][i] == percentile:
+                    #             indices_of_same_values.append([j, i])
+                    # if len(indices_of_same_values) > 5:
+                    #     missing = max(int(0.01 * percentage * w * h - bigger), 0)
+                    #     selection = random.sample(indices_of_same_values, missing)
+                    #     for i in selection:
+                    #         if method == "mean":
+                    #             im[0][i[0]][i[1]] = mean
+                    #             im[1][i[0]][i[1]] = mean
+                    #             im[2][i[0]][i[1]] = mean
+                    #         else:
+                    #             im[0][i[0]][i[1]] = 238 / max_i
+                    #             im[1][i[0]][i[1]] = 173 / max_i
+                    #             im[2][i[0]][i[1]] = 14 / max_i
+                    # self.update_data(id, torch.from_numpy(im), roar_link)
+                    # del im
             # print('init: ' + str(round(t2, 3)) + ' modify: ' + str(round(t3, 3)) + ' update: ' + str(round(t4, 3)))
             # print('used time to modify: ' + str(round(time.time() - start_time, 3)))
         except ValueError:
             print('No roar img or mask for id: ' + str(id))
-
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
@@ -358,7 +374,7 @@ class Spectralloader(Dataset):
 
         # parallel execution not working
         # pool = mp.Pool(processes=4)
-        with tqdm(total=length, desc=text) as progress:
+        with tqdm(total=length, desc=text, ncols=100) as progress:
             def log_result():
                 progress.update(1)
 
