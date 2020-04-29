@@ -408,7 +408,7 @@ def train_imagenet(model, N_EPOCHS, lr, batch_size, DEVICE, mode):
 
     total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
     with torch.no_grad():
-        for X, y in dataloaders['train']:
+        for X, y in dataloaders['val']:
             X, y = X.to(DEVICE), y.to(DEVICE)
             y_ = model(X)
 

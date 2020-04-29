@@ -67,13 +67,13 @@ def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'random', 'Integrated_Gradients']
     roar_explainers = ['guided_gradcam', 'noisetunnel', 'Integrated_Gradients']
-    roar_explainers = ['LRP']
+    roar_explainers = ['Integrated_Gradients']
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     # roar_values = [10, 30, 70, 90]
-    roar_values = [10]
+    roar_values = [90]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:
@@ -108,6 +108,10 @@ def main():
     explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
                   'Noise Tunnel stev 2']
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+
+    # original_model = get_model(DEVICE, n_classes, mode)
+    # original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
+    # train_imagenet(original_model,N_EPOCHS,lr,batch_size,DEVICE,mode)
 
     # loading Datasets
     if plot_classes or plot_categories:

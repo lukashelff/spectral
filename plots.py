@@ -251,7 +251,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
     plt.title(str(cv_iter) + ' cross val accuracy by increasing the removed image features of each saliency method')
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
-    plt.axis([roar_values[0], 100, 50, 90])
+    plt.axis([roar_values[0], 100, 0, 70])
     plt.legend(loc='lower left')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison')
     plt.show()

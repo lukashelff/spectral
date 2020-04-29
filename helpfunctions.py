@@ -94,12 +94,12 @@ def get_cross_val_acc(ex, roar_per, cv_iter, mode):
     try:
         if ex == 'original':
             for j in range(cv_iter):
-                sub_path = ex + '_cv_it_' + str(j + 1) + '.sav'
+                sub_path = ex + '_cv_it_' + str(j) + '.sav'
                 path = './data/' + mode + '/' + 'plots/values/' + sub_path
                 acc += pickle.load(open(path, 'rb'))
         else:
             for j in range(cv_iter):
-                sub_path = str(roar_per) + '%_of_' + ex + '_cv_it_' + str(j) + '.sav'
+                sub_path = str(roar_per) + '%25_of_' + ex + '_cv_it_' + str(j) + '.sav'
                 path = './data/' + mode + '/' + 'plots/values/' + sub_path
                 acc += pickle.load(open(path, 'rb'))
 
