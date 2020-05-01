@@ -44,6 +44,7 @@ class InnvestigateModel(torch.nn.Module):
         super(InnvestigateModel, self).__init__()
         self.model = the_model
         self.device = torch.device("cuda", 1)
+        self.device = torch.device("cpu")
         self.prediction = None
         self.r_values_per_layer = None
         self.only_max_score = None

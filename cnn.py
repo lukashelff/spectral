@@ -24,6 +24,14 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 
 
+# class Identity(nn.Module):
+#     def __init__(self):
+#         super(Identity, self).__init__()
+
+    # def forward(self, x):
+    #     return x
+
+
 # from train_model import train_model
 
 def get_trainable(model_params):
@@ -52,9 +60,13 @@ def get_model(DEVICE, n_classes, mode):
         model = models.vgg16(pretrained=True)
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
-        features = list(model.classifier.children())[:-1]  # Remove last layer
+        model.avgpool = nn.MaxPool2d(1,)
+        features = list(model.classifier.children())[:-1]  # Remove last layer and first
         features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
         model.classifier = nn.Sequential(*features)  # Replace the model classifier
+
+
+        # rm = nn.Sequential(*list(model.features._modules.values())[:-1])
 
         # resnet18 impl
         # model = models.resnet18(pretrained=True)
@@ -318,7 +330,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             im, label = train_ds.__getitem__(0)
             path = './data/' + mode + '/' + 'exp/pred_img_example/'
             # display the modified image and save to pred images in data/exp/pred_img_example
-            show_image(im, 'original image ')
+            # show_image(im, 'original image ')
 
             train_parallel(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
                            original_trained_model, cv_it, mode)

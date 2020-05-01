@@ -99,9 +99,13 @@ def get_cross_val_acc(ex, roar_per, cv_iter, mode):
                 acc += pickle.load(open(path, 'rb'))
         else:
             for j in range(cv_iter):
-                sub_path = str(roar_per) + '%25_of_' + ex + '_cv_it_' + str(j) + '.sav'
-                path = './data/' + mode + '/' + 'plots/values/' + sub_path
-                acc += pickle.load(open(path, 'rb'))
+                sub_path = str(roar_per) + '%_of_' + ex + '_cv_it_' + str(j) + '.sav'
+                sub_path_2 = str(roar_per) + '%25_of_' + ex + '_cv_it_' + str(j) + '.sav'
+                path_s = './data/' + mode + '/' + 'plots/values/'
+                path_fin = path_s + sub_path
+                if not os.path.isfile(path_fin):
+                    path_fin = path_s + sub_path_2
+                acc += pickle.load(open(path_fin, 'rb'))
 
         return acc / cv_iter
     except ValueError:

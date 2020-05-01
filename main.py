@@ -40,15 +40,15 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = False
-    roar_train = True
+    roar_create_mask = True
+    roar_train = False
     plot_roar_curve = False
     roar_mod_im_comp = False
     roar_expl_im = False
@@ -66,14 +66,13 @@ def main():
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    roar_explainers = ['guided_gradcam', 'noisetunnel', 'Integrated_Gradients']
-    roar_explainers = ['guided_gradcam']
+    roar_explainers = ['guided_gradcam', 'random', 'Integrated_Gradients', 'gradcam']
+    roar_explainers = ['LRP']
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 30, 70, 90]
-    # roar_values = [90]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:
@@ -145,7 +144,7 @@ def main():
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:
         print('creating for ROAR mask')
-        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode, replace_existing=False)
+        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode, replace_existing=True)
         print('mask for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages

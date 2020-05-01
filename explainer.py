@@ -18,11 +18,13 @@ from tqdm import tqdm
 
 
 # import from local lib
-# import innvestigator
-# import settings as set
+import innvestigator
+import settings as set
 
 
 # create single explainer of the image for the specified explainer
+
+
 def explain_single(model, image, ori_label, explainer, bounded):
     input = image.unsqueeze(0)
     # input.requires_grad = True
@@ -80,8 +82,8 @@ def explain_single(model, image, ori_label, explainer, bounded):
         ig = IntegratedGradients(model)
         nt = NoiseTunnel(ig)
         attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0,
-                                              # nt_type='smoothgrad_sq',
-                                              # n_samples=1,
+                                              nt_type='smoothgrad_sq',
+                                              n_samples=2,
                                               # stdevs=0.2
                                               )
         heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
@@ -120,21 +122,21 @@ def explain_single(model, image, ori_label, explainer, bounded):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # lrp FROM LOCAL LIB
         # print(model)
-        # original_trained_model = './data/models/trained_model_original.pt'
-        # data_LRP_stored = './data/exp/lrp'
-        # print("Layerwise_Relevance_Propagation")
-        # set.settings["model_path"] = original_trained_model
-        # set.settings["data_path"] = data_LRP_stored
-        # set.settings["ADNI_DIR"] = ''
-        # set.settings["train_h5"] = ''
-        # set.settings["val_h5"] = ''
-        # set.settings["holdout_h5"] = ''
+        original_trained_model = './data/models/trained_model_original.pt'
+        data_LRP_stored = './data/exp/lrp'
+        print("Layerwise_Relevance_Propagation")
+        set.settings["model_path"] = original_trained_model
+        set.settings["data_path"] = data_LRP_stored
+        set.settings["ADNI_DIR"] = ''
+        set.settings["train_h5"] = ''
+        set.settings["val_h5"] = ''
+        set.settings["holdout_h5"] = ''
         # # Convert to innvestigate model
-        # inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
-        #                                             method="e-rule",
-        #                                             beta=.5)
-        # model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
-        # heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
+        inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
+                                                    method="e-rule",
+                                                    beta=.5)
+        model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
+        heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
 

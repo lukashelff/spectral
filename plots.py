@@ -238,7 +238,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
     val = get_cross_val_acc('original', 0, cv_iter, mode)
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
-    plt.plot([roar_values[0], roar_values[-1]], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
+    plt.plot([roar_values[0], 100], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
     # plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
     for c, ex in enumerate(roar_explainers):
         acc_vals = []
@@ -246,7 +246,10 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
             acc = get_cross_val_acc(ex, roar_per, cv_iter, mode)
             print(acc)
             acc_vals.append(acc)
-        acc_vals.append(50)
+        if mode == 'plants':
+            acc_vals.append(50)
+        else:
+            acc_vals.append(0.5)
         plt.plot(roar_values + [100], acc_vals, label=ex)
     plt.title(str(cv_iter) + ' cross val accuracy by increasing the removed image features of each saliency method')
     plt.xlabel('% of the image features removed from image')
