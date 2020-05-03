@@ -40,7 +40,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
@@ -64,9 +64,8 @@ def main():
     # Training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
+    roar_explainers = ['gradcam', 'guided_gradcam',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    roar_explainers = ['guided_gradcam', 'random', 'Integrated_Gradients', 'gradcam']
     roar_explainers = ['LRP']
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 
