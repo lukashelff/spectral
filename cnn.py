@@ -329,6 +329,8 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             train_ds = Spectralloader(train_data, root, mode, 'train')
             im, label = train_ds.__getitem__(0)
             path = './data/' + mode + '/' + 'exp/pred_img_example/'
+            name = 'original_image.jpeg'
+            display_rgb(im, 'original image no values removed', path, name)
             # display the modified image and save to pred images in data/exp/pred_img_example
             # show_image(im, 'original image ')
 
@@ -353,9 +355,8 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         torch.save(original_model.state_dict(), trained_roar_models)
 
     else:
-        if mode == 'plants':
-            val_ds = deepcopy(val_ds)
-            train_ds = deepcopy(train_ds)
+        val_ds = deepcopy(val_ds)
+        train_ds = deepcopy(train_ds)
         # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
         # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
         # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
