@@ -50,8 +50,8 @@ def main():
     roar_create_mask = False
     roar_train = False
     plot_roar_curve = False
-    roar_mod_im_comp = True
-    roar_expl_im = False
+    roar_mod_im_comp = False
+    roar_expl_im = True
     # CNN default learning parameters
     N_EPOCHS = 120
     lr = 0.00015
@@ -66,6 +66,7 @@ def main():
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam',
                        'noisetunnel', 'random', 'Integrated_Gradients']
+    roar_explainers = ['gradcam', 'guided_gradcam', 'random', 'Integrated_Gradients']
     # roar_explainers = ['LRP']
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 

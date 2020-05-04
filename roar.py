@@ -55,23 +55,24 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values):
     trained_roar_models = './data/' + mode + '/' + 'models/trained_model_roar'
     if mode == 'imagenet':
         n_classes = n_classes_imagenet
+        ids_and_labels = ids_and_labels_imagenet
+
     else:
         n_classes = n_classes_plants
+        ids_and_labels = ids_and_labels_plants
 
     w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
     for k in ids_roar_exp:
         if mode == 'plants':
             id = str(3) + '_' + ids_roar[k]
-            ids_and_labels = ids_and_labels_plants
         else:
-            ids_and_labels = ids_and_labels_imagenet
             id = ids_imagenet[k]
         fig = plt.figure(figsize=(w, h))
-        fig.subplots_adjust(top=0.95)
+        fig.subplots_adjust(top=0.92)
         fig.suptitle(
-            "modified image " + id + " according to ROAR framework with applied interpretation of its saliency method",
+            "modified image " + str(id) + " according to ROAR framework with applied interpretation of its saliency method",
             fontsize=80)
-        print('plotting modified image:' + id + ' according to roar')
+        print('plotting modified image:' + str(id) + ' according to roar')
         all_ds = Spectralloader([ids_and_labels[k]], root, mode, 'all')
         image, label = all_ds.get_original_by_id(id)
         for c_e, a in enumerate(explainers):
@@ -86,43 +87,48 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values):
                 ax.set_ylabel('original image', fontsize=40)
         for c_ex, ex in enumerate(explainers):
             # loading heatmap of corresponding explainer
-            with open(path_exp + subpath_heatmaps + ex + '.pkl', 'rb') as f:
-                mask = pickle.load(f)
-                print('applying ' + ex + ' to image')
-                for c_r, i in enumerate(roar_expl_im_values):
-                    # select 3 day image of image ID
-                    # loading model of explainer for corresponding remove value
-                    all_ds = Spectralloader([ids_and_labels_plants[k]], root, mode, 'all')
-                    if i == 0:
-                        model = get_model(DEVICE, n_classes, mode)
-                        original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
-                        model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
-                    else:
-                        model = get_model(DEVICE, n_classes, mode)
-                        model.load_state_dict(
-                            torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
-                        all_ds.apply_roar_single_image(i, mask, id, 'mean', ex)
-                    # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
-                    image, label = all_ds.get_original_by_id(id)
-                    model.to(DEVICE)
-                    image = torch.from_numpy(image).to(DEVICE)
-                    activation_map = explain_single(model, image, label, ex, True)
-                    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-                    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1])
-                    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-                    # Compute the Canny filter for two values of sigma
-                    org_img_edged = feature.canny(org_img_edged, sigma=3)
-                    ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
-                                         (c_ex + 1) + (c_r + 1) * len(explainers))
-                    ax.tick_params(axis='both', which='both', length=0)
-                    if c_ex == 0:
-                        ax.set_ylabel(str(i) + '%', fontsize=40)
-                    ax.imshow(org_img_edged, cmap=plt.cm.binary)
-                    ax.imshow(activation_map, cmap='viridis', alpha=0.4)
-                    plt.setp(ax.get_xticklabels(), visible=False)
-                    plt.setp(ax.get_yticklabels(), visible=False)
-
-        fig.savefig(path_exp + subpath + 'comparison_explained_roar_image_' + id + '.png')
+            if mode == 'plants':
+                with open(path_exp + subpath_heatmaps + ex + '.pkl', 'rb') as f:
+                    mask = pickle.load(f)
+            else:
+                # imagenet mask gets loaded in Dataset
+                mask = None
+            print('applying ' + ex + ' to image')
+            for c_r, i in enumerate(roar_expl_im_values):
+                # select 3 day image of image ID
+                # loading model of explainer for corresponding remove value
+                all_ds = Spectralloader([ids_and_labels[k]], root, mode, 'all')
+                if i == 0:
+                    model = get_model(DEVICE, n_classes, mode)
+                    original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
+                    model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
+                else:
+                    model = get_model(DEVICE, n_classes, mode)
+                    model.load_state_dict(
+                        torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
+                    all_ds.apply_roar_single_image(i, mask, id, 'mean', ex)
+                # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
+                image, label = all_ds.get_original_by_id(id)
+                if mode == 'plants':
+                    image = torch.from_numpy(image)
+                model = model.to(DEVICE)
+                image = image.to(DEVICE)
+                activation_map = explain_single(model, image, label, ex, True)
+                org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+                org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1])
+                org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+                # Compute the Canny filter for two values of sigma
+                org_img_edged = feature.canny(org_img_edged, sigma=3)
+                ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
+                                     (c_ex + 1) + (c_r + 1) * len(explainers))
+                ax.tick_params(axis='both', which='both', length=0)
+                if c_ex == 0:
+                    ax.set_ylabel(str(i) + '%', fontsize=40)
+                ax.imshow(org_img_edged, cmap=plt.cm.binary)
+                ax.imshow(activation_map, cmap='viridis', alpha=0.4)
+                plt.setp(ax.get_xticklabels(), visible=False)
+                plt.setp(ax.get_yticklabels(), visible=False)
+        fig.savefig(path_exp + subpath + 'comparison_explained_roar_image_' + str(id) + '.png')
         fig.clear()
 
 
@@ -145,7 +151,7 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values):
     w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 10
     for k in ids_roar_exp:
         fig = plt.figure(figsize=(w, h))
-        fig.subplots_adjust(top=0.95)
+        fig.subplots_adjust(top=0.92)
         fig.suptitle("image " + str(image_ids[k]) + " modificed according to ROAR framework", fontsize=80)
         print('modifing image: ' + str(image_ids[k]))
         if not os.path.exists(path_exp + subpath):
