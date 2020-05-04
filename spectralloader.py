@@ -116,7 +116,7 @@ class Spectralloader(Dataset):
         self.mask = None
         self.explainer = None
         self.DEVICE = None
-        self.update_roar_images = False
+        self.update_roar_images = True
         self.normalize_tensor = transforms.Compose([
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
@@ -231,8 +231,13 @@ class Spectralloader(Dataset):
                 data = {c + len_train: x for c, x in enumerate(image_datasets['val'].imgs)}
                 ids = list(range(len_train, len_all))
             elif train == 'all':
-                data = {c: x for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs)}
-                ids = list(range(len_all))
+                data ={}
+                ids = [id for (id, label) in ids_and_labels]
+                for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs):
+                    if c in ids:
+                        data[c] = x
+                # data = {c: x for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs)}
+                # ids = list(range(len_all))
 
         else:
             # loads all the images have existing entry labels in the plant DS
@@ -262,30 +267,31 @@ class Spectralloader(Dataset):
                                 load_image(root_path + str(i) + '_Z' + str(k) + '/segmented_leafs')
         return data, ids
 
-    def get_roar_directory(self, method, id):
+    def get_roar_directory(self, method, id, explainer):
         if method == 'mean':
             method_text = ''
         else:
             # comparison value to better detect removed values
             # modify method only significant images get roared
             method_text = '/' + method
-        im_dir, label = self.data[id]
+        im_dir, label = self.data[int(id)]
         index = im_dir.find('/tiny-imagenet-200')
         roar_link = im_dir[:index] + '/roar_images' + method_text + im_dir[index:]
         index = roar_link.find('.JPEG')
-        roar_link = roar_link[:index] + '_' + self.explainer + '_' + str(self.percentage) + roar_link[index:]
+        roar_link = roar_link[:index] + '_' + explainer + '_' + str(self.percentage) + roar_link[index:]
         index = roar_link.find('/images')
         if not os.path.exists(roar_link[:index] + '/images'):
             os.makedirs(roar_link[:index] + '/images')
         return roar_link
 
+    # masks imagenet -> dir to exp
     def apply_roar_single_image(self, percentage, masks, id, method, explainer):
         start_time = time.time()
         im = None
         try:
             im, label = self.get_original_by_id(id)
             if self.mode == 'imagenet':
-                roar_link = self.get_roar_directory(method, id)
+                roar_link = self.get_roar_directory(method, id, explainer)
             if self.mode == 'imagenet' and os.path.exists(roar_link) and not self.update_roar_images:
                 self.data[id] = (roar_link, label)
             else:
@@ -299,8 +305,9 @@ class Spectralloader(Dataset):
                         max_i = 255
                         mask = masks[str(id)]
                     else:
-                        max_i = 1
-                        with open(masks + 'heatmaps/' + explainer + '/' + str(id) + '.pkl', 'rb') as f:
+                        masks_path = './data/imagenet/exp/'
+                        max_i = 255
+                        with open(masks_path + 'heatmaps/' + explainer + '/' + str(id) + '.pkl', 'rb') as f:
                             mask = pickle.load(f)
                     # only take percentile of values with duplicated zeros deleted
                     c, h, w = im.shape

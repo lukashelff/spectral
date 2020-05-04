@@ -122,22 +122,22 @@ def explain_single(model, image, ori_label, explainer, bounded):
         # print("Layerwise_Relevance_Propagation")
 
         # import from local lib
-        # import innvestigator
-        # import settings as set
-        # original_trained_model = './data/models/trained_model_original.pt'
-        # data_LRP_stored = './data/exp/lrp'
-        # set.settings["model_path"] = original_trained_model
-        # set.settings["data_path"] = data_LRP_stored
-        # set.settings["ADNI_DIR"] = ''
-        # set.settings["train_h5"] = ''
-        # set.settings["val_h5"] = ''
-        # set.settings["holdout_h5"] = ''
-        # # # Convert to innvestigate model
-        # inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
-        #                                             method="e-rule",
-        #                                             beta=.5)
-        # model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
-        # heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
+        import innvestigator
+        import settings as set
+        original_trained_model = './data/models/trained_model_original.pt'
+        data_LRP_stored = './data/exp/lrp'
+        set.settings["model_path"] = original_trained_model
+        set.settings["data_path"] = data_LRP_stored
+        set.settings["ADNI_DIR"] = ''
+        set.settings["train_h5"] = ''
+        set.settings["val_h5"] = ''
+        set.settings["holdout_h5"] = ''
+        # # Convert to innvestigate model
+        inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
+                                                    method="e-rule",
+                                                    beta=.5)
+        model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
+        heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
 
@@ -193,7 +193,7 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
             image = image.to(DEVICE)
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
-                if (not os.path.isfile(path_item)) or (replace_existing and i > 26840):
+                if (not os.path.isfile(path_item)) or (replace_existing and i > 32286):
                     tmp = explain_single(model, image, label, ex, False)
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)
