@@ -1,5 +1,6 @@
 import os
 import pickle
+import sys
 from os import listdir
 from typing import List, Any
 
@@ -60,6 +61,8 @@ def main():
     cv_iterations_total = 5
     test_size = 482
     classes = ('healthy', 'diseased')
+    input_cmd = sys.argv
+    print('start ' + str(input_cmd[0]) + ' end ' + str(input_cmd[1]))
 
     # Training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
