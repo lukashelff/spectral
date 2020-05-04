@@ -17,8 +17,6 @@ from sklearn import preprocessing
 from tqdm import tqdm
 
 
-
-
 # create single explainer of the image for the specified explainer
 
 
@@ -122,6 +120,7 @@ def explain_single(model, image, ori_label, explainer, bounded):
         # print("Layerwise_Relevance_Propagation")
 
         # import from local lib
+        # investigator.py del layers remove for VGG only necessary for ResNet
         import innvestigator
         import settings as set
         original_trained_model = './data/models/trained_model_original.pt'
@@ -193,7 +192,9 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
             image = image.to(DEVICE)
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
-                if (not os.path.isfile(path_item)) or (replace_existing and i > 44200):
+                if (not os.path.isfile(path_item)) or (replace_existing
+                        # and i > 44200
+                ):
                     tmp = explain_single(model, image, label, ex, False)
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)

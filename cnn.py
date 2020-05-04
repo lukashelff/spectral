@@ -28,8 +28,8 @@ import torchvision.transforms as transforms
 #     def __init__(self):
 #         super(Identity, self).__init__()
 
-    # def forward(self, x):
-    #     return x
+# def forward(self, x):
+#     return x
 
 
 # from train_model import train_model
@@ -60,11 +60,11 @@ def get_model(DEVICE, n_classes, mode):
         model = models.vgg16(pretrained=True)
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
-        model.avgpool = nn.MaxPool2d(1,)
-        features = list(model.classifier.children())[:-1]  # Remove last layer and first
-        features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
-        model.classifier = nn.Sequential(*features)  # Replace the model classifier
-
+        model.avgpool = nn.MaxPool2d(1, )
+        model.classifier[6] = nn.Linear(num_features, n_classes)
+        # features = list(model.classifier.children())[:-1]  # Remove last layer and first
+        # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
+        # model.classifier = nn.Sequential(*features)  # Replace the model classifier
 
         # rm = nn.Sequential(*list(model.features._modules.values())[:-1])
 
@@ -437,12 +437,11 @@ def train_imagenet(model, N_EPOCHS, lr, batch_size, DEVICE, mode):
     valid_loss = round(total_loss / n_samples, 2)
     valid_acc = round(n_correct / n_samples * 100, 2)
     print(
-                             # f"  train loss: {train_loss[epoch]:9.3f} |"
-                             # f"  train acc:  {train_acc[epoch]:9.3f}% |"
-                             f"  valid loss: {valid_loss:9.3f} |"
-                             f"  valid acc:  {valid_acc:9.3f}% |"
-                             f"  valid balanced acc:  {valid_balanced_acc:9.3f}% |"
-                             )
-
+        # f"  train loss: {train_loss[epoch]:9.3f} |"
+        # f"  train acc:  {train_acc[epoch]:9.3f}% |"
+        f"  valid loss: {valid_loss:9.3f} |"
+        f"  valid acc:  {valid_acc:9.3f}% |"
+        f"  valid balanced acc:  {valid_balanced_acc:9.3f}% |"
+    )
 
     # train(200, N_EPOCHS, lr, dataloaders['train'], dataloaders['val'], DEVICE, 'original', 0, mode)
