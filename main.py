@@ -156,11 +156,13 @@ def main():
     if plot_roar_curve:
         plot_dev_acc(roar_values, roar_explainers, cv_iterations_total, mode)
 
+    # set spectralloader update val true
     # comparison of modified roar Images
     if roar_mod_im_comp:
         print('creating ROAR comparison plot')
         roar_comparison(mode, roar_explainers, cv_iterations_total, roar_values)
 
+    # set spectralloader update val true
     # interpretation/explaination of modified roar Images
     if roar_expl_im:
         print('creating ROAR explanation plot')

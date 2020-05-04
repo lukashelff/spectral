@@ -70,7 +70,8 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values):
         fig = plt.figure(figsize=(w, h))
         fig.subplots_adjust(top=0.92)
         fig.suptitle(
-            "modified image " + str(id) + " according to ROAR framework with applied interpretation of its saliency method",
+            "modified image " + str(id)
+            + " according to ROAR framework with applied interpretation of its saliency method",
             fontsize=80)
         print('plotting modified image:' + str(id) + ' according to roar')
         all_ds = Spectralloader([ids_and_labels[k]], root, mode, 'all')
