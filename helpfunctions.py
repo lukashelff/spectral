@@ -5,11 +5,11 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import numpy as np
 
-#  from RGB to learning
 from torchvision.transforms import transforms
 
+# from learning to RGB
 to_RGB = (1, 2, 0)
-#                 from learning to RGB
+# from RGB to learning
 to_learning = (2, 0, 1)
 
 
@@ -25,13 +25,14 @@ def display_rgb_grid(img, title):
 
 
 # display rgb image
+# parameter img is tensor
 def display_rgb(img, title, path, name):
     plt.title(title)
-    img_tr = np.transpose(img, (1, 2, 0))
-    plt.imshow(img_tr)
-    plt.show()
+    # img_tr = np.transpose(img.squeeze().cpu().detach().numpy(), to_RGB)
+    # plt.imshow(img_tr)
+    # plt.show()
     trans = transforms.ToPILImage()
-    im = trans(img_tr)
+    im = trans(img)
     # im = Image.fromarray((img_tr * 255).astype(np.uint8))
     if not os.path.exists(path):
         os.makedirs(path)
@@ -40,14 +41,14 @@ def display_rgb(img, title, path, name):
 
 def show_image(img, title):
     plt.title(title)
-    img_tr = np.transpose(img, (1, 2, 0))
+    img_tr = np.transpose(img, to_RGB)
     plt.imshow(img_tr)
     plt.show()
     # im = Image.fromarray((img_tr * 255).astype(np.uint8))
 
 
 def to_rgb(image):
-    return np.transpose(image, (1, 2, 0))
+    return np.transpose(image, to_RGB)
 
 
 # display spectral image

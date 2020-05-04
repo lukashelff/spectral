@@ -46,10 +46,10 @@ def main():
     mode = modes[1]
     # resizes all images and replaces them in folder
     resize_imagenet = False
-    retrain = False
+    retrain = True
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
-    roar_train = False
+    roar_create_mask = False
+    roar_train = True
     plot_roar_curve = False
     roar_mod_im_comp = False
     roar_expl_im = False
@@ -64,18 +64,28 @@ def main():
     input_cmd = sys.argv
     print('start ' + str(input_cmd[0]) + ' end ' + str(input_cmd[1]))
 
+
+    # modified images in folder:
+    # gradcam: all
+    # guided gradcam: 10
+    # integrated gradients: 10
+    # noisetunnel: all
+    # random: 10, 70, 90
+    #
     # Training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    # roar_explainers = ['noisetunnel']
     roar_explainers = ['LRP']
+    roar_explainers = ['guided_gradcam']
+
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 30, 70, 90]
+    roar_values = [30, 70, 90]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:
