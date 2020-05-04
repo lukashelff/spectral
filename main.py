@@ -47,10 +47,10 @@ def main():
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = False
+    roar_create_mask = True
     roar_train = False
     plot_roar_curve = False
-    roar_mod_im_comp = True
+    roar_mod_im_comp = False
     roar_expl_im = False
     # CNN default learning parameters
     N_EPOCHS = 120
@@ -67,7 +67,7 @@ def main():
     roar_explainers = ['gradcam', 'guided_gradcam',
                        'noisetunnel', 'random', 'Integrated_Gradients']
     # roar_explainers = ['noisetunnel']
-    # roar_explainers = ['LRP']
+    roar_explainers = ['LRP']
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]

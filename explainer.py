@@ -193,7 +193,7 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
             image = image.to(DEVICE)
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
-                if (not os.path.isfile(path_item)) or (replace_existing and i > 32286):
+                if (not os.path.isfile(path_item)) or (replace_existing and i > 44200):
                     tmp = explain_single(model, image, label, ex, False)
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)

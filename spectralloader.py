@@ -230,15 +230,15 @@ class Spectralloader(Dataset):
             elif train == 'val':
                 data = {c + len_train: x for c, x in enumerate(image_datasets['val'].imgs)}
                 ids = list(range(len_train, len_all))
-            elif train == 'all':
+            elif train == 'specific':
                 data ={}
                 ids = [id for (id, label) in ids_and_labels]
                 for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs):
                     if c in ids:
                         data[c] = x
-                # data = {c: x for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs)}
-                # ids = list(range(len_all))
-
+            elif train == 'all':
+                data = {c: x for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs)}
+                ids = list(range(len_all))
         else:
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
