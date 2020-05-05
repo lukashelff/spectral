@@ -407,6 +407,8 @@ class RelevancePropagator:
                 # # print('weights: ' + str(w.shape))
                 # print('kernel: ' + str(m.kernel_size))
                 # print(inv_conv_nd)
+                ##############################
+                # use for resnet to fix padding
                 output_padding = 0
                 if m.stride == (2, 2):
                     sha = [m.out_shape[2], m.out_shape[3]]
@@ -416,7 +418,9 @@ class RelevancePropagator:
                 relevance_out = inv_conv_nd(relevance_in / norm,
                                             weight=w, bias=None,
                                             padding=m.padding, stride=m.stride,
-                                            groups=m.groups, output_padding=output_padding)
+                                            groups=m.groups,
+                                            output_padding=output_padding
+                                            )
                 # print('relevance_out: ' + str(relevance_out.shape))
                 # print('in_tensor: ' + str(m.in_tensor.shape))
                 relevance_out *= m.in_tensor

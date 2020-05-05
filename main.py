@@ -41,7 +41,7 @@ from helpfunctions import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
     modes = ['plants', 'imagenet']
     mode = modes[1]
     # resizes all images and replaces them in folder
@@ -65,7 +65,7 @@ def main():
     # print('start ' + str(input_cmd[1]) + ' end ' + str(input_cmd[2]))
     # whole mask start:0 end 105000
     mask_range_start = 0
-    mask_range_end = 1
+    mask_range_end = 1000
     # mask_range_start = input_cmd[1]
     # mask_range_end = input_cmd[2]
 

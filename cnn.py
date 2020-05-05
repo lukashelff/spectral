@@ -77,7 +77,7 @@ def get_model(DEVICE, n_classes, mode):
     if mode == 'plants':
         model = models.resnet18(pretrained=True)
         # use for LRP because AdaptiveAvgPool2d is not supported
-        # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
+        model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
         freeze_all(model.parameters())
         model.fc = nn.Linear(512, n_classes)
 
@@ -330,7 +330,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             im, label = train_ds.__getitem__(0)
             path = './data/' + mode + '/' + 'exp/pred_img_example/'
             name = 'original_image.jpeg'
-            display_rgb(im, 'original image no values removed', path, name)
+            # display_rgb(im, 'original image no values removed', path, name)
             # display the modified image and save to pred images in data/exp/pred_img_example
             # show_image(im, 'original image ')
 

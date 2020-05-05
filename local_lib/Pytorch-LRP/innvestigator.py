@@ -212,6 +212,7 @@ class InnvestigateModel(torch.nn.Module):
             # del rev_model[38:40]
             # del rev_model[24:26]
             # del rev_model[10:12]
+            del rev_model[7]
             relevance = relevance_tensor.detach()
             del relevance_tensor
             # List to save relevance distributions per layer

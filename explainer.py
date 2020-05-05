@@ -15,6 +15,7 @@ from scipy import ndimage as ndi
 from skimage import feature
 from sklearn import preprocessing
 from tqdm import tqdm
+from cnn import *
 
 
 # create single explainer of the image for the specified explainer
@@ -118,13 +119,13 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         # lrp FROM LOCAL LIB
         # print(model)
         # print("Layerwise_Relevance_Propagation")
-
+        # train_imagenet(model,None,None,50,DEVICE,'imagenet')
         # import from local lib
         # investigator.py del layers remove for VGG only necessary for ResNet
         import innvestigator
         import settings as set
-        original_trained_model = './data/models/trained_model_original.pt'
-        data_LRP_stored = './data/exp/lrp'
+        original_trained_model = './data/imagenet/models/trained_model_original.pt'
+        data_LRP_stored = './data/imagenet/exp/lrp'
         set.settings["model_path"] = original_trained_model
         set.settings["data_path"] = data_LRP_stored
         set.settings["ADNI_DIR"] = ''
@@ -132,6 +133,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         set.settings["val_h5"] = ''
         set.settings["holdout_h5"] = ''
         # # Convert to innvestigate model
+
         inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
                                                     method="e-rule",
                                                     beta=.5,
