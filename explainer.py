@@ -20,7 +20,7 @@ from tqdm import tqdm
 # create single explainer of the image for the specified explainer
 
 
-def explain_single(model, image, ori_label, explainer, bounded):
+def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
     input = image.unsqueeze(0)
     # input.requires_grad = True
     model.eval()
@@ -134,7 +134,8 @@ def explain_single(model, image, ori_label, explainer, bounded):
         # # Convert to innvestigate model
         inn_model = innvestigator.InnvestigateModel(model, lrp_exponent=2,
                                                     method="e-rule",
-                                                    beta=.5)
+                                                    beta=.5,
+                                                    DEVICE=DEVICE)
         model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
         heat_map = cut_and_shape(np.transpose(heat_map[0].squeeze().cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
@@ -164,7 +165,7 @@ def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, range_start
                 image = torch.Tensor(image).to(DEVICE)
                 for ex in roar_explainers:
                     progress.update(1)
-                    heat_maps[ex][str(dataset.get_id_by_index(i))] = explain_single(model, image, label, ex, False)
+                    heat_maps[ex][str(dataset.get_id_by_index(i))] = explain_single(model, image, label, ex, False, DEVICE)
             if not os.path.exists(path + 'heatmaps'):
                 os.makedirs(path + 'heatmaps')
             for ex in roar_explainers:
@@ -185,17 +186,17 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
     text = 'creating heatmaps for '
     for i in roar_explainers:
         text = text + i + ' '
-    with tqdm(total=len(roar_explainers) * d_length, desc=text, ncols=100 + len(roar_explainers) * 15) as progress:
-        for i in range(0, d_length):
+    with tqdm(total=len(roar_explainers) * (range_end - (range_start - 1)), desc=text, ncols=100 + len(roar_explainers) * 15) as progress:
+        for i in range(range_start, range_end + 1):
             id = dataset.get_id_by_index(i)
             image, label = dataset.get_original_by_id(id)
             image = image.to(DEVICE)
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
                 if (not os.path.isfile(path_item)) or (replace_existing
-                                                       and int(range_start) <= i <= int(range_end)
+                                                       # and int(range_start) <= i <= int(range_end)
                 ):
-                    tmp = explain_single(model, image, label, ex, False)
+                    tmp = explain_single(model, image, label, ex, False, DEVICE)
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)
 

@@ -35,6 +35,7 @@ ids_imagenet = [x * 500 for x in range(8)]
 ids_and_labels_imagenet = [(x * 500, x) for x in range(8)]
 ids_roar = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 ids_roar_exp = [0, 3, 4, 6]
+ids_roar_exp = [0]
 ids_and_labels_plants = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1),
                          ('3_Z8_4_0_0', 1), ('3_Z8_4_1_2', 1), ('3_Z1_3_1_1', 0), ('3_Z2_1_0_2', 0)]
 root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
@@ -113,7 +114,7 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values):
                     image = torch.from_numpy(image)
                 model = model.to(DEVICE)
                 image = image.to(DEVICE)
-                activation_map = explain_single(model, image, label, ex, True)
+                activation_map = explain_single(model, image, label, ex, True, DEVICE)
                 org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
                 org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1])
                 org_img_edged = ndi.gaussian_filter(org_img_edged, 4)

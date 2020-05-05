@@ -15,7 +15,7 @@ class InnvestigateModel(torch.nn.Module):
     """
 
     def __init__(self, the_model, lrp_exponent=1, beta=.5, epsilon=1e-6,
-                 method="e-rule"):
+                 method="e-rule", DEVICE=torch.device("cuda", 0)):
         """
         Model wrapper for pytorch models to 'innvestigate' them
         with layer-wise relevance propagation (LRP) as introduced by Bach et. al
@@ -43,7 +43,7 @@ class InnvestigateModel(torch.nn.Module):
         """
         super(InnvestigateModel, self).__init__()
         self.model = the_model
-        self.device = torch.device("cuda", 0)
+        self.device = DEVICE
         # self.device = torch.device("cpu")
         self.prediction = None
         self.r_values_per_layer = None
