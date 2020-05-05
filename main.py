@@ -46,7 +46,7 @@ def main():
     mode = modes[1]
     # resizes all images and replaces them in folder
     resize_imagenet = False
-    retrain = True
+    retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
     roar_create_mask = False
     roar_train = True
@@ -62,8 +62,11 @@ def main():
     test_size = 482
     classes = ('healthy', 'diseased')
     input_cmd = sys.argv
-    print('start ' + str(input_cmd[0]) + ' end ' + str(input_cmd[1]))
-
+    # print('start ' + str(input_cmd[1]) + ' end ' + str(input_cmd[2]))
+    mask_range_start = 0
+    mask_range_end = 10500
+    # mask_range_start = input_cmd[1]
+    # mask_range_end = input_cmd[2]
 
     # modified images in folder:
     # gradcam: all
@@ -85,7 +88,7 @@ def main():
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 30, 70, 90]
-    roar_values = [30, 70, 90]
+    roar_values = [30]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:
@@ -157,7 +160,10 @@ def main():
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:
         print('creating for ROAR mask')
-        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode, replace_existing=True)
+        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode,
+                    mask_range_start, mask_range_end,
+                    # 10000, 11000,
+                    replace_existing=True)
         print('mask for ROAR created')
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages

@@ -146,9 +146,9 @@ def explain_single(model, image, ori_label, explainer, bounded):
 
 
 # create a mask with all heat_maps for specified dataset
-def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, replace_existing):
+def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, range_start, range_end, replace_existing):
     if mode == 'imagenet':
-        create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_existing)
+        create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_existing, range_start, range_end)
     else:
         d_length = dataset.__len__()
         model.to(DEVICE)
@@ -173,7 +173,7 @@ def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, replace_exi
 
 
 # create a mask with all heat_maps for specified dataset
-def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_existing):
+def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_existing, range_start, range_end):
     d_length = dataset.__len__()
     model.to(DEVICE)
     heat_maps = {}
@@ -193,7 +193,7 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
                 if (not os.path.isfile(path_item)) or (replace_existing
-                        # and i > 44200
+                                                       and int(range_start) <= i <= int(range_end)
                 ):
                     tmp = explain_single(model, image, label, ex, False)
                     pickle.dump(tmp, open(path_item, 'wb'))
