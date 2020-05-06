@@ -48,7 +48,7 @@ def main():
     resize_imagenet = False
     retrain = False
     plot_for_image_id, plot_classes, plot_categories = False, False, False
-    roar_create_mask = True
+    roar_create_mask = False
     roar_train = False
     plot_roar_curve = False
     roar_mod_im_comp = True
@@ -56,6 +56,7 @@ def main():
     # CNN default learning parameters
     N_EPOCHS = 120
     lr = 0.00015
+    lr = 0.001
     n_classes = 2
     batch_size = 10
     cv_iterations_total = 5
@@ -65,7 +66,7 @@ def main():
     # print('start ' + str(input_cmd[1]) + ' end ' + str(input_cmd[2]))
     # whole mask start:0 end 105000
     mask_range_start = 0
-    mask_range_end = 1000
+    mask_range_end = 100
     # mask_range_start = input_cmd[1]
     # mask_range_end = input_cmd[2]
 
@@ -79,16 +80,16 @@ def main():
     # Training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['gradcam', 'guided_gradcam',
+    roar_explainers = ['gradcam', 'guided_gradcam', 'LRP',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    roar_explainers = ['LRP']
+    # roar_explainers = ['LRP']
 
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 30, 70, 90]
-    roar_values = [30]
+    # roar_values = [30]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:

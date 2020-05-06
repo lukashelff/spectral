@@ -190,7 +190,8 @@ class InnvestigateModel(torch.nn.Module):
                 self.prediction = self.prediction.view(org_shape[0], -1)
                 max_v, _ = torch.max(self.prediction, dim=1, keepdim=True)
                 only_max_score = torch.zeros_like(self.prediction).to(self.device)
-                only_max_score[max_v == self.prediction] = self.prediction[max_v == self.prediction]
+                only_max_score[max_v == self.prediction] = self.prediction[max_v == self.prediction].norm()
+                # only_max_score[max_v == self.prediction] = self.prediction[max_v == self.prediction]
                 relevance_tensor = only_max_score.view(org_shape)
                 self.prediction.view(org_shape)
 
@@ -206,6 +207,7 @@ class InnvestigateModel(torch.nn.Module):
             # The module list is computed for every forward pass
             # by the model inverter.
             rev_model = self.inverter.module_list[::-1]
+            # _, predicted = torch.max(self.model(in_tensor), 1)
             #############################
             # delete unnecessary layers for resnet
             #############################

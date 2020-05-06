@@ -194,7 +194,12 @@ class Spectralloader(Dataset):
                 # else:
                 #     image = self.pil_to_tensor(im)
             else:
+                norm = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                ])
                 image, label = self.data[id]['image'], self.data[id]['label']
+                image = norm(image)
 
             return image, label
         except ValueError:
@@ -289,6 +294,7 @@ class Spectralloader(Dataset):
     def apply_roar_single_image(self, percentage, masks, id, method, explainer):
         start_time = time.time()
         im = None
+        self.percentage = percentage
         try:
             im, label = self.get_original_by_id(id)
             if self.mode == 'imagenet':

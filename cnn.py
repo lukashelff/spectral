@@ -77,7 +77,7 @@ def get_model(DEVICE, n_classes, mode):
     if mode == 'plants':
         model = models.resnet18(pretrained=True)
         # use for LRP because AdaptiveAvgPool2d is not supported
-        model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
+        # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
         freeze_all(model.parameters())
         model.fc = nn.Linear(512, n_classes)
 
@@ -94,6 +94,8 @@ def get_model(DEVICE, n_classes, mode):
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
     lr_step_size = 7
     lr_gamma = 0.1
+    if mode == 'plants':
+        lr_gamma = 0.7
     ####################
     ################
     optimizer_name = 'adam'
@@ -117,8 +119,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         )
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-    if mode == 'imagenet':
-        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
+    # if mode == 'imagenet':
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
 
@@ -189,9 +191,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             progress.update(1)
             progress.set_description(text + ' | ' +
                                      # f"  train loss: {train_loss[epoch]:9.3f} |"
-                                     f"  train acc:  {train_acc[epoch]:9.3f}% |"
+                                     f"  train acc:  {train_balanced_acc[epoch]:9.3f}% |"
                                      # f"  valid loss: {valid_loss[epoch]:9.3f} |"
-                                     f"  valid acc:  {valid_acc[epoch]:9.3f}% |"
+                                     f"  valid acc:  {valid_balanced_acc[epoch]:9.3f}% |"
                                      )
             progress.refresh()
 
