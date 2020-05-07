@@ -70,8 +70,8 @@ class RelevancePropagator:
         """
         self.module_list = []
         # Try to free memory
-        if self.device.type == "cuda":
-            torch.cuda.empty_cache()
+        # if self.device.type == "cuda":
+            # torch.cuda.empty_cache(self.device)
 
     def compute_propagated_relevance(self, layer, relevance):
         """

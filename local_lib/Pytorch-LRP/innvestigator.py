@@ -227,8 +227,8 @@ class InnvestigateModel(torch.nn.Module):
             self.r_values_per_layer = r_values_per_layer
 
             del relevance
-            if self.device.type == "cuda":
-                torch.cuda.empty_cache()
+            # if self.device.type == "cuda":
+            #     torch.cuda.empty_cache()
             return self.prediction, r_values_per_layer[-1]
 
     def forward(self, in_tensor):
