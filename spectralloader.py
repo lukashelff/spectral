@@ -117,7 +117,7 @@ class Spectralloader(Dataset):
         self.explainer = None
         self.DEVICE = None
         # is new roar image to be calculated
-        self.update_roar_images = True
+        self.update_roar_images = False
         self.normalize_tensor = transforms.Compose([
             # transforms.RandomRotation(20),
             # transforms.RandomHorizontalFlip(0.5),
