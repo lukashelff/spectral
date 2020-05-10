@@ -22,6 +22,10 @@ from cnn import *
 
 
 def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
+    image = image.to(DEVICE)
+    model = model.to(DEVICE)
+    image.requires_grad = True
+
     input = image.unsqueeze(0)
     # input.requires_grad = True
     model.eval()
@@ -229,44 +233,50 @@ def cut_top_per(data):
     return d_img
 
 
-def explain_comparison(model, image, label, explainer, DEVICE):
-    def detect_edge(activation_map):
-        # org = np.zeros((h, w), dtype=float) + org_img_edged
-        # org = np.asarray(org_img_edged)[:, :, np.newaxis]
-        fig, ax = plt.subplots()
-        ax.imshow(org_img_edged, cmap=plt.cm.binary)
-        ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
-                  alpha=0.4)
-        ax.tick_params(axis='both', which='both', length=0)
-        plt.setp(ax.get_xticklabels(), visible=False)
-        plt.setp(ax.get_yticklabels(), visible=False)
-        plt.close('all')
-        return fig
+def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
+    title = 'comparison of saliency methods'
+    len_ids = len(ids)
+    len_explainer = len(explainer)
+    fig = plt.figure(figsize=(6 * len_explainer + 2, 7 * len_ids + 8))
+    fig.suptitle(title, fontsize=35)
+    model.to(DEVICE)
 
-    print("creating images for explainer comparison")
-    input = image.unsqueeze(0)
-    input.requires_grad = True
-    model.eval()
-    # Edge detection of original input image
-    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
-    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-    # Compute the Canny filter for two values of sigma
-    org_img_edged = feature.canny(org_img_edged, sigma=3)
-    heatmaps = []
+    for c_i, i in enumerate(ids):
+        image, label = ds.get_original_by_id(i)
+        print("creating images for explainer comparison")
+        model.eval()
+        # Edge detection of original input image
+        org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+        org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+        org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+        # Compute the Canny filter for two values of sigma
+        org_img_edged = feature.canny(org_img_edged, sigma=3)
+        for c_ex, ex in enumerate(explainer):
+            ax = fig.add_subplot(len_ids, len_explainer, (c_ex + 1) + c_i * len_explainer)
 
-    for ex in explainer:
-        if ex == 'Original':
-            explained, _ = viz.visualize_image_attr(None,
-                                                    np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
-                                                    method="original_image", use_pyplot=False)
-            heatmaps.append(explained)
+            if ex == 'Original':
+                org_im, _ = viz.visualize_image_attr(None,
+                                                     np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                                     method="original_image", use_pyplot=False)
+                plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
 
-        else:
-            explained = explain_single(model, image, label, ex, False, DEVICE)
-            heatmaps.append(detect_edge(explained))
+            else:
+                explained = explain_single(model, image, label, ex, False, DEVICE)
+                ax.imshow(org_img_edged, cmap=plt.cm.binary)
+                ax.imshow(explained, cmap='viridis', alpha=0.4)
+            ax.tick_params(axis='both', which='both', length=0)
+            plt.setp(ax.get_xticklabels(), visible=False)
+            plt.setp(ax.get_yticklabels(), visible=False)
+            if c_i == 0:
+                ax.set_title(ex, fontsize=25)
+            if c_ex == 0:
+                ax.set_ylabel('image ' + str(i), fontsize=25)
+    fig.tight_layout()
 
-    return heatmaps
+    if not os.path.exists('./data/' + mode + '/' + 'exp/saliency_comparison/'):
+        os.makedirs('./data/' + mode + '/' + 'exp/saliency_comparison/')
+    fig.savefig('./data/' + mode + '/' + 'exp/saliency_comparison/comparison_of_saliency_methods.png')
+    plt.show()
 
 
 # create all explainers for a given image

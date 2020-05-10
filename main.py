@@ -14,7 +14,7 @@ def main():
     # resizes all images and replaces them in folder
     resize_imagenet = False
     retrain = False
-    plot_for_image_id, plot_classes, plot_categories = True, True, True
+    plot_for_image_id, plot_classes, plot_categories = True, False, False
     roar_create_mask = False
     roar_train = False
     plot_roar_curve = False
@@ -31,8 +31,7 @@ def main():
     classes = ('healthy', 'diseased')
     input_cmd = sys.argv
     # print('start ' + str(input_cmd[1]) + ' end ' + str(input_cmd[2]))
-
-
+    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
     # modified images in folder:
     # gradcam: all
@@ -67,6 +66,7 @@ def main():
         # print('lr ' + str(lr))
         cv_iterations_total = 1
         test_size = 10000
+        image_ids = [x * 500 for x in range(6)]
 
     train_labels, valid_labels, all_data, labels = load_labels(mode)
     sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
@@ -84,10 +84,11 @@ def main():
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/' + mode + '/' + 'exp/'
-    explainers = ['Original', 'saliency', 'Integrated_Gradients', 'noisetunnel', 'guided_gradcam', 'gradcam', 'LRP',
+    explainers = ['Original', 'saliency', 'Integrated_Gradients',
+                  # 'noisetunnel',
+                  'guided_gradcam', 'gradcam', 'LRP',
                   # 'Noise Tunnel stev 2'
                   ]
-    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
     # original_model = get_model(DEVICE, n_classes, mode)
     # original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
@@ -116,11 +117,13 @@ def main():
     if plot_classes or plot_categories:
         # evaluate images and their classification
         print('creating explainer plots for specific classes')
-        plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_classes, plot_categories,
+        plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_categories, plot_classes,
                                   explainers, mode)
     if plot_for_image_id:
         print('creating explainer plots for specified images')
-        plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
+        if mode == 'plants':
+            plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
+        create_comparison_saliency(original_model, image_ids, all_ds, explainers, DEVICE, mode)
 
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:

@@ -40,22 +40,22 @@ def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healt
             for i in range(0, len(y)):
                 if plot_diseased and len(index_diseased) < k and preddata[i] == 1 and ydata[i] == 1:
                     index_diseased += [ydata[i]]
-                    index_diseased_image.append(explain_comparison(model, X[i], ydata[i], explainers, DEVICE))
+                    index_diseased_image.append(explain(model, X[i], ydata[i]))
                 if plot_healthy and len(index_healthy) < k and preddata[i] == 0 and y[i] == 0:
                     index_healthy += [ydata[i]]
-                    index_healthy_image.append(explain_comparison(model, X[i], ydata[i], explainers, DEVICE))
+                    index_healthy_image.append(explain(model, X[i], ydata[i]))
                 if plot_classes and index_classes[2] == -1 and preddata[i] == 1 and ydata[i] == 1:
                     index_classes[2] = ydata[i]
-                    index_classes_image[2] = explain_comparison(model, X[i], ydata[i], explainers, DEVICE)
+                    index_classes_image[2] = explain(model, X[i], ydata[i])
                 if plot_classes and index_classes[3] == -1 and preddata[i] == 0 and ydata[i] == 1:
                     index_classes[3] = ydata[i]
-                    index_classes_image[3] = explain_comparison(model, X[i], ydata[i], explainers, DEVICE)
+                    index_classes_image[3] = explain(model, X[i], ydata[i])
                 if plot_classes and index_classes[0] == -1 and preddata[i] == 0 and ydata[i] == 0:
                     index_classes[0] = ydata[i]
-                    index_classes_image[0] = explain_comparison(model, X[i], ydata[i], explainers, DEVICE)
+                    index_classes_image[0] = explain(model, X[i], ydata[i])
                 if plot_classes and index_classes[1] == -1 and preddata[i] == 1 and ydata[i] == 0:
                     index_classes[1] = ydata[i]
-                    index_classes_image[1] = explain_comparison(model, X[i], ydata[i], explainers, DEVICE)
+                    index_classes_image[1] = explain(model, X[i], ydata[i])
     if not os.path.exists(path_root + subpath_healthy):
         os.makedirs(path_root + subpath_healthy)
     if not os.path.exists(path_root + subpath_diseased):
@@ -113,7 +113,7 @@ def evaluate_id(image_id, ds, model, explainers, path_root, subpath, DEVICE):
     if image is not None:
         model.to(DEVICE)
         image = torch.from_numpy(image).to(DEVICE)
-        explained = explain_comparison(model, image, label, explainers, DEVICE)
+        explained = explain(model, image, label)
         for i in range(0, len(explainers)):
             directory = path_root + subpath + explainers[i] + image_id + '.png'
             explained[i].savefig(directory, bbox_inches='tight')
@@ -177,9 +177,7 @@ def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy
     subpath_classification = 'classification/'
     image_class = ['tp', 'fp', 'tn', 'fn']
     number_images = 6
-    image_indexed = []
-    for i in range(1, number_images + 1):
-        image_indexed.append(str(i))
+    image_indexed = [str(i) for i in range(1, number_images+1)]
     # evaluate images and their classification
     evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
              subpath_diseased, subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes)
