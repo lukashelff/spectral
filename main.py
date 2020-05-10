@@ -1,43 +1,10 @@
-import os
-import pickle
 import sys
-from os import listdir
-from typing import List, Any
 
-import torchvision
-from PIL import Image as PImage
-from torch.autograd import Variable
-from torch.utils.data import Dataset, DataLoader
-import torchvision.datasets as t_datasets
-from torchvision.datasets.folder import ImageFolder, default_loader
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from numpy.lib.format import open_memmap
-from torchvision import models
-from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
-from sklearn.metrics import balanced_accuracy_score, confusion_matrix
-from sklearn import preprocessing
-from matplotlib.colors import LinearSegmentedColormap
-from scipy import ndimage as ndi
-from skimage import feature
-import multiprocessing as mp
-import torch
-from sklearn.model_selection import StratifiedShuffleSplit
-import torchvision.transforms as transforms
-import torchvision.datasets as t_datasets
-import torch.utils.data as data
+from explainer import *
+from helpfunctions import *
+from plots import *
 from roar import *
 from spectralloader import *
-from cnn import *
-from explainer import *
-from plots import *
-from helpfunctions import *
 
 
 def main():
@@ -47,12 +14,12 @@ def main():
     # resizes all images and replaces them in folder
     resize_imagenet = False
     retrain = False
-    plot_for_image_id, plot_classes, plot_categories = False, False, False
+    plot_for_image_id, plot_classes, plot_categories = True, True, True
     roar_create_mask = False
     roar_train = False
-    plot_roar_curve = True
-    roar_mod_im_comp = True
-    roar_expl_im = True
+    plot_roar_curve = False
+    roar_mod_im_comp = False
+    roar_expl_im = False
     # CNN default learning parameters
     N_EPOCHS = 120
     lr = 0.00015
@@ -117,8 +84,9 @@ def main():
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/' + mode + '/' + 'exp/'
-    explainers = ['Original', 'saliency', 'IntegratedGradients', 'NoiseTunnel', 'GuidedGradCam', 'GradCam',
-                  'Noise Tunnel stev 2']
+    explainers = ['Original', 'saliency', 'Integrated_Gradients', 'noisetunnel', 'guided_gradcam', 'gradcam', 'LRP',
+                  # 'Noise Tunnel stev 2'
+                  ]
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 
     # original_model = get_model(DEVICE, n_classes, mode)

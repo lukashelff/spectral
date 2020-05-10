@@ -106,6 +106,13 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         if bounded:
             heat_map = cut_top_per(heat_map)
 
+    elif explainer == 'saliency':
+        saliency = Saliency(model)
+        grads = saliency.attribute(input, target=label)
+        heat_map = cut_and_shape(np.transpose(grads.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+        if bounded:
+            heat_map = cut_top_per(heat_map)
+
     elif explainer == 'LRP':
         # model.to('cuda:0')
         # summary(model, (3, 255, 213), batch_size=20)
@@ -141,9 +148,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
                                                     beta=.5,
                                                     DEVICE=DEVICE)
         model_prediction, heat_map = inn_model.innvestigate(in_tensor=input)
-        # h_min = np.float(heat_map.min())
-        # if h_min < 0:
-        #     heat_map = np.array(heat_map.squeeze()) - h_min
+
         heat_map = cut_and_shape(np.transpose(heat_map.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
@@ -222,6 +227,46 @@ def cut_top_per(data):
     # reshape to 2D hxw
     d_img = data
     return d_img
+
+
+def explain_comparison(model, image, label, explainer, DEVICE):
+    def detect_edge(activation_map):
+        # org = np.zeros((h, w), dtype=float) + org_img_edged
+        # org = np.asarray(org_img_edged)[:, :, np.newaxis]
+        fig, ax = plt.subplots()
+        ax.imshow(org_img_edged, cmap=plt.cm.binary)
+        ax.imshow(activation_map, cmap='viridis', vmin=np.min(activation_map), vmax=np.max(activation_map),
+                  alpha=0.4)
+        ax.tick_params(axis='both', which='both', length=0)
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        plt.close('all')
+        return fig
+
+    print("creating images for explainer comparison")
+    input = image.unsqueeze(0)
+    input.requires_grad = True
+    model.eval()
+    # Edge detection of original input image
+    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+    # Compute the Canny filter for two values of sigma
+    org_img_edged = feature.canny(org_img_edged, sigma=3)
+    heatmaps = []
+
+    for ex in explainer:
+        if ex == 'Original':
+            explained, _ = viz.visualize_image_attr(None,
+                                                    np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                                    method="original_image", use_pyplot=False)
+            heatmaps.append(explained)
+
+        else:
+            explained = explain_single(model, image, label, ex, False, DEVICE)
+            heatmaps.append(detect_edge(explained))
+
+    return heatmaps
 
 
 # create all explainers for a given image
@@ -303,7 +348,7 @@ def explain(model, image, label):
     # IntegratedGradients Noise Tunnel
     nt = NoiseTunnel(ig)
     attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                          n_samples=5,
+                                          n_samples=2,
                                           # stdevs=0.2
                                           )
 
@@ -311,7 +356,8 @@ def explain(model, image, label):
 
     # IntegratedGradients Noise Tunnel
     attr_ig_nt2 = attribute_image_features(nt, input, baselines=input * 0, nt_type='smoothgrad_sq',
-                                           n_samples=5,
+                                           # n_samples=5,
+                                           n_samples=2,
                                            stdevs=2.0
                                            )
 
@@ -340,38 +386,38 @@ def explain(model, image, label):
     f8 = detect_edge(attr_ig_nt2)
     f1, a1 = viz.visualize_image_attr(None, np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
                                       method="original_image", use_pyplot=False)
-
-    # ----------------------------------------------------------------
-    # code to display images with the captum lib
-
-    # original_image = detect_edge()
-    # # Original Image
-    # # Overlayed Gradient Magnitudes saliency
-    # f2, a2 = viz.visualize_image_attr(grads, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
-    # # Overlayed Integrated Gradients
-    # f3, a3 = viz.visualize_image_attr(attr_ig, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
-    # # Overlayed Noise Tunnel
-    # f4, a4 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="positive",method="blended_heat_map", use_pyplot=False)
-    #
-    # # # DeepLift
-    # # f5, a5 = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map", sign="all",
-    # #                                   # show_colorbar=True, title="Overlayed DeepLift"
-    # #                                   )
-    # # f5 = detect_edge(attr_dl)
-    #
-    # # GuidedGradCam
-    # f6, a6 = viz.visualize_image_attr(attr_gc, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
-    #
-    # # GradCam
-    # f7, a7 = viz.visualize_image_attr(np_gradcam, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
-    #
-    # # GradCam original image
-    # f8, a8 = viz.visualize_image_attr(gradcam_orig, original_image, sign="absolute_value", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
-    # # Deeplift
-    # dl = DeepLift(model)
-    # attr_dl = attribute_image_features(dl, input)
-    # attr_dl = np.transpose(attr_dl.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
-
-    # print('Leaf is ', classes[predicted[ind]],
-    #       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item())
     return [f1, f2, f3, f4, f6, f7, f8]
+
+# ----------------------------------------------------------------
+# code to display images with the captum lib
+
+# original_image = detect_edge()
+# # Original Image
+# # Overlayed Gradient Magnitudes saliency
+# f2, a2 = viz.visualize_image_attr(grads, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
+# # Overlayed Integrated Gradients
+# f3, a3 = viz.visualize_image_attr(attr_ig, original_image, sign="positive", method="blended_heat_map", use_pyplot=False)
+# # Overlayed Noise Tunnel
+# f4, a4 = viz.visualize_image_attr(attr_ig_nt, original_image, sign="positive",method="blended_heat_map", use_pyplot=False)
+#
+# # # DeepLift
+# # f5, a5 = viz.visualize_image_attr(attr_dl, original_image, method="blended_heat_map", sign="all",
+# #                                   # show_colorbar=True, title="Overlayed DeepLift"
+# #                                   )
+# # f5 = detect_edge(attr_dl)
+#
+# # GuidedGradCam
+# f6, a6 = viz.visualize_image_attr(attr_gc, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
+#
+# # GradCam
+# f7, a7 = viz.visualize_image_attr(np_gradcam, original_image, sign="positive", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
+#
+# # GradCam original image
+# f8, a8 = viz.visualize_image_attr(gradcam_orig, original_image, sign="absolute_value", method="blended_heat_map", show_colorbar=False, use_pyplot=False)
+# # Deeplift
+# dl = DeepLift(model)
+# attr_dl = attribute_image_features(dl, input)
+# attr_dl = np.transpose(attr_dl.squeeze(0).cpu().detach().numpy(), (1, 2, 0))
+
+# print('Leaf is ', classes[predicted[ind]],
+#       'with a Probability of:', torch.max(F.softmax(outputs, 1)).item())

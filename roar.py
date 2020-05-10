@@ -32,9 +32,9 @@ from helpfunctions import *
 # roar_explainers = ['guided_gradcam', 'random', 'gradcam', 'noisetunnel_gaussian',
 #                    'guided_gradcam_gaussian', 'noisetunnel', 'Integrated_Gradients']
 ids_imagenet = [x * 500 for x in range(8)]
-ids_imagenet = [x * 1 for x in range(8)]
+# ids_imagenet = [x * 1 for x in range(8)]
 ids_and_labels_imagenet = [(x * 500, x) for x in range(8)]
-ids_and_labels_imagenet = [(x * 1, x) for x in range(8)]
+# ids_and_labels_imagenet = [(x * 1, x) for x in range(8)]
 ids_roar = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 ids_roar_exp = [0, 3, 4, 6]
 ids_and_labels_plants = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1),
