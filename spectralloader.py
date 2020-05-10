@@ -110,6 +110,7 @@ class Spectralloader(Dataset):
         gc.enable()
         self.mode = mode
         self.train = train
+        self.classes = []
         self.data, self.ids = self.load_images_for_labels(root, ids_and_labels, train)
         gc.disable()
         self.percentage = None
@@ -194,12 +195,12 @@ class Spectralloader(Dataset):
                 # else:
                 #     image = self.pil_to_tensor(im)
             else:
-                norm = transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                ])
+                # norm = transforms.Compose([
+                #     transforms.ToTensor(),
+                #     transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                # ])
                 image, label = self.data[id]['image'], self.data[id]['label']
-                image = norm(image)
+                # image = norm(image)
 
             return image, label
         except ValueError:
@@ -229,6 +230,21 @@ class Spectralloader(Dataset):
             len_train = image_datasets['train'].__len__()
             len_val = image_datasets['val'].__len__()
             len_all = len_val + len_train
+            with open('./data/imagenet/tiny-imagenet-200/words.txt', 'r') as f:
+                words = {}
+                for line in f:
+                    label = ''
+                    name = ''
+                    lab = True
+                    for element in line.split():
+                        if lab:
+                            lab = False
+                            label = element
+                        else:
+                            name += element
+                            name += ' '
+                    words[label] = name[:-1]
+            self.classes = [words[cl] for cl in image_datasets['train'].classes]
 
             if train == 'train':
                 data = {c: x for c, x in enumerate(image_datasets['train'].imgs)}
@@ -237,7 +253,7 @@ class Spectralloader(Dataset):
                 data = {c + len_train: x for c, x in enumerate(image_datasets['val'].imgs)}
                 ids = list(range(len_train, len_all))
             elif train == 'specific':
-                data ={}
+                data = {}
                 ids = [id for (id, label) in ids_and_labels]
                 for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs):
                     if c in ids:
@@ -258,7 +274,6 @@ class Spectralloader(Dataset):
                     add_to_data(data, i['id'].replace(',', '_'))
                     # elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
-
             with tqdm(total=67) as progress:
 
                 for i in range(1, 5):
@@ -333,42 +348,6 @@ class Spectralloader(Dataset):
                             im[1][i_h][i_w] = 173 / max_i
                             im[2][i_h][i_w] = 14 / max_i
                     self.update_data(id, torch.from_numpy(im), roar_link)
-
-                    # mask_flat = mask.flatten()
-                    # percentile = np.percentile(mask_flat, 100 - percentage)
-                    # bigger = 0
-                    # indices_of_same_values = []
-                    #
-                    # for i in range(0, w):
-                    #     for j in range(0, h):
-                    #         if mask[j][i] > percentile:
-                    #             bigger += 1
-                    #             if method == "mean":
-                    #                 im[0][j][i] = mean
-                    #                 im[1][j][i] = mean
-                    #                 im[2][j][i] = mean
-                    #             else:
-                    #                 im[0][j][i] = 238 / max_i
-                    #                 im[1][j][i] = 173 / max_i
-                    #                 im[2][j][i] = 14 / max_i
-                    #         if mask[j][i] == percentile:
-                    #             indices_of_same_values.append([j, i])
-                    # if len(indices_of_same_values) > 5:
-                    #     missing = max(int(0.01 * percentage * w * h - bigger), 0)
-                    #     selection = random.sample(indices_of_same_values, missing)
-                    #     for i in selection:
-                    #         if method == "mean":
-                    #             im[0][i[0]][i[1]] = mean
-                    #             im[1][i[0]][i[1]] = mean
-                    #             im[2][i[0]][i[1]] = mean
-                    #         else:
-                    #             im[0][i[0]][i[1]] = 238 / max_i
-                    #             im[1][i[0]][i[1]] = 173 / max_i
-                    #             im[2][i[0]][i[1]] = 14 / max_i
-                    # self.update_data(id, torch.from_numpy(im), roar_link)
-                    # del im
-            # print('init: ' + str(round(t2, 3)) + ' modify: ' + str(round(t3, 3)) + ' update: ' + str(round(t4, 3)))
-            # print('used time to modify: ' + str(round(time.time() - start_time, 3)))
         except ValueError:
             print('No roar img or mask for id: ' + str(id))
 
@@ -411,6 +390,32 @@ class Spectralloader(Dataset):
         #         id = self.get_id_by_index(d)
         #         self.apply_roar_single_image(percentage, masks, id, "mean", explainer)
         #         progress.update(1)
+
+    def get_class_by_label(self, label_id):
+        return self.classes[int(label_id)]
+        # if self.mode == 'plants':
+        #     if label_id == 0:
+        #         return self.classes[0]
+        #     else:
+        #         return self.classes[1]
+        # else:
+        #     with open('./data/imagenet/tiny-imagenet-200/wnids.txt', 'r') as f:
+        #         wnids = [line.rstrip('\n') for line in f]
+        #     with open('./data/imagenet/tiny-imagenet-200/words.txt', 'r') as f:
+        #         words = {}
+        #         for line in f:
+        #             label = ''
+        #             name = ''
+        #             lab = True
+        #             for element in line.split():
+        #                 if lab:
+        #                     lab = False
+        #                     label = element
+        #                 else:
+        #                     name += element
+        #                     name += ' '
+        #             words[label] = name[:-1]
+        #     return words[wnids[int(label_id)]]
 
 
 # returns Array of tuples(String, int) with ID and disease information 0 disease/ 1 healthy e.g. (3_Z2_1_0_1, 0)

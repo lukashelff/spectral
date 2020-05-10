@@ -212,10 +212,10 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     fig = plt.figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     if mode != 'imagenet':
-        plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
-        plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.plot(train_acc, color='skyblue', label='train acc')
-    plt.plot(valid_acc, color='orange', label='valid_acc')
+        plt.plot(train_acc, color='skyblue', label='train acc')
+        plt.plot(valid_acc, color='orange', label='valid_acc')
+    plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
+    plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
     plt.title(title +
               ' with lr ' + str(learning_rate) + ', lr_step_size: ' +
               str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
@@ -391,7 +391,7 @@ def apply_parallel(ds, i, mask, DEVICE, explainer):
     ds.apply_roar(i, mask, DEVICE, explainer)
 
 
-def train_imagenet(model, N_EPOCHS, lr, batch_size, DEVICE, mode):
+def eval_model(model, N_EPOCHS, lr, batch_size, DEVICE, mode):
     data_dir = './data/imagenet/tiny-imagenet-200/'
     data_transforms = {
         'train': transforms.Compose([

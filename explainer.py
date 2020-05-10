@@ -49,6 +49,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
                         data[i][k][j] = 0
         # reshape to 2D hxw
         d_img = data[:, :, 0] + data[:, :, 1] + data[:, :, 2]
+        # d_img = data
         return d_img
 
     def attribute_image_features(algorithm, input, **kwargs):
@@ -61,8 +62,14 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         gco = LayerGradCam(model, last_layer)
         attr_gco = attribute_image_features(gco, input)
         att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
+        h_a, w_a = att.shape
+        for i in range(h_a):
+            for k in range(w_a):
+                if att[i][k] < 0:
+                    att[i][k] = 0
         gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
         heat_map = np.asarray(gradcam)
+
 
     elif explainer == 'guided_gradcam':
         gc = GuidedGradCam(model, last_layer)
@@ -157,8 +164,8 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         if bounded:
             heat_map = cut_top_per(heat_map)
 
-    assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
-        heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
+    # assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
+    #     heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
     return heat_map
 
 
@@ -211,10 +218,8 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
             image = image.to(DEVICE)
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
-                if (not os.path.isfile(path_item)) or (replace_existing
-                        # and int(range_start) <= i <= int(range_end)
-                ):
-                    tmp = explain_single(model, image, label, ex, False, DEVICE)
+                if (not os.path.isfile(path_item)) or (replace_existing):
+                    tmp = explain_single(model, image, label, ex, True, DEVICE)
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)
 
@@ -239,11 +244,10 @@ def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
     len_explainer = len(explainer)
     fig = plt.figure(figsize=(6 * len_explainer + 2, 7 * len_ids + 8))
     fig.suptitle(title, fontsize=35)
-    model.to(DEVICE)
 
     for c_i, i in enumerate(ids):
+        image_normalized, _ = ds.__getitem__(id)
         image, label = ds.get_original_by_id(i)
-        print("creating images for explainer comparison")
         model.eval()
         # Edge detection of original input image
         org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
@@ -259,14 +263,22 @@ def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
                                                      np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
                                                      method="original_image", use_pyplot=False)
                 plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
-
             else:
-                explained = explain_single(model, image, label, ex, False, DEVICE)
-                ax.imshow(org_img_edged, cmap=plt.cm.binary)
-                ax.imshow(explained, cmap='viridis', alpha=0.4)
+                explained = explain_single(model, image_normalized, label, ex, True, DEVICE)
+                explained = ndi.gaussian_filter(explained, 3)
+
+                viz.visualize_image_attr(np.expand_dims(explained, axis=2),
+                                         np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                         sign="positive", method="blended_heat_map",
+                                         show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
+                                         alpha_overlay=0.6)
+                # ax.imshow(org_img_edged, cmap=plt.cm.binary)
+                # ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
+                #           alpha=0.4)
             ax.tick_params(axis='both', which='both', length=0)
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), visible=False)
+            plt.grid(b=False)
             if c_i == 0:
                 ax.set_title(ex, fontsize=25)
             if c_ex == 0:
@@ -277,6 +289,7 @@ def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
         os.makedirs('./data/' + mode + '/' + 'exp/saliency_comparison/')
     fig.savefig('./data/' + mode + '/' + 'exp/saliency_comparison/comparison_of_saliency_methods.png')
     plt.show()
+    plt.close('all')
 
 
 # create all explainers for a given image

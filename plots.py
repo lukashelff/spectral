@@ -177,7 +177,7 @@ def plot_explained_categories(model, val_dl, DEVICE, plot_diseased, plot_healthy
     subpath_classification = 'classification/'
     image_class = ['tp', 'fp', 'tn', 'fn']
     number_images = 6
-    image_indexed = [str(i) for i in range(1, number_images+1)]
+    image_indexed = [str(i) for i in range(1, number_images + 1)]
     # evaluate images and their classification
     evaluate(model, val_dl, number_images, explainers, image_class, path_root, subpath_healthy,
              subpath_diseased, subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes)
@@ -257,3 +257,44 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison')
     plt.show()
     plt.close(fig)
+
+
+def plot_single_image(model, id, ds, explainer, DEVICE, mode):
+    image_normalized, label = ds.__getitem__(id)
+    output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
+    _, pred = torch.max(output, 1)
+    image, label = ds.get_original_by_id(id)
+    classname = ds.get_class_by_label(label)
+    pred_classname = ds.get_class_by_label(pred)
+    title = explainer + ' heat-map on image\nactual label ' + classname + '\npredicted label ' + pred_classname
+    print(title)
+    fig, ax = plt.subplots()
+    ax.set_title(title)
+    # org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+    # org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+    # org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+    # # Compute the Canny filter for two values of sigma
+    # org_img_edged = feature.canny(org_img_edged, sigma=3)
+    if explainer == 'Original':
+        org_im, _ = viz.visualize_image_attr(None,
+                                             np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                             method="original_image", use_pyplot=False)
+        plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+    else:
+        explained = explain_single(model, image_normalized, label, explainer, True, DEVICE)
+        explained = ndi.gaussian_filter(explained, 3)
+        viz.visualize_image_attr(np.expand_dims(explained, axis=2),
+                                 np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)), sign="positive",
+                                 method="blended_heat_map",
+                                 show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
+                                 alpha_overlay=0.6)
+    ax.tick_params(axis='both', which='both', length=0)
+    plt.setp(ax.get_xticklabels(), visible=False)
+    plt.setp(ax.get_yticklabels(), visible=False)
+    plt.grid(b=False)
+    if not os.path.exists('./data/' + mode + '/' + 'exp/saliency_single_image_eval/'):
+        os.makedirs('./data/' + mode + '/' + 'exp/saliency_single_image_eval/')
+    fig.savefig('./data/' + mode + '/' + 'exp/saliency_single_image_eval/' + str(
+        id) + '_image_explained_with_' + explainer + '.png')
+    plt.show()
+    plt.close('all')

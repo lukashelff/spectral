@@ -45,7 +45,7 @@ def main():
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'LRP',
                        'noisetunnel', 'random', 'Integrated_Gradients']
-    # roar_explainers = ['LRP']
+    roar_explainers = ['LRP']
 
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
 
@@ -82,6 +82,7 @@ def main():
 
     trained_roar_models = './data/' + mode + '/' + 'models/trained_model_roar'
     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
+    # original_trained_model = trained_roar_models + '_gradcam_10.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/' + mode + '/' + 'exp/'
     explainers = ['Original', 'saliency', 'Integrated_Gradients',
@@ -123,7 +124,9 @@ def main():
         print('creating explainer plots for specified images')
         if mode == 'plants':
             plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
-        create_comparison_saliency(original_model, image_ids, all_ds, explainers, DEVICE, mode)
+        # eval_model(original_model, N_EPOCHS, lr, batch_size, DEVICE, mode)
+        plot_single_image(original_model, 1000, all_ds, 'Orginal', DEVICE, mode)
+        # create_comparison_saliency(original_model, image_ids, all_ds, explainers, DEVICE, mode)
 
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:
