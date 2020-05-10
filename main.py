@@ -125,7 +125,7 @@ def main():
         if mode == 'plants':
             plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
         # eval_model(original_model, N_EPOCHS, lr, batch_size, DEVICE, mode)
-        plot_single_image(original_model, 1000, all_ds, 'Orginal', DEVICE, mode)
+        plot_single_image(original_model, 1000, all_ds, 'Original', DEVICE, mode)
         # create_comparison_saliency(original_model, image_ids, all_ds, explainers, DEVICE, mode)
 
     # create a mask containing the heatmap of all specified images
