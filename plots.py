@@ -267,7 +267,7 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode):
     classname = ds.get_class_by_label(label)
     pred_classname = ds.get_class_by_label(pred)
     title = explainer + ' heat-map on image\nactual label ' + classname + '\npredicted label ' + pred_classname
-    print(title)
+    # print(title)
     fig, ax = plt.subplots()
     ax.set_title(title)
     # org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
@@ -366,7 +366,7 @@ def create_comparison_saliency(model_path, ids, ds, explainer, DEVICE, mode):
                     # 'image class ' + classname + '\nprediction: ' + pred_classname
                     'image class ' + str(label) + '\n' + corect_pred + ' classified'
                     , fontsize=40)
-            del image
+        del image
         decription += 'class ' + str(label) + ' = ' + pred_classname + '\n'
     fig.text(0.02, 0, decription, fontsize=40)
     rect = (0, 0.08, 1, 0.95)

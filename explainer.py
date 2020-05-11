@@ -163,7 +163,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         heat_map = cut_and_shape(np.transpose(heat_map.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
-
+    torch.cuda.empty_cache()
     # assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
     #     heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
     return heat_map
@@ -219,7 +219,7 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
                 if (not os.path.isfile(path_item)) or (replace_existing):
-                    tmp = explain_single(model, image, label, ex, True, DEVICE)
+                    tmp = explain_single(model, image, label, ex, False, DEVICE)
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)
 

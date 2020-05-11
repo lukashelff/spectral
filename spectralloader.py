@@ -230,6 +230,7 @@ class Spectralloader(Dataset):
             len_train = image_datasets['train'].__len__()
             len_val = image_datasets['val'].__len__()
             len_all = len_val + len_train
+            # safe image classesnames in classes
             with open('./data/imagenet/tiny-imagenet-200/words.txt', 'r') as f:
                 words = {}
                 for line in f:
@@ -253,6 +254,7 @@ class Spectralloader(Dataset):
                 data = {c + len_train: x for c, x in enumerate(image_datasets['val'].imgs)}
                 ids = list(range(len_train, len_all))
             elif train == 'specific':
+                self.update_roar_images = True
                 data = {}
                 ids = [id for (id, label) in ids_and_labels]
                 for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs):
