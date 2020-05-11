@@ -17,9 +17,11 @@ def main():
     plot_for_image_id, plot_classes, plot_categories = True, False, False
     roar_create_mask = False
     roar_train = False
+    # expain images seperate
+    explain_images = False
     plot_roar_curve = False
-    roar_mod_im_comp = False
-    roar_expl_im = False
+    roar_comp = True
+    roar_expl_comp = False
     # CNN default learning parameters
     N_EPOCHS = 120
     lr = 0.00015
@@ -66,7 +68,7 @@ def main():
         # print('lr ' + str(lr))
         cv_iterations_total = 1
         test_size = 10000
-        image_ids = [x * 500 for x in range(6)]
+        image_ids = [x * 500 + 100 for x in range(6)]
 
     train_labels, valid_labels, all_data, labels = load_labels(mode)
     sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
@@ -124,9 +126,7 @@ def main():
         print('creating explainer plots for specified images')
         if mode == 'plants':
             plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
-        # eval_model(original_model, N_EPOCHS, lr, batch_size, DEVICE, mode)
-        plot_single_image(original_model, 1000, all_ds, 'Original', DEVICE, mode)
-        # create_comparison_saliency(original_model, image_ids, all_ds, explainers, DEVICE, mode)
+        create_comparison_saliency(original_model, image_ids, all_ds, explainers, DEVICE, mode)
 
     # create a mask containing the heatmap of all specified images
     if roar_create_mask:
@@ -155,15 +155,21 @@ def main():
 
     # set spectralloader update val true
     # comparison of modified roar Images
-    if roar_mod_im_comp:
+    if roar_comp:
         print('creating ROAR comparison plot')
         roar_comparison(mode, roar_explainers, cv_iterations_total, roar_values)
 
     # set spectralloader update val true
     # interpretation/explaination of modified roar Images
-    if roar_expl_im:
+    if roar_expl_comp:
         print('creating ROAR explanation plot')
         roar_comparison_explained(mode, DEVICE, roar_explainers, roar_values)
+
+    if explain_images:
+        for ex in explainers:
+            for i in image_ids:
+                plot_single_image(original_model, i, all_ds, ex, DEVICE, mode)
+
 
 
 if __name__ == '__main__':

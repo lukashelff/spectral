@@ -214,7 +214,7 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
               ncols=100 + len(roar_explainers) * 15) as progress:
         for i in range(range_start, range_end + 1):
             id = dataset.get_id_by_index(i)
-            image, label = dataset.get_original_by_id(id)
+            image, label = dataset.__getitem__(id)
             image = image.to(DEVICE)
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
@@ -238,58 +238,7 @@ def cut_top_per(data):
     return d_img
 
 
-def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
-    title = 'comparison of saliency methods'
-    len_ids = len(ids)
-    len_explainer = len(explainer)
-    fig = plt.figure(figsize=(6 * len_explainer + 2, 7 * len_ids + 8))
-    fig.suptitle(title, fontsize=35)
 
-    for c_i, i in enumerate(ids):
-        image_normalized, _ = ds.__getitem__(id)
-        image, label = ds.get_original_by_id(i)
-        model.eval()
-        # Edge detection of original input image
-        org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-        org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
-        org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-        # Compute the Canny filter for two values of sigma
-        org_img_edged = feature.canny(org_img_edged, sigma=3)
-        for c_ex, ex in enumerate(explainer):
-            ax = fig.add_subplot(len_ids, len_explainer, (c_ex + 1) + c_i * len_explainer)
-
-            if ex == 'Original':
-                org_im, _ = viz.visualize_image_attr(None,
-                                                     np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
-                                                     method="original_image", use_pyplot=False)
-                plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
-            else:
-                explained = explain_single(model, image_normalized, label, ex, True, DEVICE)
-                explained = ndi.gaussian_filter(explained, 3)
-
-                viz.visualize_image_attr(np.expand_dims(explained, axis=2),
-                                         np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
-                                         sign="positive", method="blended_heat_map",
-                                         show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
-                                         alpha_overlay=0.6)
-                # ax.imshow(org_img_edged, cmap=plt.cm.binary)
-                # ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
-                #           alpha=0.4)
-            ax.tick_params(axis='both', which='both', length=0)
-            plt.setp(ax.get_xticklabels(), visible=False)
-            plt.setp(ax.get_yticklabels(), visible=False)
-            plt.grid(b=False)
-            if c_i == 0:
-                ax.set_title(ex, fontsize=25)
-            if c_ex == 0:
-                ax.set_ylabel('image ' + str(i), fontsize=25)
-    fig.tight_layout()
-
-    if not os.path.exists('./data/' + mode + '/' + 'exp/saliency_comparison/'):
-        os.makedirs('./data/' + mode + '/' + 'exp/saliency_comparison/')
-    fig.savefig('./data/' + mode + '/' + 'exp/saliency_comparison/comparison_of_saliency_methods.png')
-    plt.show()
-    plt.close('all')
 
 
 # create all explainers for a given image

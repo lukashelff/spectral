@@ -298,3 +298,73 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode):
         id) + '_image_explained_with_' + explainer + '.png')
     plt.show()
     plt.close('all')
+
+
+def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
+    title = 'comparison of saliency methods'
+    len_ids = len(ids)
+    len_explainer = len(explainer)
+    w, h = 9 * len_explainer + 2, 10 * len_ids + 5
+
+    fig = plt.figure(figsize=(w, h))
+    decription = ''
+    # fig.subplots_adjust(top=5, bottom=1, wspace=0.1, hspace=0.1)
+    fig.suptitle(title, fontsize=80)
+
+    for c_i, i in enumerate(ids):
+        image_normalized, label = ds.__getitem__(i)
+        output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
+        _, pred = torch.max(output, 1)
+        image, label = ds.get_original_by_id(i)
+        classname = ds.get_class_by_label(label)
+        pred_classname = ds.get_class_by_label(pred)
+        image, label = ds.get_original_by_id(i)
+        model.eval()
+        # Edge detection of original input image
+        org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+        org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+        org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+        # Compute the Canny filter for two values of sigma
+        org_img_edged = feature.canny(org_img_edged, sigma=3)
+        for c_ex, ex in enumerate(explainer):
+            ax = fig.add_subplot(len_ids, len_explainer, (c_ex + 1) + c_i * len_explainer)
+
+            if ex == 'Original':
+                org_im, _ = viz.visualize_image_attr(None,
+                                                     np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                                     method="original_image", use_pyplot=False)
+                plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+            else:
+                explained = explain_single(model, image_normalized, label, ex, True, DEVICE)
+                explained = ndi.gaussian_filter(explained, 3)
+                # comment to use edged image
+                org_img_edged = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+
+                viz.visualize_image_attr(np.expand_dims(explained, axis=2),
+                                         org_img_edged,
+                                         sign="positive", method="blended_heat_map",
+                                         show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
+                                         alpha_overlay=0.6)
+
+            ax.tick_params(axis='both', which='both', length=0)
+            plt.setp(ax.get_xticklabels(), visible=False)
+            plt.setp(ax.get_yticklabels(), visible=False)
+            plt.grid(b=False)
+            if c_i == 0:
+                ax.set_title(ex, fontsize=40)
+            if c_ex == 0:
+                corect_pred = 'incorrectly'
+                if classname == pred_classname:
+                    corect_pred = 'correctly'
+                ax.set_ylabel(
+                    # 'image class ' + classname + '\nprediction: ' + pred_classname
+                    'image class ' + str(label) + '\n' + corect_pred + ' classified'
+                    , fontsize=40)
+        decription += 'image class ' + str(label) + ' = ' + pred_classname + '\n'
+    fig.text(0.02, 0, decription, fontsize=40)
+    rect = (0, 0.08, 1, 0.95)
+    fig.tight_layout(rect=rect, h_pad=8, w_pad=8)
+    if not os.path.exists('./data/' + mode + '/' + 'exp/saliency_comparison/'):
+        os.makedirs('./data/' + mode + '/' + 'exp/saliency_comparison/')
+    fig.savefig('./data/' + mode + '/' + 'exp/saliency_comparison/comparison_of_saliency_methods.png')
+    plt.close('all')
