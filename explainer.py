@@ -41,7 +41,8 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         last_layer = model.layer4
 
     def cut_and_shape(data):
-        # # consider only the positive values
+        # c, h, w = data.shape
+        # consider only the positive values
         for i in range(h):
             for k in range(w):
                 for j in range(c):
@@ -63,10 +64,10 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         attr_gco = attribute_image_features(gco, input)
         att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
         h_a, w_a = att.shape
-        for i in range(h_a):
-            for k in range(w_a):
-                if att[i][k] < 0:
-                    att[i][k] = 0
+        # for i in range(h_a):
+        #     for k in range(w_a):
+        #         if att[i][k] < 0:
+        #             att[i][k] = 0
         gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
         heat_map = np.asarray(gradcam)
 
@@ -163,7 +164,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         heat_map = cut_and_shape(np.transpose(heat_map.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
     # assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
     #     heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
     return heat_map

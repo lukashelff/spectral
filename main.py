@@ -25,7 +25,7 @@ def main():
     # comparison for image ID
     plot_for_image_id = False
     # expain images seperate
-    explain_images = True
+    explain_images_single = True
 
     # ROAR
     roar_create_mask = False
@@ -45,14 +45,20 @@ def main():
 
 
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+    # explainer for orignal explaination
+    explainers = ['Original', 'saliency', 'Integrated_Gradients',
+                  'noisetunnel',
+                  'guided_gradcam', 'gradcam', 'LRP',
+                  # 'Noise Tunnel stev 2'
+                  ]
+    explainers = ['gradcam']
 
-    # ROAR input values
+    # ROAR explainer to be applied
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = ['gradcam', 'guided_gradcam', 'LRP',
-                       # 'noisetunnel',
+                       'noisetunnel',
                        'random', 'Integrated_Gradients']
-    # roar_explainers = ['gradcam']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     roar_values = [10, 30, 70, 90]
@@ -89,12 +95,9 @@ def main():
     # original_trained_model = trained_roar_models + '_gradcam_10.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/' + mode + '/' + 'exp/'
-    explainers = ['Original', 'saliency', 'Integrated_Gradients',
-                  'noisetunnel',
-                  'guided_gradcam', 'gradcam', 'LRP',
-                  # 'Noise Tunnel stev 2'
-                  ]
 
+
+    # use to evaluate model
     # original_model = get_model(DEVICE, n_classes, mode)
     # original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
     # train_imagenet(original_model,N_EPOCHS,lr,batch_size,DEVICE,mode)
@@ -203,7 +206,7 @@ def main():
         roar_comparison_explained(mode, DEVICE, roar_explainers, roar_values)
 
     # create single plots to explain a image
-    if explain_images:
+    if explain_images_single:
         """ explain images
 
         Args:
@@ -218,7 +221,6 @@ def main():
         for ex in explainers:
             for i in image_ids:
                 plot_single_image(original_model, i, all_ds, ex, DEVICE, mode)
-                torch.cuda
 
 if __name__ == '__main__':
     main()

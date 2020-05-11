@@ -266,8 +266,9 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode):
     image, label = ds.get_original_by_id(id)
     classname = ds.get_class_by_label(label)
     pred_classname = ds.get_class_by_label(pred)
-    title = explainer + ' heat-map on image\nactual label ' + classname + '\npredicted label ' + pred_classname
-    # print(title)
+    title = explainer + ' heat-map on image ' + str(
+        id) + '\nactual label ' + classname + '\npredicted label ' + pred_classname
+    print(title + '\n######')
     fig, ax = plt.subplots()
     ax.set_title(title)
     # org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
@@ -282,7 +283,12 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode):
         plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
     else:
         explained = explain_single(model, image_normalized, label, explainer, True, DEVICE)
-        explained = ndi.gaussian_filter(explained, 3)
+        if explainer is not 'gradcam':
+            explained = ndi.gaussian_filter(explained, 3)
+        # ax.imshow(org_img_edged, cmap=plt.cm.binary)
+        # ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
+        #           alpha=0.4)
+
         viz.visualize_image_attr(np.expand_dims(explained, axis=2),
                                  np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)), sign="positive",
                                  method="blended_heat_map",
@@ -292,18 +298,18 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode):
     plt.setp(ax.get_xticklabels(), visible=False)
     plt.setp(ax.get_yticklabels(), visible=False)
     plt.grid(b=False)
+    plt.show()
     if not os.path.exists('./data/' + mode + '/' + 'exp/saliency_single_image_eval/'):
         os.makedirs('./data/' + mode + '/' + 'exp/saliency_single_image_eval/')
     fig.savefig('./data/' + mode + '/' + 'exp/saliency_single_image_eval/' + str(
         id) + '_image_explained_with_' + explainer + '.png')
-    plt.show()
     plt.close('all')
 
 
-def create_comparison_saliency(model_path, ids, ds, explainer, DEVICE, mode):
+def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode):
     title = 'comparison of saliency methods'
     len_ids = len(ids)
-    len_explainer = len(explainer)
+    len_explainer = len(explainers)
     w, h = 9 * len_explainer + 2, 10 * len_ids + 5
 
     fig = plt.figure(figsize=(w, h))
@@ -331,7 +337,8 @@ def create_comparison_saliency(model_path, ids, ds, explainer, DEVICE, mode):
         org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
         # Compute the Canny filter for two values of sigma
         org_img_edged = feature.canny(org_img_edged, sigma=3)
-        for c_ex, ex in enumerate(explainer):
+        for c_ex, ex in enumerate(explainers):
+
             ax = fig.add_subplot(len_ids, len_explainer, (c_ex + 1) + c_i * len_explainer)
 
             if ex == 'Original':
@@ -340,8 +347,7 @@ def create_comparison_saliency(model_path, ids, ds, explainer, DEVICE, mode):
                                                      method="original_image", use_pyplot=False)
                 plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
             else:
-
-                explained = explain_single(model, image_normalized, label, ex, True, DEVICE)
+                explained = explain_single(model, image_normalized, label, ex, False, DEVICE)
                 if ex is not 'gradcam':
                     explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
