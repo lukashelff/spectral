@@ -149,7 +149,7 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values):
         image_ids = ids_imagenet
         ids_and_image_labels = ids_and_labels_imagenet
 
-    print('plotting modified images according to roar')
+    print('plotting images with removed values')
     w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 10
     for k in ids_roar_exp:
         fig = plt.figure(figsize=(w, h))

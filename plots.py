@@ -300,7 +300,7 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode):
     plt.close('all')
 
 
-def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
+def create_comparison_saliency(model_path, ids, ds, explainer, DEVICE, mode):
     title = 'comparison of saliency methods'
     len_ids = len(ids)
     len_explainer = len(explainer)
@@ -312,6 +312,11 @@ def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
     fig.suptitle(title, fontsize=80)
 
     for c_i, i in enumerate(ids):
+        n_classes = 200
+        if mode is 'plants':
+            n_classes = 2
+        model = get_model(DEVICE, n_classes, mode)
+        model.load_state_dict(torch.load(model_path, map_location=DEVICE))
         image_normalized, label = ds.__getitem__(i)
         output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
         _, pred = torch.max(output, 1)
@@ -335,8 +340,10 @@ def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
                                                      method="original_image", use_pyplot=False)
                 plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
             else:
+
                 explained = explain_single(model, image_normalized, label, ex, True, DEVICE)
-                explained = ndi.gaussian_filter(explained, 3)
+                if ex is not 'gradcam':
+                    explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
                 org_img_edged = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
 
@@ -345,7 +352,6 @@ def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
                                          sign="positive", method="blended_heat_map",
                                          show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
                                          alpha_overlay=0.6)
-
             ax.tick_params(axis='both', which='both', length=0)
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), visible=False)
@@ -360,7 +366,8 @@ def create_comparison_saliency(model, ids, ds, explainer, DEVICE, mode):
                     # 'image class ' + classname + '\nprediction: ' + pred_classname
                     'image class ' + str(label) + '\n' + corect_pred + ' classified'
                     , fontsize=40)
-        decription += 'image class ' + str(label) + ' = ' + pred_classname + '\n'
+            del image
+        decription += 'class ' + str(label) + ' = ' + pred_classname + '\n'
     fig.text(0.02, 0, decription, fontsize=40)
     rect = (0, 0.08, 1, 0.95)
     fig.tight_layout(rect=rect, h_pad=8, w_pad=8)
