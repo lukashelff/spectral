@@ -1,38 +1,20 @@
 from copy import deepcopy
-from sys import getsizeof
 
-import numpy as np
 import torch
-from sklearn.model_selection import StratifiedShuffleSplit
+import torch.nn as nn
+import torch.utils.data as data
+import torchvision.datasets as t_datasets
+import torchvision.transforms as transforms
+from sklearn.metrics import balanced_accuracy_score
+from torch.autograd import Variable
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
-from torchsummary import summary
 from torchvision import models
-import torch.nn as nn
-import matplotlib.pyplot as plt
-from sklearn.metrics import balanced_accuracy_score, confusion_matrix
-import pickle
-import os
-import torch.multiprocessing as mp
 from tqdm import tqdm
-import helpfunctions
-import concurrent.futures as futures
+
 from helpfunctions import *
 from spectralloader import Spectralloader
-import torchvision.datasets as t_datasets
-import torch.utils.data as data
-import torchvision.transforms as transforms
 
-
-# class Identity(nn.Module):
-#     def __init__(self):
-#         super(Identity, self).__init__()
-
-# def forward(self, x):
-#     return x
-
-
-# from train_model import train_model
 
 def get_trainable(model_params):
     return (p for p in model_params if p.requires_grad)
@@ -57,14 +39,19 @@ def freeze_all(model_params):
 
 def get_model(DEVICE, n_classes, mode):
     if mode == 'imagenet':
+        # model = models.vgg16(pretrained=True)
+        # test_ipt = Variable(torch.zeros(1, 3, 64, 64))
+        # test_out = models.vgg.features(test_ipt)
+        # n_features = test_out.size(1) * test_out.size(2) * test_out.size(3)
+
         model = models.vgg16(pretrained=True)
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
-        model.avgpool = nn.MaxPool2d(1, )
+        # model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
-        # features = list(model.classifier.children())[:-1]  # Remove last layer and first
-        # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
-        # model.classifier = nn.Sequential(*features)  # Replace the model classifier
+        features = list(model.classifier.children())[:-1]  # Remove last layer and first
+        features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
+        model.classifier = nn.Sequential(*features)  # Replace the model classifier
 
         # rm = nn.Sequential(*list(model.features._modules.values())[:-1])
 
@@ -133,6 +120,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             # Train
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
+            first = next(iter(train_dl))
             for batch_i, (X, y) in enumerate(train_dl):
                 # print('current batch: ' + str(batch_i))
                 X, y = X.to(DEVICE), y.to(DEVICE)
@@ -226,12 +214,13 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.axis([0, N_EPOCHS - 1, 00, 100])
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar +
-                '_lr_' + str(learning_rate) +
-                '_lr_step_size_' + str(lr_step_size) +
-                '_lr_gamma_' + str(lr_gamma) +
-                '_optimizer_' + optimizer_name +
-                '_model_' + model_name +
-                '_batch_size_' + str(100) +
+                '_pretraining_normalization_flip' +
+                # '_lr_' + str(learning_rate) +
+                # '_lr_step_size_' + str(lr_step_size) +
+                # '_lr_gamma_' + str(lr_gamma) +
+                # '_optimizer_' + optimizer_name +
+                # '_model_' + model_name +
+                # '_batch_size_' + str(100) +
                 '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')

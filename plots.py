@@ -1,11 +1,8 @@
-import os
-
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import torch.nn.functional as F
-from utils import *
-from explainer import *
 from matplotlib.pyplot import figure
+
+from explainer import *
 from helpfunctions import get_cross_val_acc
 
 
@@ -259,7 +256,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
     plt.close(fig)
 
 
-def plot_single_image(model, id, ds, explainer, DEVICE, mode):
+def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
     image_normalized, label = ds.__getitem__(id)
     output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
     _, pred = torch.max(output, 1)
@@ -267,21 +264,23 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode):
     classname = ds.get_class_by_label(label)
     pred_classname = ds.get_class_by_label(pred)
     title = explainer + ' heat-map on image ' + str(
-        id) + '\nactual label ' + classname + '\npredicted label ' + pred_classname
+        id) + '\nactual class: ' + classname + '\npredicted class: ' + pred_classname
     print(title + '\n######')
     fig, ax = plt.subplots()
-    ax.set_title(title)
     # org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
     # org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
     # org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
     # # Compute the Canny filter for two values of sigma
     # org_img_edged = feature.canny(org_img_edged, sigma=3)
     if explainer == 'Original':
+        title = 'image ' + str(id) + '\nclass: ' + classname
+        ax.set_title(title)
         org_im, _ = viz.visualize_image_attr(None,
                                              np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
                                              method="original_image", use_pyplot=False)
         plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
     else:
+        ax.set_title(title)
         explained = explain_single(model, image_normalized, label, explainer, True, DEVICE)
         if explainer is not 'gradcam':
             explained = ndi.gaussian_filter(explained, 3)
@@ -373,7 +372,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode):
                     'image class ' + str(label) + '\n' + corect_pred + ' classified'
                     , fontsize=40)
         del image
-        decription += 'class ' + str(label) + ' = ' + pred_classname + '\n'
+        decription += 'class ' + str(label) + ' = ' + classname + '\n'
     fig.text(0.02, 0, decription, fontsize=40)
     rect = (0, 0.08, 1, 0.95)
     fig.tight_layout(rect=rect, h_pad=8, w_pad=8)

@@ -1,14 +1,11 @@
 import sys
-
-from explainer import *
-from helpfunctions import *
-from plots import *
+from sklearn.model_selection import StratifiedShuffleSplit
 from roar import *
 from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -17,7 +14,7 @@ def main():
     # train and modify dataset
     # resizes all images and replaces them in folder
     resize_imagenet = False
-    retrain = False
+    retrain = True
 
     # explain image and create comparison
     # only available for plant
@@ -25,7 +22,7 @@ def main():
     # comparison for image ID
     plot_for_image_id = False
     # expain images seperate
-    explain_images_single = True
+    explain_images_single = False
 
     # ROAR
     roar_create_mask = False
@@ -47,11 +44,11 @@ def main():
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     # explainer for orignal explaination
     explainers = ['Original', 'saliency', 'Integrated_Gradients',
-                  'noisetunnel',
+                  # 'noisetunnel',
                   'guided_gradcam', 'gradcam', 'LRP',
                   # 'Noise Tunnel stev 2'
                   ]
-    explainers = ['gradcam']
+    # explainers = ['gradcam']
 
     # ROAR explainer to be applied
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
@@ -75,7 +72,6 @@ def main():
         # print('batch_size ' + str(batch_size))
         # print('lr ' + str(lr))
         cv_iterations_total = 1
-        test_size = 10000
         image_ids = [x * 500 for x in range(5)]
 
     train_labels, valid_labels, all_data, labels = load_labels(mode)
@@ -220,7 +216,7 @@ def main():
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         for ex in explainers:
             for i in image_ids:
-                plot_single_image(original_model, i, all_ds, ex, DEVICE, mode)
+                plot_single_image(original_model, i, all_ds, ex, DEVICE, mode, True)
 
 if __name__ == '__main__':
     main()

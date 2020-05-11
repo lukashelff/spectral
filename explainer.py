@@ -1,9 +1,3 @@
-import os
-import pickle
-
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
 from PIL import Image as PImage
 from captum.attr import GuidedGradCam
 from captum.attr import IntegratedGradients, NoiseTunnel
@@ -14,7 +8,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 from sklearn import preprocessing
-from tqdm import tqdm
+
 from cnn import *
 
 
@@ -64,10 +58,10 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         attr_gco = attribute_image_features(gco, input)
         att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
         h_a, w_a = att.shape
-        # for i in range(h_a):
-        #     for k in range(w_a):
-        #         if att[i][k] < 0:
-        #             att[i][k] = 0
+        for i in range(h_a):
+            for k in range(w_a):
+                if att[i][k] < 0:
+                    att[i][k] = 0
         gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
         heat_map = np.asarray(gradcam)
 

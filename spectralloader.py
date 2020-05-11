@@ -119,12 +119,20 @@ class Spectralloader(Dataset):
         self.DEVICE = None
         # is new roar image to be calculated
         self.update_roar_images = False
-        self.normalize_tensor = transforms.Compose([
-            # transforms.RandomRotation(20),
-            # transforms.RandomHorizontalFlip(0.5),
-            transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-            transforms.ToPILImage()
-        ])
+        if train == 'train':
+            self.normalize_tensor = transforms.Compose([
+                # transforms.RandomRotation(20),
+                # transforms.RandomHorizontalFlip(0.5),
+                transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                transforms.ToPILImage()
+            ])
+        else:
+            self.normalize_tensor = transforms.Compose([
+                # transforms.RandomRotation(20),
+                # transforms.RandomHorizontalFlip(0.5),
+                transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                transforms.ToPILImage()
+            ])
         self.pil_to_tensor = transforms.Compose([
             transforms.ToTensor()
         ])
@@ -176,12 +184,12 @@ class Spectralloader(Dataset):
         try:
             if self.mode == 'imagenet':
                 image_path, label = self.data[id]
-                im = Image.open(image_path)
+                im = Image.open(image_path).convert('RGB')
                 if self.train == 'train':
                     norm = transforms.Compose([
+                        transforms.RandomRotation(20),
+                        transforms.RandomHorizontalFlip(0.5),
                         transforms.ToTensor(),
-                        # transforms.RandomRotation(20),
-                        # transforms.RandomHorizontalFlip(0.5),
                         transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                     ])
                 else:
