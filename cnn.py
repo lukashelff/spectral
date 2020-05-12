@@ -70,7 +70,7 @@ def get_model(DEVICE, n_classes, mode):
 
     # print model
     # summary(model, (3, 255, 213), batch_size=20)
-    # print(model)
+    # print(model)True
 
     model.share_memory()
     model = model.to(DEVICE)
@@ -81,18 +81,22 @@ def get_model(DEVICE, n_classes, mode):
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
     lr_step_size = 25
     # lr_step_size = 10
-    lr_gamma = 0.1
+    lr_gamma = 0.2
     # lr_gamma = 0.5
     if mode == 'plants':
         lr_gamma = 0.7
     optimizer_name = 'adam'
     model_name = 'vgg'
+    # set scheduler to use scheduler
+    scheduler_a = 'scheduler'
+
 
     save_name = (
             '_pretraining' +
             '_normalization' +
-            '_no_flip' +
+            '_flip_no_rot' +
             '_pixel_64' +
+            scheduler_a +
             '_lr_' + str(learning_rate) +
             '_lr_step_size_' + str(lr_step_size) +
             '_lr_gamma_' + str(lr_gamma) +
@@ -123,8 +127,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         )
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-    # if mode == 'imagenet':
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
+    if mode == 'imagenet' and scheduler_a == 'scheduler':
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
 
