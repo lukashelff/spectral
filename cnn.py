@@ -79,14 +79,31 @@ def get_model(DEVICE, n_classes, mode):
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
-    lr_step_size = 7
+    lr_step_size = 25
+    # lr_step_size = 10
     lr_gamma = 0.1
+    # lr_gamma = 0.5
     if mode == 'plants':
         lr_gamma = 0.7
-    ####################
-    ################
     optimizer_name = 'adam'
     model_name = 'vgg'
+
+    save_name = (
+            '_pretraining' +
+            '_normalization' +
+            '_no_flip' +
+            '_pixel_64' +
+            '_lr_' + str(learning_rate) +
+            '_lr_step_size_' + str(lr_step_size) +
+            '_lr_gamma_' + str(lr_gamma) +
+            '_optimizer_' + optimizer_name +
+            '_model_' + model_name +
+            roar +
+            '_batch_size_' + str(200)
+    )
+    print(save_name)
+    ####################
+    ################
     # print(model_name)
     train_loss = np.zeros(N_EPOCHS)
     train_acc = np.zeros(N_EPOCHS)
@@ -211,16 +228,14 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
               '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
-    plt.axis([0, N_EPOCHS - 1, 00, 100])
+    max_acc = 100
+    if mode is 'imagenet':
+        max_acc = 70
+    plt.axis([0, N_EPOCHS - 1, 00, max_acc])
     plt.legend(loc='lower right')
-    plt.savefig('./data/' + mode + '/' + 'plots/accuracy' + roar +
-                '_pretraining_normalization_flip' +
-                # '_lr_' + str(learning_rate) +
-                # '_lr_step_size_' + str(lr_step_size) +
-                # '_lr_gamma_' + str(lr_gamma) +
-                # '_optimizer_' + optimizer_name +
-                # '_model_' + model_name +
-                # '_batch_size_' + str(100) +
+
+    plt.savefig('./data/' + mode + '/' + 'plots/accuracy' +
+                save_name +
                 '.png')
     plt.show()
     plt.plot(train_loss, color='red', label='train_loss')

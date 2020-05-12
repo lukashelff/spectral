@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -65,9 +65,10 @@ def main():
             val_format()
             upscale_imagenet()
         n_classes = 200
-        N_EPOCHS = 15
+        N_EPOCHS = 100
         lr = 0.001
-        batch_size = 50
+        # lr = 1
+        batch_size = 200
         # print('nr epochs: ' + str(N_EPOCHS))
         # print('batch_size ' + str(batch_size))
         # print('lr ' + str(lr))

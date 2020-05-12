@@ -119,20 +119,20 @@ class Spectralloader(Dataset):
         self.DEVICE = None
         # is new roar image to be calculated
         self.update_roar_images = False
-        if train == 'train':
-            self.normalize_tensor = transforms.Compose([
+        if self.train == 'train':
+            self.norm = transforms.Compose([
+                # transforms.ToPILImage()
                 # transforms.RandomRotation(20),
                 # transforms.RandomHorizontalFlip(0.5),
+                transforms.ToTensor(),
                 transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                transforms.ToPILImage()
             ])
         else:
-            self.normalize_tensor = transforms.Compose([
-                # transforms.RandomRotation(20),
-                # transforms.RandomHorizontalFlip(0.5),
+            self.norm = transforms.Compose([
+                transforms.ToTensor(),
                 transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                transforms.ToPILImage()
             ])
+
         self.pil_to_tensor = transforms.Compose([
             transforms.ToTensor()
         ])
@@ -185,30 +185,11 @@ class Spectralloader(Dataset):
             if self.mode == 'imagenet':
                 image_path, label = self.data[id]
                 im = Image.open(image_path).convert('RGB')
-                if self.train == 'train':
-                    norm = transforms.Compose([
-                        transforms.RandomRotation(20),
-                        transforms.RandomHorizontalFlip(0.5),
-                        transforms.ToTensor(),
-                        transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                    ])
-                else:
-                    norm = transforms.Compose([
-                        transforms.ToTensor(),
-                        transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                    ])
-                image = norm(im)
-                # if not self.roar_done:
-                #     image = norm(im)
-                # else:
-                #     image = self.pil_to_tensor(im)
+                image = self.norm(im)
             else:
-                # norm = transforms.Compose([
-                #     transforms.ToTensor(),
-                #     transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                # ])
+
                 image, label = self.data[id]['image'], self.data[id]['label']
-                # image = norm(image)
+                # image = self.norm(image)
 
             return image, label
         except ValueError:
@@ -228,8 +209,6 @@ class Spectralloader(Dataset):
                     data[id]['image'] = np.array(image)
                     data[id]['label'] = label
                     ids.append(k)
-                    # mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-                    # print('Memory usage in KB after: ' + str(mem))
 
         if self.mode == 'imagenet':
             data_dir = 'data/' + self.mode + '/' + 'tiny-imagenet-200'
