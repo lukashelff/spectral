@@ -122,7 +122,7 @@ class Spectralloader(Dataset):
         if self.mode == 'plants':
             if self.train == 'train':
                 self.norm = transforms.Compose([
-                    transforms.Resize(224, interpolation=Image.BICUBIC),
+                    transforms.Resize((224, 224), interpolation=Image.BICUBIC),
                     # transforms.RandomRotation(20),
                     # transforms.RandomHorizontalFlip(0.5),
                     transforms.ToTensor(),
@@ -131,11 +131,11 @@ class Spectralloader(Dataset):
                 ])
             else:
                 self.norm = transforms.Compose([
-                    transforms.Resize(224, interpolation=Image.BICUBIC),
+                    transforms.Resize((224, 224), interpolation=Image.BICUBIC),
                     transforms.ToTensor(),
                     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
-                    #old
+                    # old
                     # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ])
         else:
@@ -231,7 +231,7 @@ class Spectralloader(Dataset):
             for (k, label) in ids_and_labels:
                 if k == id:
                     data[id] = {}
-                    data[id]['image'] = Image.fromarray(np.uint8(image*255))
+                    data[id]['image'] = Image.fromarray(np.uint8(image * 255))
                     data[id]['label'] = label
                     ids.append(k)
 
