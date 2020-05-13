@@ -49,7 +49,8 @@ def get_model(DEVICE, n_classes, mode, model):
         model = models.vgg16(pretrained=True)
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
-        model.avgpool = nn.MaxPool2d(1, )
+        # adaptive average pooling is need if input size of image does not match 224x224
+        # model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
         features = list(model.classifier.children())[:-1]  # Remove last layer and first
         features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
@@ -57,7 +58,7 @@ def get_model(DEVICE, n_classes, mode, model):
 
 
 
-    if mode == 'ResNet':
+    if model == 'ResNet':
         model = models.resnet18(pretrained=True)
         # use for LRP because AdaptiveAvgPool2d is not supported
         # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
