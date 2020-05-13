@@ -79,22 +79,21 @@ def get_model(DEVICE, n_classes, mode):
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
-    lr_step_size = 25
+    lr_step_size = 7
     # lr_step_size = 10
-    lr_gamma = 0.2
+    lr_gamma = 0.1
     # lr_gamma = 0.5
     if mode == 'plants':
         lr_gamma = 0.7
     optimizer_name = 'adam'
     model_name = 'vgg'
     # set scheduler to use scheduler
-    scheduler_a = 'scheduler'
-
-
+    scheduler_a = '_scheduler'
     save_name = (
             '_pretraining' +
-            '_normalization' +
-            '_flip_no_rot' +
+            '_new_normalization' +
+            '_flip' +
+            '_no_rotate' +
             '_pixel_64' +
             scheduler_a +
             '_lr_' + str(learning_rate) +
@@ -127,7 +126,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         )
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-    if mode == 'imagenet' and scheduler_a == 'scheduler':
+    if mode == 'imagenet' and scheduler_a == '_scheduler':
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
@@ -232,10 +231,11 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
               '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
-    max_acc = 100
-    if mode is 'imagenet':
-        max_acc = 70
-    plt.axis([0, N_EPOCHS - 1, 00, max_acc])
+    min_acc = int(min(np.append(train_balanced_acc, valid_balanced_acc))/10)*10
+    max_acc = (1 + int(max(np.append(train_balanced_acc, valid_balanced_acc))/10))*10
+    print(min_acc)
+    print(max_acc)
+    plt.axis([0, N_EPOCHS - 1, min_acc, max_acc])
     plt.legend(loc='lower right')
 
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' +
@@ -248,7 +248,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(loc='lower right')
-    plt.savefig('./data/' + mode + '/' + 'plots/loss' + roar + '.png')
+    plt.savefig('./data/' + mode + '/' + 'plots/loss' +
+                save_name +
+                '.png')
     plt.close(fig)
     path_values = './data/' + mode + '/' + 'plots/values/'
     # add accuracy values

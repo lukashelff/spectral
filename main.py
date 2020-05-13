@@ -9,7 +9,7 @@ def main():
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
-    mode = modes[1]
+    mode = modes[0]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
@@ -38,8 +38,8 @@ def main():
     n_classes = 2
     batch_size = 20
     cv_iterations_total = 5
+    cv_iterations_total = 1
     test_size = 482
-
 
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     # explainer for orignal explaination
@@ -58,16 +58,16 @@ def main():
                        'random', 'Integrated_Gradients']
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
-    roar_values = [10, 30, 70, 90]
+    # roar_values = [10, 30, 70, 90]
     cv_it_to_calc = [0]
     if mode == 'imagenet':
         if resize_imagenet:
             val_format()
             upscale_imagenet()
         n_classes = 200
-        N_EPOCHS = 100
-        # lr = 0.001
+        N_EPOCHS = 30
         lr = 0.001
+        # lr = 0.1
         batch_size = 200
         # print('nr epochs: ' + str(N_EPOCHS))
         # print('batch_size ' + str(batch_size))
@@ -92,7 +92,6 @@ def main():
     # original_trained_model = trained_roar_models + '_gradcam_10.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/' + mode + '/' + 'exp/'
-
 
     # use to evaluate model
     # original_model = get_model(DEVICE, n_classes, mode)
@@ -218,6 +217,7 @@ def main():
         for ex in explainers:
             for i in image_ids:
                 plot_single_image(original_model, i, all_ds, ex, DEVICE, mode, True)
+
 
 if __name__ == '__main__':
     main()
