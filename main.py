@@ -5,12 +5,12 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
-    mode = modes[0]
+    mode = modes[1]
     model = models[0]
 
     # train and modify dataset
@@ -45,28 +45,12 @@ def main():
     n_classes = 2
     batch_size = 20
     cv_iterations_total = 5
-    cv_iterations_total = 1
-    test_size = 482
-
-    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
-    # explainer for orignal explaination
-    explainers = ['Original', 'saliency', 'Integrated_Gradients',
-                  # 'noisetunnel',
-                  'guided_gradcam', 'gradcam', 'LRP',
-                  # 'Noise Tunnel stev 2'
-                  ]
-    # explainers = ['gradcam']
-
-    # ROAR explainer to be applied
-    roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['gradcam', 'guided_gradcam', 'LRP',
-                       'noisetunnel',
-                       'random', 'Integrated_Gradients']
-    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
-    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
-    # roar_values = [10, 30, 70, 90]
+    # cross-validation iterations to be calculated
     cv_it_to_calc = [0]
+    test_size = 482
+    image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+    train_labels, valid_labels, all_data, labels = load_labels(mode)
+
     if mode == 'imagenet':
         if resize_imagenet:
             val_format()
@@ -74,15 +58,32 @@ def main():
         n_classes = 200
         N_EPOCHS = 30
         lr = 0.001
-        # lr = 0.1
         batch_size = 200
-        # print('nr epochs: ' + str(N_EPOCHS))
-        # print('batch_size ' + str(batch_size))
-        # print('lr ' + str(lr))
         cv_iterations_total = 1
+        cv_it_to_calc = [0]
         image_ids = [x * 500 for x in range(5)]
 
-    train_labels, valid_labels, all_data, labels = load_labels(mode)
+    # explainers to be evaluated
+    # explainer for orignal explaination
+    explainers = ['Original', 'saliency', 'Integrated_Gradients',
+                  # 'noisetunnel',
+                  'guided_gradcam', 'gradcam', 'LRP',
+                  # 'Noise Tunnel stev 2'
+                  ]
+    # explainers = ['gradcam']
+    # ROAR explainer to be applied
+    roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
+                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
+    roar_explainers = ['gradcam', 'guided_gradcam', 'LRP',
+                       'noisetunnel',
+                       'random', 'Integrated_Gradients']
+    # percentage to be removed from images
+    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
+    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
+    # roar_values = [10, 30, 70, 90]
+
+
+    # paths
     # save the explainer images of the figures
     if not os.path.exists('./data/'):
         os.makedirs('./data/')
@@ -92,9 +93,8 @@ def main():
         os.makedirs('./data/' + mode + '/' + 'plots/')
     if not os.path.exists('./data/' + mode + '/' + 'plots/values/'):
         os.makedirs('./data/' + mode + '/' + 'plots/values/')
-
-    trained_roar_models = './data/' + mode + '/' + 'models/trained_model_roar'
-    original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
+    trained_roar_models = './data/' + mode + '/' + 'models/' + model + 'trained_model_roar_'
+    original_trained_model = './data/' + mode + '/' + 'models/' + model + 'trained_model_original.pt'
     # original_trained_model = trained_roar_models + '_gradcam_10.pt'
     root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
     path_exp = './data/' + mode + '/' + 'exp/'

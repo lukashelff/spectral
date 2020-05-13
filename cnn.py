@@ -38,8 +38,6 @@ def freeze_all(model_params):
 
 
 def get_model(DEVICE, n_classes, mode, model):
-
-
     if model == 'VGG':
         # model = models.vgg16(pretrained=True)
         # test_ipt = Variable(torch.zeros(1, 3, 64, 64))
@@ -50,13 +48,11 @@ def get_model(DEVICE, n_classes, mode, model):
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
         # adaptive average pooling is need if input size of image does not match 224x224
-        # model.avgpool = nn.MaxPool2d(1, )
+        model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
         features = list(model.classifier.children())[:-1]  # Remove last layer and first
         features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
         model.classifier = nn.Sequential(*features)  # Replace the model classifier
-
-
 
     if model == 'ResNet':
         model = models.resnet18(pretrained=True)
@@ -71,7 +67,6 @@ def get_model(DEVICE, n_classes, mode, model):
         # num_ftrs = model.fc.in_features
         # freeze_all(model.parameters())
         # model.fc = nn.Linear(num_ftrs, n_classes)
-
 
     # print model
     # summary(model, (3, 255, 213), batch_size=20)
