@@ -82,7 +82,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     lr_step_size = 7
     lr_gamma = 0.1
     if mode == 'plants':
-        lr_step_size = 20
+        lr_step_size = 40
         lr_gamma = 0.1
     optimizer_name = 'adam'
     # set scheduler to use scheduler
@@ -120,7 +120,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         )
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-    if mode == 'imagenet' and scheduler_a == '_scheduler':
+    if scheduler_a == '_scheduler':
+        print('hallo')
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
@@ -192,6 +193,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_acc[epoch] = round(n_correct / n_samples * 100, 2)
             progress.update(1)
             progress.set_description(text + ' | ' +
+                                     f"  learning rate:  {learning_rate} |"
                                      # f"  train loss: {train_loss[epoch]:9.3f} |"
                                      f"  train acc:  {train_balanced_acc[epoch]:9.3f}% |"
                                      # f"  valid loss: {valid_loss[epoch]:9.3f} |"
@@ -233,7 +235,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' +
                 save_name +
                 '.png')
-    plt.show()
+    # plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
     plt.plot(valid_loss, color='orange', label='valid_loss')
     plt.title('model loss ' + title)

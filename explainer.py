@@ -188,7 +188,7 @@ def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, range_start
             if not os.path.exists(path + 'heatmaps'):
                 os.makedirs(path + 'heatmaps')
             for ex in roar_explainers:
-                pickle.dump(heat_maps[ex], open(path + 'heatmaps/heatmaps' + ex + '.pkl', 'wb'))
+                pickle.dump(heat_maps[ex], open(path + 'heatmaps/heatmaps_vgg' + ex + '.pkl', 'wb'))
                 print('heatmap saved')
 
 

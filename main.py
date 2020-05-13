@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -16,7 +16,7 @@ def main():
     # train and modify dataset
     # resizes all images and replaces them in folder
     resize_imagenet = False
-    retrain = True
+    retrain = False
 
     # explain image and create comparison
     # only available for plant
@@ -28,7 +28,7 @@ def main():
 
     # ROAR
     # create roar mask
-    roar_create_mask = False
+    roar_create_mask = True
     # roar train
     roar_train = False
     # plot roar acc curve
@@ -46,8 +46,8 @@ def main():
     batch_size = 20
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
-    cv_it_to_calc = [0]
-    test_size = 482
+    cv_it_to_calc = [0, 1, 2, 3]
+    test_size = 500
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
 
@@ -65,23 +65,31 @@ def main():
 
     # explainers to be evaluated
     # explainer for orignal explaination
-    explainers = ['Original', 'saliency', 'Integrated_Gradients',
-                  # 'noisetunnel',
-                  'guided_gradcam', 'gradcam', 'LRP',
-                  # 'Noise Tunnel stev 2'
-                  ]
+    explainers = [
+        'Original',
+        'saliency',
+        'Integrated_Gradients',
+        'noisetunnel',
+        'guided_gradcam',
+        'gradcam',
+        'LRP',
+        # 'Noise Tunnel stev 2'
+    ]
     # explainers = ['gradcam']
     # ROAR explainer to be applied
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['gradcam', 'guided_gradcam', 'LRP',
-                       'noisetunnel',
-                       'random', 'Integrated_Gradients']
+    roar_explainers = ['gradcam',
+                       # 'guided_gradcam',
+                       'LRP',
+                       # 'noisetunnel',
+                       'random',
+                       # 'Integrated_Gradients'
+                       ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
     # roar_values = [10, 30, 70, 90]
-
 
     # paths
     # save the explainer images of the figures
