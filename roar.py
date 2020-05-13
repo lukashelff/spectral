@@ -20,7 +20,7 @@ n_classes_imagenet = 200
 # applying the explainers to an roar trained image
 # interpretation/explaination of modified roar Images
 # Axes: removed % of image features and explainers
-def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values):
+def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values, model_type):
     # explainers = ['noisetunnel', 'gradcam', 'guided_gradcam', 'noisetunnel_gaussian', 'guided_gradcam_gaussian']
     # roar_expl_im_values = [0, 10, 20, 30, 50, 70, 90, 100]
     path_exp = './data/' + mode + '/' + 'exp/'
@@ -72,11 +72,11 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values):
                 # loading model of explainer for corresponding remove value
                 all_ds = Spectralloader([ids_and_labels[k]], root, mode, 'specific')
                 if i == 0:
-                    model = get_model(DEVICE, n_classes, mode)
+                    model = get_model(DEVICE, n_classes, mode, model_type)
                     original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
                     model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
                 else:
-                    model = get_model(DEVICE, n_classes, mode)
+                    model = get_model(DEVICE, n_classes, mode, model_type)
                     model.load_state_dict(
                         torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
                     all_ds.apply_roar_single_image(i, mask, id, 'mean', ex)

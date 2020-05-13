@@ -305,7 +305,7 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
     plt.close('all')
 
 
-def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode):
+def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, model_type):
     title = 'comparison of saliency methods'
     len_ids = len(ids)
     len_explainer = len(explainers)
@@ -320,7 +320,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode):
         n_classes = 200
         if mode is 'plants':
             n_classes = 2
-        model = get_model(DEVICE, n_classes, mode)
+        model = get_model(DEVICE, n_classes, mode, model_type)
         model.load_state_dict(torch.load(model_path, map_location=DEVICE))
         image_normalized, label = ds.__getitem__(i)
         output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))

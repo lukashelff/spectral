@@ -37,8 +37,10 @@ def freeze_all(model_params):
         param.requires_grad = False
 
 
-def get_model(DEVICE, n_classes, mode):
-    if mode == 'imagenet':
+def get_model(DEVICE, n_classes, mode, model):
+
+
+    if model == 'VGG':
         # model = models.vgg16(pretrained=True)
         # test_ipt = Variable(torch.zeros(1, 3, 64, 64))
         # test_out = models.vgg.features(test_ipt)
@@ -47,26 +49,28 @@ def get_model(DEVICE, n_classes, mode):
         model = models.vgg16(pretrained=True)
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
-        # model.avgpool = nn.MaxPool2d(1, )
+        model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
         features = list(model.classifier.children())[:-1]  # Remove last layer and first
         features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
         model.classifier = nn.Sequential(*features)  # Replace the model classifier
 
-        # rm = nn.Sequential(*list(model.features._modules.values())[:-1])
 
-        # resnet18 impl
-        # model = models.resnet18(pretrained=True)
-        # model.avgpool = nn.AdaptiveAvgPool2d(1)
-        # num_ftrs = model.fc.in_features
-        # freeze_all(model.parameters())
-        # model.fc = nn.Linear(num_ftrs, n_classes)
-    if mode == 'plants':
+
+    if mode == 'ResNet':
         model = models.resnet18(pretrained=True)
         # use for LRP because AdaptiveAvgPool2d is not supported
         # model.avgpool = nn.MaxPool2d(kernel_size=7, stride=7, padding=0)
         freeze_all(model.parameters())
         model.fc = nn.Linear(512, n_classes)
+
+        # resnet18 impl without adaptive averagepool
+        # model = models.resnet18(pretrained=True)
+        # model.avgpool = nn.AdaptiveAvgPool2d(1)
+        # num_ftrs = model.fc.in_features
+        # freeze_all(model.parameters())
+        # model.fc = nn.Linear(num_ftrs, n_classes)
+
 
     # print model
     # summary(model, (3, 255, 213), batch_size=20)
@@ -78,30 +82,25 @@ def get_model(DEVICE, n_classes, mode):
 
 
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
-def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
+def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode, model_type):
     lr_step_size = 7
     lr_gamma = 0.1
     if mode == 'plants':
         lr_step_size = 20
         lr_gamma = 0.1
     optimizer_name = 'adam'
-    model_name = 'vgg'
     # set scheduler to use scheduler
     scheduler_a = '_scheduler'
     save_name = (
             '_pretraining' +
-            '_normalization' +
-            '_no_flip' +
-            '_no_rotate' +
             # '_pixel_64' +
             scheduler_a +
             '_lr_' + str(learning_rate) +
             '_lr_step_size_' + str(lr_step_size) +
             '_lr_gamma_' + str(lr_gamma) +
             '_optimizer_' + optimizer_name +
-            '_model_' + model_name +
-            roar +
-            '_batch_size_' + str(200)
+            '_model_' + model_type +
+            roar
     )
     print(save_name)
     ####################
@@ -114,7 +113,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     valid_acc = np.zeros(N_EPOCHS)
     valid_balanced_acc = np.zeros(N_EPOCHS)
 
-    model = get_model(DEVICE, n_classes, mode)
+    model = get_model(DEVICE, n_classes, mode, model_type)
     criterion = nn.CrossEntropyLoss()
     exp_lr_scheduler = None
     if optimizer_name == 'adam':
@@ -226,14 +225,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.title(title +
               ' with lr ' + str(learning_rate) + ', lr_step_size: ' +
               str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
-              ', optimizer: ' + optimizer_name + ' on model: ' + model_name +
+              ', optimizer: ' + optimizer_name + ' on model: ' + model_type +
               '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
-    min_acc = int(min(np.append(train_balanced_acc, valid_balanced_acc, train_acc, valid_acc)) / 10) * 10
-    max_acc = (1 + int(max(np.append(train_balanced_acc, valid_balanced_acc, train_acc, valid_acc)) / 10)) * 10
-    print(min_acc)
-    print(max_acc)
+    min_acc = int(min(np.concatenate((train_balanced_acc, valid_balanced_acc, train_acc, valid_acc))) / 10) * 10
+    max_acc = (1 + int(max(np.concatenate((train_balanced_acc, valid_balanced_acc, train_acc, valid_acc))) / 10)) * 10
     plt.axis([0, N_EPOCHS - 1, min_acc, max_acc])
     plt.legend(loc='lower right')
 
@@ -262,7 +259,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
 # ROAR remove and retrain
 def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batch_size, n_classes,
-                  N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode, cv_it_to_calc):
+                  N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode, cv_it_to_calc, model_type):
     # num_processes = len(roar_explainers)
     # pool = mp.Pool(1)
     for explainer in roar_explainers:
@@ -285,7 +282,7 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
                     # processes.append((i, mask, DEVICE, explainer, val_ds_org, train_ds_org,
                     #                                    batch_size, n_classes, N_EPOCHS, lr, trained_roar_models,))
                     train_parallel(i, path, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS,
-                                   lr, trained_roar_models, cv_it, mode)
+                                   lr, trained_roar_models, cv_it, mode, model_type)
 
                     #     p = mp.Process(target=train_parallel, args=(i, mask, DEVICE, explainer, val_ds, train_ds,
                     #                                                 batch_size, n_classes, N_EPOCHS, lr,
@@ -326,7 +323,7 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
 
 ## train for each created split
 def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE,
-                    original_trained_model, cv_it_to_calc):
+                    original_trained_model, cv_it_to_calc, model_type):
     cv_it = 0
     processes = []
 
@@ -346,7 +343,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             # show_image(im, 'original image ')
 
             train_parallel(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
-                           original_trained_model, cv_it, mode)
+                           original_trained_model, cv_it, mode, model_type)
 
             # p = mp.Process(target=train_parallel, args=(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr, original_trained_model, cv_it, mode))
 
@@ -358,11 +355,11 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
 
 
 def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
-                   trained_roar_models, cv_it, mode):
+                   trained_roar_models, cv_it, mode, model_type):
     if explainer == 'original':
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
-        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it, mode)
+        original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it, mode, model_type)
         torch.save(original_model.state_dict(), trained_roar_models)
 
     else:
@@ -392,7 +389,7 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         # print('training on DS with ' + str(i) + ' % of ' + explainer + ' image features removed')
         model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, str(roar_val) + '%_of_' + explainer, cv_it,
-                      mode)
+                      mode, model_type)
         torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(roar_val) + '.pt')
 
 

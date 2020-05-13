@@ -9,7 +9,9 @@ def main():
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
+    models = ['VGG', 'ResNet']
     mode = modes[0]
+    model = models[0]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
@@ -25,9 +27,13 @@ def main():
     explain_images_single = False
 
     # ROAR
+    # create roar mask
     roar_create_mask = False
+    # roar train
     roar_train = False
+    # plot roar acc curve
     plot_roar_curve = False
+    # comparison of roar images
     roar_comp = False
     roar_expl_comp = False
 
@@ -77,7 +83,6 @@ def main():
         image_ids = [x * 500 for x in range(5)]
 
     train_labels, valid_labels, all_data, labels = load_labels(mode)
-    sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
     # save the explainer images of the figures
     if not os.path.exists('./data/'):
         os.makedirs('./data/')
@@ -101,13 +106,35 @@ def main():
 
     # train model or use trained model from last execution
     if retrain:
+        """ train on original datasets
+
+                        Args:
+                            batch_size (int): training batch size
+                            n_classes (int): number of classes
+                            N_EPOCHS (int): number of Epochs
+                            N_EPOCHS (int): learning rate
+                            cv_it_to_calc (int): cross validation iterations to be trained
+                            original_trained_model (string): path were model is going to be saved
+                            DEVICE (string): device to run on
+                            mode (string): mode imagenet or plants
+                        """
+        sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
         train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_EPOCHS, lr, DEVICE,
-                        original_trained_model, cv_it_to_calc)
+                        original_trained_model, cv_it_to_calc, model)
 
     # only plants
     # create comparison for explained plants images -> TP,FP,TN,FN comparison; class comparison healthy/diseased
     if plot_classes or plot_categories:
-        original_model = get_model(DEVICE, n_classes, mode)
+        """ create comparison of diffrent classes or categories
+
+                        Args:
+                            plot_categories (bool): plot category comparison
+                            plot_class (bool): plot class comparison
+                            explainers (list): List of saliency methods to be evaluated
+                            DEVICE (string): device to run on
+                            mode (string): mode imagenet or plants
+                        """
+        original_model = get_model(DEVICE, n_classes, mode, model)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         print('loading validation dataset')
         val_ds = Spectralloader(valid_labels, root, mode, 'val')
@@ -119,21 +146,38 @@ def main():
 
     # plot comparison of explained Images for specified IDs and explainers
     if plot_for_image_id:
+        """ create comparison of explained roar images for id
+
+                Args:
+                    explainers (list): List of saliency methods to be evaluated
+                    image_ids (list): List of IDs to be evaluated
+                    DEVICE (string): device to run on
+                    mode (string): mode imagenet or plants
+                """
         print('loading whole dataset')
         all_ds = Spectralloader(all_data, root, mode, 'all')
-        original_model = get_model(DEVICE, n_classes, mode)
+        original_model = get_model(DEVICE, n_classes, mode, model)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         print('creating explainer plots for specified images')
         if mode == 'plants':
             plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
         else:
-            create_comparison_saliency(original_trained_model, image_ids, all_ds, explainers, DEVICE, mode)
+            create_comparison_saliency(original_trained_model, image_ids, all_ds, explainers, DEVICE, mode, model)
 
     # create a mask for specified IDS and explainers for given range
     # containing one heatmap per specified specified images
     if roar_create_mask:
+        """ create heat map mask for all specified images
+
+                Args:
+                    roar_explainers (list): List of saliency methods to be evaluated
+                    DEVICE (string): device to run on
+                    mode (string): mode imagenet or plants
+                    mask_range_start/mask_range_end (number): range of ids to be evaluated
+                    replace_existing (bool): replace allready created heatmaps
+                """
         all_ds = Spectralloader(all_data, root, mode, 'all')
-        original_model = get_model(DEVICE, n_classes, mode)
+        original_model = get_model(DEVICE, n_classes, mode, model)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         input_cmd = sys.argv
         # whole mask start:0 end 105000
@@ -152,7 +196,7 @@ def main():
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
-        """ roar curve
+        """ training on images with removed values
 
         Args:
             roar_explainers (list): List of saliency methods to be evaluated
@@ -161,8 +205,9 @@ def main():
             mode (string): mode imagenet or plants
             cv_it_to_calc (number): number of crossval iterations to be trained
         """
+        sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
         train_roar_ds(path_exp, roar_values, trained_roar_models, all_data, labels, batch_size,
-                      n_classes, N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode, cv_it_to_calc)
+                      n_classes, N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode, cv_it_to_calc, model)
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
@@ -191,7 +236,7 @@ def main():
 
     # interpretation/explaination of modified roar Images
     if roar_expl_comp:
-        """ roar comparison explained
+        """ create comparison of explained roar images
 
         Args:
             roar_explainers (list): List of saliency methods to be evaluated
@@ -204,7 +249,7 @@ def main():
 
     # create single plots to explain a image
     if explain_images_single:
-        """ explain images
+        """ explain single images
 
         Args:
             explainers (list): List of saliency methods to be evaluated
@@ -213,7 +258,7 @@ def main():
             mode (string): mode imagenet or plants
         """
         all_ds = Spectralloader(all_data, root, mode, 'all')
-        original_model = get_model(DEVICE, n_classes, mode)
+        original_model = get_model(DEVICE, n_classes, mode, model)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         for ex in explainers:
             for i in image_ids:
