@@ -123,10 +123,9 @@ class Spectralloader(Dataset):
             if self.train == 'train':
                 self.norm = transforms.Compose([
                     transforms.Resize(224, interpolation=cv2.INTER_CUBIC),
-                    # transforms.RandomRotation(20),
+                    transforms.RandomRotation(20),
                     transforms.RandomHorizontalFlip(0.5),
                     transforms.ToTensor(),
-                    # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
                 ])
@@ -136,6 +135,7 @@ class Spectralloader(Dataset):
                     transforms.ToTensor(),
                     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
+                    #old
                     # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ])
         else:
@@ -231,7 +231,7 @@ class Spectralloader(Dataset):
             for (k, label) in ids_and_labels:
                 if k == id:
                     data[id] = {}
-                    data[id]['image'] = Image.fromarray(np.uint8(np.transpose(image, to_RGB)*255))
+                    data[id]['image'] = Image.fromarray(np.uint8(image*255))
                     data[id]['label'] = label
                     ids.append(k)
 
@@ -284,7 +284,7 @@ class Spectralloader(Dataset):
                 data_all = np.memmap(path + '/memmap.dat', mode='r', shape=shape, dtype='float32')
                 for k, i in enumerate(samples):
                     # only add if we have a label for the image
-                    data = np.transpose(data_all[k][:, :, [50, 88, 151]], (2, 0, 1))
+                    data = data_all[k][:, :, [50, 88, 151]]
                     add_to_data(data, i['id'].replace(',', '_'))
                     # elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))

@@ -230,8 +230,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
               '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
-    min_acc = int(min(np.append(train_balanced_acc, valid_balanced_acc)) / 10) * 10
-    max_acc = (1 + int(max(np.append(train_balanced_acc, valid_balanced_acc)) / 10)) * 10
+    min_acc = int(min(np.append(train_balanced_acc, valid_balanced_acc, train_acc, valid_acc)) / 10) * 10
+    max_acc = (1 + int(max(np.append(train_balanced_acc, valid_balanced_acc, train_acc, valid_acc)) / 10)) * 10
     print(min_acc)
     print(max_acc)
     plt.axis([0, N_EPOCHS - 1, min_acc, max_acc])
