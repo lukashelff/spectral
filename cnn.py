@@ -50,9 +50,9 @@ def get_model(DEVICE, n_classes, mode, model):
         # adaptive average pooling is need if input size of image does not match 224x224
         model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
-        features = list(model.classifier.children())[:-1]  # Remove last layer and first
-        features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
-        model.classifier = nn.Sequential(*features)  # Replace the model classifier
+        # features = list(model.classifier.children())[:-1]  # Remove last layer and first
+        # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
+        # model.classifier = nn.Sequential(*features)  # Replace the model classifier
 
     if model == 'ResNet':
         model = models.resnet18(pretrained=True)

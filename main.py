@@ -10,7 +10,7 @@ def main():
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
-    mode = modes[1]
+    mode = modes[0]
     model = models[0]
 
     # train and modify dataset
