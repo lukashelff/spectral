@@ -119,23 +119,43 @@ class Spectralloader(Dataset):
         self.DEVICE = None
         # is new roar image to be calculated
         self.update_roar_images = False
-        if self.train == 'train':
-            self.norm = transforms.Compose([
-                # transforms.ToPILImage()
-                # transforms.RandomRotation(20),
-                transforms.RandomHorizontalFlip(0.5),
-                transforms.ToTensor(),
-                # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-            ])
+        if self.mode == 'plants':
+            if self.train == 'train':
+                self.norm = transforms.Compose([
+                    transforms.Resize(224, interpolation=cv2.INTER_CUBIC),
+                    # transforms.RandomRotation(20),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.ToTensor(),
+                    # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+                ])
+            else:
+                self.norm = transforms.Compose([
+                    transforms.Resize(224, interpolation=Image.BICUBIC),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+                    # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                ])
         else:
-            self.norm = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-                # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
-            ])
+            if self.train == 'train':
+                self.norm = transforms.Compose([
+                    # transforms.ToPILImage()
+                    # transforms.RandomRotation(20),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.ToTensor(),
+                    # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+                ])
+            else:
+                self.norm = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+                    # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
+                ])
 
         self.pil_to_tensor = transforms.Compose([
             transforms.ToTensor()
@@ -182,6 +202,7 @@ class Spectralloader(Dataset):
             image = self.pil_to_tensor(im)
         else:
             image, label = self.get_by_id(id)
+            image = self.pil_to_tensor(image)
         return image, label
 
     def get_by_id(self, id):
@@ -193,7 +214,7 @@ class Spectralloader(Dataset):
             else:
 
                 image, label = self.data[id]['image'], self.data[id]['label']
-                # image = self.norm(image)
+                image = self.norm(image)
 
             return image, label
         except ValueError:
@@ -210,7 +231,7 @@ class Spectralloader(Dataset):
             for (k, label) in ids_and_labels:
                 if k == id:
                     data[id] = {}
-                    data[id]['image'] = np.array(image)
+                    data[id]['image'] = Image.fromarray(np.uint8(np.transpose(image, to_RGB)*255))
                     data[id]['label'] = label
                     ids.append(k)
 
@@ -267,6 +288,7 @@ class Spectralloader(Dataset):
                     add_to_data(data, i['id'].replace(',', '_'))
                     # elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
+
             with tqdm(total=67) as progress:
 
                 for i in range(1, 5):

@@ -80,21 +80,20 @@ def get_model(DEVICE, n_classes, mode):
 # trains and returns model for the given dataloader and computes graph acc, balanced acc and loss
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode):
     lr_step_size = 7
-    # lr_step_size = 10
     lr_gamma = 0.1
-    # lr_gamma = 0.5
     if mode == 'plants':
-        lr_gamma = 0.7
+        lr_step_size = 20
+        lr_gamma = 0.1
     optimizer_name = 'adam'
     model_name = 'vgg'
     # set scheduler to use scheduler
     scheduler_a = '_scheduler'
     save_name = (
             '_pretraining' +
-            '_new_normalization' +
-            '_flip' +
+            '_normalization' +
+            '_no_flip' +
             '_no_rotate' +
-            '_pixel_64' +
+            # '_pixel_64' +
             scheduler_a +
             '_lr_' + str(learning_rate) +
             '_lr_step_size_' + str(lr_step_size) +
@@ -231,8 +230,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
               '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
-    min_acc = int(min(np.append(train_balanced_acc, valid_balanced_acc))/10)*10
-    max_acc = (1 + int(max(np.append(train_balanced_acc, valid_balanced_acc))/10))*10
+    min_acc = int(min(np.append(train_balanced_acc, valid_balanced_acc)) / 10) * 10
+    max_acc = (1 + int(max(np.append(train_balanced_acc, valid_balanced_acc)) / 10)) * 10
     print(min_acc)
     print(max_acc)
     plt.axis([0, N_EPOCHS - 1, min_acc, max_acc])

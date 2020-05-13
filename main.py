@@ -35,6 +35,7 @@ def main():
     # dafault training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     N_EPOCHS = 120
     lr = 0.00015
+    lr = 0.001
     n_classes = 2
     batch_size = 20
     cv_iterations_total = 5
