@@ -231,7 +231,7 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar, mo
 def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
     # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
-    val = get_cross_val_acc('original', 0, cv_iter, mode)
+    val = get_cross_val_acc('original', 0, cv_iter, mode, model_type)
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     plt.plot([roar_values[0], 100], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
     # plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
@@ -246,10 +246,12 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
         else:
             acc_vals.append(0.5)
         plt.plot(roar_values + [100], acc_vals, label=ex)
+    min_acc = int(min(acc_vals) / 10) * 10
+    max_acc = (1 + ((int(val)) / 10)) * 10
     plt.title(str(cv_iter) + ' cross val accuracy by increasing the removed image features of each saliency method')
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
-    plt.axis([roar_values[0], 100, 0, 70])
+    plt.axis([roar_values[0], 100, min_acc, max_acc])
     plt.legend(loc='lower left')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison')
     plt.show()

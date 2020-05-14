@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -30,9 +30,9 @@ def main():
     # create roar mask
     roar_create_mask = False
     # roar train
-    roar_train = True
+    roar_train = False
     # plot roar acc curve
-    plot_roar_curve = False
+    plot_roar_curve = True
     # comparison of roar images
     roar_comp = False
     roar_expl_comp = False
@@ -45,8 +45,10 @@ def main():
     n_classes = 2
     batch_size = 20
     cv_iterations_total = 5
+    cv_iterations_total =1
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
+    cv_it_to_calc = [0]
     test_size = 500
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
@@ -80,10 +82,10 @@ def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = [
-        # 'gradcam',
+        'gradcam',
         # 'guided_gradcam',
-        # 'LRP',
-        # 'noisetunnel',
+        'LRP',
+        'noisetunnel',
         'random',
         # 'Integrated_Gradients'
     ]

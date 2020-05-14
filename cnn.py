@@ -376,9 +376,10 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         #     fs = ex.map(train_parallel, processes)
         # futures.wait(fs)
         # print example image
-        im, label = train_ds.__getitem__(0)
-        path = './data/' + mode + '/' + 'exp/pred_img_example/'
-        name = 'ROAR_' + str(roar_val) + '_of_' + explainer + '.jpeg'
+        id = train_ds.get_id_by_index(10)
+        im, label = train_ds.get_original_by_id(id)
+        path = './data/' + mode + '/' + 'exp/pred_img_example/' + model_type
+        name = '/ROAR_' + str(roar_val) + '_of_' + explainer + '.jpeg'
         # display the modified image and save to pred images in data/exp/pred_img_example
         display_rgb(im, 'image with ' + str(roar_val) + '% of ' + explainer + 'values removed', path, name)
 

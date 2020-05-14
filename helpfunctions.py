@@ -29,11 +29,11 @@ def display_rgb_grid(img, title):
 def display_rgb(img, title, path, name):
     plt.title(title)
     # img_tr = np.transpose(img.squeeze().cpu().detach().numpy(), to_RGB)
-    # plt.imshow(img_tr)
-    # plt.show()
+
     trans = transforms.ToPILImage()
     im = trans(img)
-    # im = Image.fromarray((img_tr * 255).astype(np.uint8))
+    plt.imshow(im)
+    plt.show()
     if not os.path.exists(path):
         os.makedirs(path)
     im.save(path + name)
