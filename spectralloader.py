@@ -84,12 +84,12 @@ class Spectralloader(Dataset):
                 (213, 255, 328)
                 RGB format
                 (213, 255, 3)
-                from RGB to learning
-                (1, 2, 0)
                 from learning to RGB
+                (1, 2, 0)
+                from RGB to learning
                 (2,0,1)
                 learning format
-                (3, 255, 213)
+                (3, 213, 255)
                 RGB channels
                 [50, 88, 151]
                 SWIR
@@ -182,7 +182,7 @@ class Spectralloader(Dataset):
                 _, label = self.data[id]
                 self.data[id] = (roar_link, label)
             else:
-                self.data[id]['image'] = val
+                self.data[id]['image'] = self.tensor_to_pil(val)
         except ValueError:
             print('image with id: ' + str(id) + ' not in dataset')
 
@@ -199,7 +199,7 @@ class Spectralloader(Dataset):
             im = Image.open(image_path)
             image = self.pil_to_tensor(im)
         else:
-            image, label = self.get_by_id(id)
+            image, label = self.data[id]['image'], self.data[id]['label']
             image = self.pil_to_tensor(image)
         return image, label
 
@@ -284,7 +284,7 @@ class Spectralloader(Dataset):
                     # only add if we have a label for the image
                     data = data_all[k][:, :, [50, 88, 151]]
                     add_to_data(data, i['id'].replace(',', '_'))
-                    # elif mode == 'spec': reserved for spectral implementation
+                    #255 elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
 
             with tqdm(total=67) as progress:
@@ -325,15 +325,13 @@ class Spectralloader(Dataset):
         self.percentage = percentage
         try:
             im, label = self.get_original_by_id(id)
+            roar_link = None
             if self.mode == 'imagenet':
                 roar_link = self.get_roar_directory(method, id, explainer)
             if self.mode == 'imagenet' and os.path.exists(roar_link) and not self.update_roar_images:
                 self.data[id] = (roar_link, label)
             else:
-                if self.mode == 'imagenet':
-                    # if method == 'mean':
-                    #     im = self.normalize_tensor(im)
-                    im = deepcopy(im).cpu().detach().numpy()
+                im = deepcopy(im).cpu().detach().numpy()
                 if im is not None:
                     mean = np.mean(im)
                     if self.mode == 'plants':

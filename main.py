@@ -28,9 +28,9 @@ def main():
 
     # ROAR
     # create roar mask
-    roar_create_mask = True
+    roar_create_mask = False
     # roar train
-    roar_train = False
+    roar_train = True
     # plot roar acc curve
     plot_roar_curve = False
     # comparison of roar images
@@ -84,13 +84,13 @@ def main():
         # 'guided_gradcam',
         # 'LRP',
         # 'noisetunnel',
-        # 'random',
-        'Integrated_Gradients'
+        'random',
+        # 'Integrated_Gradients'
     ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
-    # roar_values = [10, 30, 70, 90]
+    roar_values = [10, 30, 70, 90]
 
     # paths
     # save the explainer images of the figures
