@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -46,7 +46,7 @@ def main():
     batch_size = 20
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
-    cv_it_to_calc = [0, 1, 2, 3]
+    cv_it_to_calc = [0, 1, 2, 3, 4]
     test_size = 500
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
@@ -79,13 +79,14 @@ def main():
     # ROAR explainer to be applied
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = ['gradcam',
-                       # 'guided_gradcam',
-                       'LRP',
-                       # 'noisetunnel',
-                       'random',
-                       # 'Integrated_Gradients'
-                       ]
+    roar_explainers = [
+        # 'gradcam',
+        # 'guided_gradcam',
+        # 'LRP',
+        # 'noisetunnel',
+        # 'random',
+        'Integrated_Gradients'
+    ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
@@ -190,14 +191,14 @@ def main():
         input_cmd = sys.argv
         # whole mask start:0 end 105000
         mask_range_start = 0
-        mask_range_end = 105000
+        mask_range_end = all_ds.__len__()
         # use cmd input variables if available
         if len(input_cmd) > 2:
             mask_range_start = int(input_cmd[1])
             mask_range_end = int(input_cmd[2])
         print('start: ' + str(mask_range_start) + ' end: ' + str(mask_range_end))
         print('creating for ROAR mask')
-        create_mask(original_model, all_ds, path_exp, DEVICE, roar_explainers, mode,
+        create_mask(original_model, model, all_ds, path_exp, DEVICE, roar_explainers, mode,
                     mask_range_start, mask_range_end,
                     replace_existing=True)
         print('mask for ROAR created')
@@ -227,7 +228,7 @@ def main():
            mode (string): mode imagenet or plants
            cv_iterations_total (number): number of crossval iterations -> must be trained before
        """
-        plot_dev_acc(roar_values, roar_explainers, cv_iterations_total, mode)
+        plot_dev_acc(roar_values, roar_explainers, cv_iterations_total, mode, model)
 
     # comparison of modified roar Images
     if roar_comp:
@@ -240,7 +241,7 @@ def main():
             cv_iterations_total (number): number of crossval iterations -> must be trained before
         """
         print('creating ROAR comparison plot')
-        roar_comparison(mode, roar_explainers, cv_iterations_total, roar_values)
+        roar_comparison(mode, roar_explainers, cv_iterations_total, roar_values, model)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_comp:
@@ -253,7 +254,7 @@ def main():
             mode (string): mode imagenet or plants
         """
         print('creating ROAR explanation plot')
-        roar_comparison_explained(mode, DEVICE, roar_explainers, roar_values)
+        roar_comparison_explained(mode, DEVICE, roar_explainers, roar_values, model)
 
     # create single plots to explain a image
     if explain_images_single:

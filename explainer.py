@@ -8,6 +8,8 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy import ndimage as ndi
 from skimage import feature
 from sklearn import preprocessing
+from torchvision.models import VGG
+from torch.autograd._functions import Resize
 
 from cnn import *
 
@@ -15,11 +17,10 @@ from cnn import *
 # create single explainer of the image for the specified explainer
 
 
-def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
+def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
     image = image.to(DEVICE)
     model = model.to(DEVICE)
     image.requires_grad = True
-
     input = image.unsqueeze(0)
     # input.requires_grad = True
     model.eval()
@@ -158,14 +159,20 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE):
         heat_map = cut_and_shape(np.transpose(heat_map.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
         if bounded:
             heat_map = cut_top_per(heat_map)
+
     # torch.cuda.empty_cache()
     # assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
     #     heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
+    if mode == 'plants':
+        heat_map = PImage.fromarray(heat_map).resize((255, 213), PImage.ANTIALIAS)
+        heat_map = np.asarray(heat_map)
+        # heat_map = Resize.apply(heat_map, (255, 213))
     return heat_map
 
 
 # create a mask with all heat_maps for specified dataset
-def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, range_start, range_end, replace_existing):
+def create_mask(model, model_name, dataset, path, DEVICE, roar_explainers, mode, range_start, range_end,
+                replace_existing):
     if mode == 'imagenet':
         create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_existing, range_start, range_end)
     else:
@@ -184,11 +191,11 @@ def create_mask(model, dataset, path, DEVICE, roar_explainers, mode, range_start
                 for ex in roar_explainers:
                     progress.update(1)
                     heat_maps[ex][str(dataset.get_id_by_index(i))] = explain_single(model, image, label, ex, False,
-                                                                                    DEVICE)
+                                                                                    DEVICE, mode)
             if not os.path.exists(path + 'heatmaps'):
                 os.makedirs(path + 'heatmaps')
             for ex in roar_explainers:
-                pickle.dump(heat_maps[ex], open(path + 'heatmaps/heatmaps_vgg' + ex + '.pkl', 'wb'))
+                pickle.dump(heat_maps[ex], open(path + 'heatmaps/heatmaps_' + model_name + '_' + ex + '.pkl', 'wb'))
                 print('heatmap saved')
 
 
@@ -214,7 +221,7 @@ def create_mask_imagenet(model, dataset, path, DEVICE, roar_explainers, replace_
             for ex in roar_explainers:
                 path_item = path + '/heatmaps/' + ex + '/' + str(id) + '.pkl'
                 if (not os.path.isfile(path_item)) or (replace_existing):
-                    tmp = explain_single(model, image, label, ex, False, DEVICE)
+                    tmp = explain_single(model, image, label, ex, False, DEVICE, 'imagenet')
                     pickle.dump(tmp, open(path_item, 'wb'))
                 progress.update(1)
 
@@ -231,9 +238,6 @@ def cut_top_per(data):
     # reshape to 2D hxw
     d_img = data
     return d_img
-
-
-
 
 
 # create all explainers for a given image

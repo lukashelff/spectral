@@ -228,7 +228,7 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar, mo
 
 
 # crossval acc for every removed percentage of each explainer
-def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
+def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
     # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
     val = get_cross_val_acc('original', 0, cv_iter, mode)
@@ -238,7 +238,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode):
     for c, ex in enumerate(roar_explainers):
         acc_vals = []
         for roar_per in roar_values:
-            acc = get_cross_val_acc(ex, roar_per, cv_iter, mode)
+            acc = get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type)
             print(acc)
             acc_vals.append(acc)
         if mode == 'plants':
@@ -281,7 +281,7 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
         plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
     else:
         ax.set_title(title)
-        explained = explain_single(model, image_normalized, label, explainer, True, DEVICE)
+        explained = explain_single(model, image_normalized, label, explainer, True, DEVICE, mode)
         if explainer is not 'gradcam':
             explained = ndi.gaussian_filter(explained, 3)
         # ax.imshow(org_img_edged, cmap=plt.cm.binary)
@@ -346,7 +346,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                                                      method="original_image", use_pyplot=False)
                 plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
             else:
-                explained = explain_single(model, image_normalized, label, ex, False, DEVICE)
+                explained = explain_single(model, image_normalized, label, ex, False, DEVICE, mode)
                 if ex is not 'gradcam':
                     explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image

@@ -366,9 +366,9 @@ class Spectralloader(Dataset):
 
     # apply the roar to the dataset
     # given percentage of the values get removed from the dataset
-    def apply_roar(self, percentage, path, DEVICE, explainer):
+    def apply_roar(self, percentage, path, DEVICE, explainer, model_type):
         if self.mode == 'plants':
-            with open(path + 'heatmaps/heatmaps' + explainer + '.pkl', 'rb') as f:
+            with open(path + 'heatmaps/heatmaps_' + model_type + '_' + explainer + '.pkl', 'rb') as f:
                 masks = pickle.load(f)
         else:
             masks = path

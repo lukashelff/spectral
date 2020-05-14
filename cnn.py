@@ -246,7 +246,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                 save_name +
                 '.png')
     plt.close(fig)
-    path_values = './data/' + mode + '/' + 'plots/values/'
+    path_values = './data/' + mode + '/' + 'plots/values/' + model_type + '/'
     # add accuracy values
     if not os.path.exists(path_values):
         os.makedirs(path_values)
@@ -366,8 +366,8 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         # processes = [(val_ds, i, mask, DEVICE, explainer), (train_ds, i, mask, DEVICE, explainer)]
         # p1 = mp.Process(target=apply_parallel, args=(val_ds, i, mask, DEVICE, explainer))
         # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
-        train_ds.apply_roar(roar_val, path_mask, DEVICE, explainer)
-        val_ds.apply_roar(roar_val, path_mask, DEVICE, explainer)
+        train_ds.apply_roar(roar_val, path_mask, DEVICE, explainer, model_type)
+        val_ds.apply_roar(roar_val, path_mask, DEVICE, explainer, model_type)
         # p1.start()
         # p2.start()
         # p1.join()
@@ -391,8 +391,8 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         torch.save(model.state_dict(), trained_roar_models + '_' + explainer + '_' + str(roar_val) + '.pt')
 
 
-def apply_parallel(ds, i, mask, DEVICE, explainer):
-    ds.apply_roar(i, mask, DEVICE, explainer)
+def apply_parallel(ds, i, mask, DEVICE, explainer, model_type):
+    ds.apply_roar(i, mask, DEVICE, explainer, model_type)
 
 
 def eval_model(model, N_EPOCHS, lr, batch_size, DEVICE, mode):

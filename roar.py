@@ -86,7 +86,7 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values, mod
                     image = torch.from_numpy(image)
                 model = model.to(DEVICE)
                 image = image.to(DEVICE)
-                activation_map = explain_single(model, image, label, ex, True, DEVICE)
+                activation_map = explain_single(model, image, label, ex, True, DEVICE, mode)
                 org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
                 org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1])
                 org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
@@ -108,7 +108,7 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values, mod
 # plotting the roar trained images
 # comparison of modified roar Images
 # Axes: removed % of image features and explainers
-def roar_comparison(mode, roar_explainers, cv_iter, roar_values):
+def roar_comparison(mode, roar_explainers, cv_iter, roar_values, model_type):
     # roar_explainers = ['random'] + roar_explainers
     # roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100]
     path_exp = './data/' + mode + '/' + 'exp/'
@@ -147,10 +147,10 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values):
                 sub_path = str(roar_per) + '%_of_' + ex + '.sav'
                 path = './data/' + mode + '/' + 'plots/values/' + sub_path
                 if roar_per == 0:
-                    acc = get_cross_val_acc('original', roar_per, cv_iter, mode)
+                    acc = get_cross_val_acc('original', roar_per, cv_iter, mode, model_type)
                 else:
                     all_ds.apply_roar_single_image(roar_per, mask, id, 'comp', ex)
-                    acc = get_cross_val_acc(ex, roar_per, cv_iter, mode)
+                    acc = get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type)
                 image, label = all_ds.get_original_by_id(id)
                 # show_image(image, 'modified image')
                 # create ROAR plot
