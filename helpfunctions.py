@@ -108,7 +108,7 @@ def get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type):
                     path_fin = path_s + sub_path_2
                 acc += pickle.load(open(path_fin, 'rb'))
 
-        return acc / cv_iter
+        return round(acc / cv_iter, 2)
     except ValueError:
         print(
             'accuracies for:' + ex + 'with ' + roar_per + ' removed image features in cross val iteration: ' + str(

@@ -59,10 +59,10 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
         attr_gco = attribute_image_features(gco, input)
         att = attr_gco.squeeze(0).squeeze(0).cpu().detach().numpy()
         h_a, w_a = att.shape
-        for i in range(h_a):
-            for k in range(w_a):
-                if att[i][k] < 0:
-                    att[i][k] = 0
+        # for i in range(h_a):
+        #     for k in range(w_a):
+        #         if att[i][k] < 0:
+        #             att[i][k] = 0
         gradcam = PImage.fromarray(att).resize((w, h), PImage.ANTIALIAS)
         heat_map = np.asarray(gradcam)
 
@@ -160,7 +160,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
         if bounded:
             heat_map = cut_top_per(heat_map)
 
-    # torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
     # assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
     #     heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
     if mode == 'plants':

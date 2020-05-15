@@ -22,7 +22,7 @@ def main():
     # only available for plant
     plot_classes, plot_categories = False, False
     # comparison for image ID
-    plot_for_image_id = True
+    plot_for_image_id = False
     # expain images seperate
     explain_images_single = False
 
@@ -30,7 +30,7 @@ def main():
     # create roar mask
     roar_create_mask = False
     # roar train
-    roar_train = False
+    roar_train = True
     # plot roar acc curve
     plot_roar_curve = False
     # comparison of roar images
@@ -45,13 +45,13 @@ def main():
     n_classes = 2
     batch_size = 20
     cv_iterations_total = 5
-    # cv_iterations_total = 3
+    cv_iterations_total = 3
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [4]
+    cv_it_to_calc = [0, 1, 2]
     test_size = 500
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
-    image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1']
+    image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
 
     if mode == 'imagenet':
@@ -68,12 +68,12 @@ def main():
 
     # selection of explainer to be applied
     all_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
+                      'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
     explainers = [
         # 'Original',
-        # 'randosm',
+        # 'random',
         # 'saliency',
-        # 'Integrated_Gradients'
+        # 'Integrated_Gradients',
         'gradcam',
         # 'guided_gradcam',
         # 'LRP',

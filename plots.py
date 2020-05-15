@@ -337,29 +337,29 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
         for c_ex, ex in enumerate(explainers):
 
             ax = fig.add_subplot(len_ids, len_explainer, (c_ex + 1) + c_i * len_explainer)
+            org_img = np.transpose(image.squeeze().cpu().detach().numpy(), to_RGB)
 
             if ex == 'Original':
                 org_im, _ = viz.visualize_image_attr(None,
                                                      np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
                                                      method="original_image", use_pyplot=False)
-                plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+                plt.imshow(org_img)
             else:
                 explained = explain_single(model, image_normalized, label, ex, True, DEVICE, mode)
                 # if ex is not 'gradcam':
                 #     explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
                 if mode == 'imagenet':
-                    org_img = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
                     explained = np.expand_dims(explained, axis=2)
                     viz.visualize_image_attr(explained,
                                              org_img,
                                              sign="positive", method="blended_heat_map",
-                                             show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
+                                             show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax),
+                                             cmap='viridis',
                                              alpha_overlay=0.6)
                 else:
                     # Edge detection of original input image
-                    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-                    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+                    org_img_edged = preprocessing.scale(np.array(org_img, dtype=float)[:, :, 1] / 255)
                     org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
                     # Compute the Canny filter for two values of sigma
                     org_img_edged = feature.canny(org_img_edged, sigma=3)

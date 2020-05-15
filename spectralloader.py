@@ -289,7 +289,7 @@ class Spectralloader(Dataset):
                     #255 elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
 
-            with tqdm(total=67) as progress:
+            with tqdm(total=67, desc='loading images for DS') as progress:
                 for i in range(1, 5):
                     if i == 1:
                         for k in range(1, 14):
