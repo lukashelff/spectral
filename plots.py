@@ -259,7 +259,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
 
 
 def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
-    image_normalized, label = ds.__getitem__(id)
+    image_normalized, label = ds.get_by_id(id)
     output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
     _, pred = torch.max(output, 1)
     image, label = ds.get_original_by_id(id)
@@ -324,7 +324,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
             n_classes = 2
         model = get_model(DEVICE, n_classes, mode, model_type)
         model.load_state_dict(torch.load(model_path, map_location=DEVICE))
-        image_normalized, label = ds.__getitem__(i)
+        image_normalized, label = ds.get_by_id(i)
         output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
         _, pred = torch.max(output, 1)
         image, label = ds.get_original_by_id(i)
@@ -352,7 +352,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                 if ex is not 'gradcam':
                     explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
-                org_img_edged = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+                # org_img_edged = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
 
                 viz.visualize_image_attr(np.expand_dims(explained, axis=2),
                                          org_img_edged,

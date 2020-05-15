@@ -274,6 +274,8 @@ class Spectralloader(Dataset):
                 data = {c: x for c, x in enumerate(image_datasets['train'].imgs + image_datasets['val'].imgs)}
                 ids = list(range(len_all))
         else:
+            self.classes = ['healthy', 'diseased']
+
             # loads all the images have existing entry labels in the plant DS
             def load_image(path):
                 dict = pickle.load(open(path + '/data.p', 'rb'))
@@ -288,7 +290,6 @@ class Spectralloader(Dataset):
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
 
             with tqdm(total=67) as progress:
-
                 for i in range(1, 5):
                     if i == 1:
                         for k in range(1, 14):

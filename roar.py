@@ -132,7 +132,7 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values, model_type):
         for c_ex, ex in enumerate(roar_explainers):
             # loading heatmap of corresponding explainer
             if mode == 'plants':
-                with open(path_exp + subpath_heatmaps + ex + '.pkl', 'rb') as f:
+                with open(path_exp + subpath_heatmaps + '_' + model_type + '_' + ex + '.pkl', 'rb') as f:
                     mask = pickle.load(f)
             else:
                 # imagenet mask gets loaded in Dataset

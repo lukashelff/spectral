@@ -30,7 +30,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
     output = model(image_mod)
     _, pred = torch.max(output, 1)
     label = pred.item()
-    if h == 224:
+    if isinstance(model, VGG):
         last_layer = model.features[-3]
     else:
         last_layer = model.layer4

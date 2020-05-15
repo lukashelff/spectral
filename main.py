@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -30,9 +30,9 @@ def main():
     # create roar mask
     roar_create_mask = False
     # roar train
-    roar_train = False
+    roar_train = True
     # plot roar acc curve
-    plot_roar_curve = True
+    plot_roar_curve = False
     # comparison of roar images
     roar_comp = False
     roar_expl_comp = False
@@ -45,12 +45,13 @@ def main():
     n_classes = 2
     batch_size = 20
     cv_iterations_total = 5
-    cv_iterations_total =1
+    # cv_iterations_total = 3
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [0]
+    cv_it_to_calc = [3]
     test_size = 500
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
+    image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
 
     if mode == 'imagenet':
@@ -69,10 +70,10 @@ def main():
     # explainer for orignal explaination
     explainers = [
         'Original',
-        'saliency',
-        'Integrated_Gradients',
+        # 'saliency',
+        # 'Integrated_Gradients',
         'noisetunnel',
-        'guided_gradcam',
+        # 'guided_gradcam',
         'gradcam',
         'LRP',
         # 'Noise Tunnel stev 2'
@@ -82,10 +83,10 @@ def main():
     roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
                        'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
     roar_explainers = [
-        'gradcam',
+        # 'gradcam',
         # 'guided_gradcam',
-        'LRP',
-        'noisetunnel',
+        # 'LRP',
+        # 'noisetunnel',
         'random',
         # 'Integrated_Gradients'
     ]
@@ -138,7 +139,7 @@ def main():
     if plot_classes or plot_categories:
         """ create comparison of diffrent classes or categories
 
-                        Args:
+                        Args:False
                             plot_categories (bool): plot category comparison
                             plot_class (bool): plot class comparison
                             explainers (list): List of saliency methods to be evaluated
@@ -170,10 +171,10 @@ def main():
         original_model = get_model(DEVICE, n_classes, mode, model)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         print('creating explainer plots for specified images')
-        if mode == 'plants':
-            plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
-        else:
-            create_comparison_saliency(original_trained_model, image_ids, all_ds, explainers, DEVICE, mode, model)
+        # if mode == 'plants':
+        #     plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
+        # else:
+        create_comparison_saliency(original_trained_model, image_ids, all_ds, explainers, DEVICE, mode, model)
 
     # create a mask for specified IDS and explainers for given range
     # containing one heatmap per specified specified images
