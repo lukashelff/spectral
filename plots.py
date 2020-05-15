@@ -1,3 +1,4 @@
+import cv2
 import matplotlib.image as mpimg
 import torch.nn.functional as F
 from matplotlib.pyplot import figure
@@ -332,12 +333,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
         pred_classname = ds.get_class_by_label(pred)
         image, label = ds.get_original_by_id(i)
         model.eval()
-        # Edge detection of original input image
-        org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-        org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
-        org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-        # Compute the Canny filter for two values of sigma
-        org_img_edged = feature.canny(org_img_edged, sigma=3)
+
         for c_ex, ex in enumerate(explainers):
 
             ax = fig.add_subplot(len_ids, len_explainer, (c_ex + 1) + c_i * len_explainer)
@@ -348,17 +344,28 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                                                      method="original_image", use_pyplot=False)
                 plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
             else:
-                explained = explain_single(model, image_normalized, label, ex, False, DEVICE, mode)
-                if ex is not 'gradcam':
-                    explained = ndi.gaussian_filter(explained, 3)
+                explained = explain_single(model, image_normalized, label, ex, True, DEVICE, mode)
+                # if ex is not 'gradcam':
+                #     explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
-                # org_img_edged = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-
-                viz.visualize_image_attr(np.expand_dims(explained, axis=2),
-                                         org_img_edged,
-                                         sign="positive", method="blended_heat_map",
-                                         show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
-                                         alpha_overlay=0.6)
+                if mode == 'imagenet':
+                    org_img = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+                    explained = np.expand_dims(explained, axis=2)
+                    viz.visualize_image_attr(explained,
+                                             org_img,
+                                             sign="positive", method="blended_heat_map",
+                                             show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
+                                             alpha_overlay=0.6)
+                else:
+                    # Edge detection of original input image
+                    org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
+                    org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1] / 255)
+                    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+                    # Compute the Canny filter for two values of sigma
+                    org_img_edged = feature.canny(org_img_edged, sigma=3)
+                    ax.imshow(org_img_edged, cmap=plt.cm.binary)
+                    ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
+                              alpha=0.4)
             ax.tick_params(axis='both', which='both', length=0)
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), visible=False)
@@ -378,7 +385,8 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
     fig.text(0.02, 0, decription, fontsize=40)
     rect = (0, 0.08, 1, 0.95)
     fig.tight_layout(rect=rect, h_pad=8, w_pad=8)
-    if not os.path.exists('./data/' + mode + '/' + 'exp/saliency_comparison/'):
-        os.makedirs('./data/' + mode + '/' + 'exp/saliency_comparison/')
-    fig.savefig('./data/' + mode + '/' + 'exp/saliency_comparison/comparison_of_saliency_methods.png')
+    subpath = './data/' + mode + '/' + 'exp/saliency_comparison/' + model_type + '/'
+    if not os.path.exists(subpath):
+        os.makedirs(subpath)
+    fig.savefig(subpath + 'comparison_of_saliency_methods.png')
     plt.close('all')

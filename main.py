@@ -22,7 +22,7 @@ def main():
     # only available for plant
     plot_classes, plot_categories = False, False
     # comparison for image ID
-    plot_for_image_id = False
+    plot_for_image_id = True
     # expain images seperate
     explain_images_single = False
 
@@ -30,7 +30,7 @@ def main():
     # create roar mask
     roar_create_mask = False
     # roar train
-    roar_train = True
+    roar_train = False
     # plot roar acc curve
     plot_roar_curve = False
     # comparison of roar images
@@ -48,7 +48,7 @@ def main():
     # cv_iterations_total = 3
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [3]
+    cv_it_to_calc = [4]
     test_size = 500
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1']
@@ -66,29 +66,18 @@ def main():
         cv_it_to_calc = [0]
         image_ids = [x * 500 for x in range(5)]
 
-    # explainers to be evaluated
-    # explainer for orignal explaination
+    # selection of explainer to be applied
+    all_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
+                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
     explainers = [
-        'Original',
+        # 'Original',
+        # 'randosm',
         # 'saliency',
-        # 'Integrated_Gradients',
-        'noisetunnel',
-        # 'guided_gradcam',
+        # 'Integrated_Gradients'
         'gradcam',
-        'LRP',
-        # 'Noise Tunnel stev 2'
-    ]
-    # explainers = ['gradcam']
-    # ROAR explainer to be applied
-    roar_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients']
-    roar_explainers = [
-        # 'gradcam',
         # 'guided_gradcam',
         # 'LRP',
         # 'noisetunnel',
-        'random',
-        # 'Integrated_Gradients'
     ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
@@ -201,7 +190,7 @@ def main():
             mask_range_end = int(input_cmd[2])
         print('start: ' + str(mask_range_start) + ' end: ' + str(mask_range_end))
         print('creating for ROAR mask')
-        create_mask(original_model, model, all_ds, path_exp, DEVICE, roar_explainers, mode,
+        create_mask(original_model, model, all_ds, path_exp, DEVICE, explainers, mode,
                     mask_range_start, mask_range_end,
                     replace_existing=True)
         print('mask for ROAR created')
@@ -219,7 +208,7 @@ def main():
         """
         sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
         train_roar_ds(path_exp, roar_values, trained_roar_models, all_data, labels, batch_size,
-                      n_classes, N_EPOCHS, lr, DEVICE, roar_explainers, sss, root, mode, cv_it_to_calc, model)
+                      n_classes, N_EPOCHS, lr, DEVICE, explainers, sss, root, mode, cv_it_to_calc, model)
 
     # plot the acc curves of all trained ROAR models
     if plot_roar_curve:
@@ -231,7 +220,7 @@ def main():
            mode (string): mode imagenet or plants
            cv_iterations_total (number): number of crossval iterations -> must be trained before
        """
-        plot_dev_acc(roar_values, roar_explainers, cv_iterations_total, mode, model)
+        plot_dev_acc(roar_values, explainers, cv_iterations_total, mode, model)
 
     # comparison of modified roar Images
     if roar_comp:
@@ -244,7 +233,7 @@ def main():
             cv_iterations_total (number): number of crossval iterations -> must be trained before
         """
         print('creating ROAR comparison plot')
-        roar_comparison(mode, roar_explainers, cv_iterations_total, roar_values, model)
+        roar_comparison(mode, explainers, cv_iterations_total, roar_values, model)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_comp:
@@ -257,7 +246,7 @@ def main():
             mode (string): mode imagenet or plants
         """
         print('creating ROAR explanation plot')
-        roar_comparison_explained(mode, DEVICE, roar_explainers, roar_values, model)
+        roar_comparison_explained(mode, DEVICE, explainers, roar_values, model)
 
     # create single plots to explain a image
     if explain_images_single:
