@@ -121,7 +121,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
     if scheduler_a == '_scheduler':
-        print('hallo')
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
@@ -274,6 +273,9 @@ def train_roar_ds(path, roar_values, trained_roar_models, all_data, labels, batc
                 train_ds = Spectralloader(train_labels, root, mode, 'train')
                 print('loading validation dataset')
                 val_ds = Spectralloader(valid_labels, root, mode, 'val')
+                id = train_ds.get_id_by_index(10)
+                im, label = train_ds.get_original_by_id(id)
+                show_image(im, 'roar')
                 path_mask = path + explainer + '.pkl'
                 processes = []
                 for i in roar_values:
@@ -368,6 +370,8 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
         train_ds.apply_roar(roar_val, path_mask, DEVICE, explainer, model_type)
         val_ds.apply_roar(roar_val, path_mask, DEVICE, explainer, model_type)
+
+
         # p1.start()
         # p2.start()
         # p1.join()

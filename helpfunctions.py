@@ -41,8 +41,8 @@ def display_rgb(img, title, path, name):
 
 def show_image(img, title):
     plt.title(title)
-    img_tr = np.transpose(img, to_RGB)
-    plt.imshow(img_tr)
+    img = np.transpose(img, to_RGB)
+    plt.imshow(img)
     plt.show()
     # im = Image.fromarray((img_tr * 255).astype(np.uint8))
 

@@ -175,7 +175,7 @@ class Spectralloader(Dataset):
     def update_data(self, id, val, roar_link):
         try:
             if self.mode == 'imagenet':
-
+                show_image(val, 'original')
                 # do not create new image if exist
                 im = self.tensor_to_pil(val)
                 im.save(roar_link)
@@ -229,7 +229,8 @@ class Spectralloader(Dataset):
             for (k, label) in ids_and_labels:
                 if k == id:
                     data[id] = {}
-                    data[id]['image'] = Image.fromarray(np.uint8(image * 255))
+                    # conversion error in float to uint8
+                    data[id]['image'] = Image.fromarray((image * 255).astype(np.uint8))
                     data[id]['label'] = label
                     ids.append(k)
 
@@ -286,7 +287,7 @@ class Spectralloader(Dataset):
                     # only add if we have a label for the image
                     data = data_all[k][:, :, [50, 88, 151]]
                     add_to_data(data, i['id'].replace(',', '_'))
-                    #255 elif mode == 'spec': reserved for spectral implementation
+                    # 255 elif mode == 'spec': reserved for spectral implementation
                     #     add_to_data(data_all[k].reshape(3, 255, 213), i['id'].replace(',', '_'))
 
             with tqdm(total=67, desc='loading images for DS') as progress:
