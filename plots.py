@@ -249,7 +249,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
         plt.plot(roar_values + [100], acc_vals, label=ex)
     min_acc = int(min(acc_vals) / 10) * 10
     max_acc = (1 + ((int(val)) / 10)) * 10
-    plt.title(str(cv_iter) + ' cross val accuracy by increasing the removed image features of each saliency method')
+    plt.title(str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method')
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
     plt.axis([roar_values[0], 100, min_acc, max_acc])

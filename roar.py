@@ -160,9 +160,9 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values, model_type):
                 if c_ex == 0:
                     ax.set_ylabel(str(roar_per) + '%', fontsize=40)
                 if c_r == 0:
-                    ax.set_title(ex + '\n' + str(acc) + '%', fontsize=40)
+                    ax.set_title(ex + '\n' + str(round(acc, 2)) + '%', fontsize=40)
                 else:
-                    ax.set_title(str(acc) + '%', fontsize=40)
+                    ax.set_title(str(round(acc, 2)) + '%', fontsize=40)
                 plt.imshow(np.transpose(image, (1, 2, 0)))
                 plt.setp(ax.get_xticklabels(), visible=False)
                 plt.setp(ax.get_yticklabels(), visible=False)

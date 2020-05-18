@@ -30,11 +30,11 @@ def main():
     # create roar mask
     roar_create_mask = False
     # roar train
-    roar_train = True
+    roar_train = False
     # plot roar acc curve
     plot_roar_curve = False
     # comparison of roar images
-    roar_comp = False
+    roar_comp = True
     roar_expl_comp = False
 
     # CNN default learning parameters
@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [4]
+    cv_it_to_calc = [0, 1, 2, 4]
     test_size = 500
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -70,13 +70,13 @@ def main():
                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
     explainers = [
         # 'Original',
-        # 'random',
+        'random',
         # 'saliency',
         # 'Integrated_Gradients',
         'gradcam',
         # 'guided_gradcam',
-        # 'LRP',
-        # 'noisetunnel',
+        'LRP',
+        'noisetunnel',
     ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
@@ -219,7 +219,7 @@ def main():
            mode (string): mode imagenet or plants
            cv_iterations_total (number): number of crossval iterations -> must be trained before
        """
-        plot_dev_acc(roar_values, explainers, cv_iterations_total, mode, model)
+        plot_dev_acc(roar_values, explainers, cv_it_to_calc, mode, model)
 
     # comparison of modified roar Images
     if roar_comp:
@@ -232,7 +232,7 @@ def main():
             cv_iterations_total (number): number of crossval iterations -> must be trained before
         """
         print('creating ROAR comparison plot')
-        roar_comparison(mode, explainers, cv_iterations_total, roar_values, model)
+        roar_comparison(mode, explainers, cv_it_to_calc, roar_values, model)
 
     # interpretation/explaination of modified roar Images
     if roar_expl_comp:
