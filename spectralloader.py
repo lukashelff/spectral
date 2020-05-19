@@ -138,7 +138,7 @@ class Spectralloader(Dataset):
                     # old
                     # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
                 ])
-        else:
+        if self.mode == 'imagenet':
             if self.train == 'train':
                 self.norm = transforms.Compose([
                     transforms.RandomHorizontalFlip(0.5),

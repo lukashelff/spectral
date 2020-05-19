@@ -87,13 +87,14 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     optimizer_name = 'adam'
     # set scheduler to use scheduler
     scheduler_a = '_scheduler'
+    if scheduler_a == '_scheduler':
+        scheduler_a += '_lr_step_size_' + str(lr_step_size) + '_lr_gamma_' + str(lr_gamma)
     save_name = (
             '_pretraining' +
+            '_no_normalization' +
+            '_lr_' + str(learning_rate) +
             # '_pixel_64' +
             scheduler_a +
-            '_lr_' + str(learning_rate) +
-            '_lr_step_size_' + str(lr_step_size) +
-            '_lr_gamma_' + str(lr_gamma) +
             '_optimizer_' + optimizer_name +
             '_model_' + model_type +
             roar
@@ -134,7 +135,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             # Train
             model.train()
             total_loss, n_correct, n_samples, pred, all_y = 0.0, 0, 0, [], []
-            first = next(iter(train_dl))
             for batch_i, (X, y) in enumerate(train_dl):
                 # print('current batch: ' + str(batch_i))
                 X, y = X.to(DEVICE), y.to(DEVICE)
@@ -192,7 +192,6 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_acc[epoch] = round(n_correct / n_samples * 100, 2)
             progress.update(1)
             progress.set_description(text + ' | ' +
-                                     f"  learning rate:  {learning_rate} |"
                                      # f"  train loss: {train_loss[epoch]:9.3f} |"
                                      f"  train acc:  {train_balanced_acc[epoch]:9.3f}% |"
                                      # f"  valid loss: {valid_loss[epoch]:9.3f} |"
@@ -370,7 +369,6 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         # p2 = mp.Process(target=apply_parallel, args=(train_ds, i, mask, DEVICE, explainer))
         train_ds.apply_roar(roar_val, path_mask, DEVICE, explainer, model_type)
         val_ds.apply_roar(roar_val, path_mask, DEVICE, explainer, model_type)
-
 
         # p1.start()
         # p2.start()
