@@ -11,7 +11,7 @@ def main():
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
     mode = modes[0]
-    model = models[0]
+    model = models[1]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
@@ -40,7 +40,7 @@ def main():
     # CNN default learning parameters
     # dafault training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     N_EPOCHS = 120
-    lr = 0.00015
+    # lr = 0.00015
     lr = 0.001
     n_classes = 2
     batch_size = 20

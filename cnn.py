@@ -48,7 +48,7 @@ def get_model(DEVICE, n_classes, mode, model):
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
         # adaptive average pooling is need if input size of image does not match 224x224
-        model.avgpool = nn.MaxPool2d(1, )
+        # model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
         # features = list(model.classifier.children())[:-1]  # Remove last layer and first
         # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
@@ -91,7 +91,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         scheduler_a += '_lr_step_size_' + str(lr_step_size) + '_lr_gamma_' + str(lr_gamma)
     save_name = (
             '_pretraining' +
-            '_no_normalization' +
+            '_normalization' +
+            '_resize' +
             '_lr_' + str(learning_rate) +
             # '_pixel_64' +
             scheduler_a +
@@ -339,7 +340,7 @@ def train_cross_val(sss, all_data, labels, root, mode, batch_size, n_classes, N_
             name = 'original_image.jpeg'
             # display_rgb(im, 'original image no values removed', path, name)
             # display the modified image and save to pred images in data/exp/pred_img_example
-            # show_image(im, 'original image ')
+            show_image(im, 'original image ')
 
             train_parallel(0, None, DEVICE, 'original', val_ds, train_ds, batch_size, n_classes, N_EPOCHS, lr,
                            original_trained_model, cv_it, mode, model_type)
