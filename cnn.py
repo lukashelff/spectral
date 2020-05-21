@@ -86,21 +86,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         lr_gamma = 0.1
     optimizer_name = 'adam'
     # set scheduler to use scheduler
-    scheduler_a = '_scheduler'
-    if scheduler_a == '_scheduler':
-        scheduler_a += '_lr_step_size_' + str(lr_step_size) + '_lr_gamma_' + str(lr_gamma)
-    save_name = (
-            '_pretraining' +
-            '_normalization' +
-            '_resize' +
-            '_lr_' + str(learning_rate) +
-            # '_pixel_64' +
-            scheduler_a +
-            '_optimizer_' + optimizer_name +
-            '_model_' + model_type +
-            roar
-    )
-    print(save_name)
+    scheduler_a = '_no_scheduler'
     ####################
     ################
     # print(model_name)
@@ -124,6 +110,19 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
     if scheduler_a == '_scheduler':
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
+        scheduler_a += '_lr_step_size_' + str(lr_step_size) + '_lr_gamma_' + str(lr_gamma)
+        save_name = (
+                '_pretraining' +
+                '_normalization' +
+                '_resize' +
+                '_lr_' + str(learning_rate) +
+                # '_pixel_64' +
+                scheduler_a +
+                '_optimizer_' + optimizer_name +
+                '_model_' + model_type +
+                roar
+        )
+        print(save_name)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
 

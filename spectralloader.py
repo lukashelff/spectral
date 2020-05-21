@@ -122,7 +122,7 @@ class Spectralloader(Dataset):
         if self.mode == 'plants':
             if self.train == 'train':
                 self.norm = transforms.Compose([
-                    # transforms.Resize((224, 224), interpolation=Image.BICUBIC),
+                    transforms.Resize((224, 224), interpolation=Image.BICUBIC),
                     # transforms.RandomRotation(20),
                     # transforms.RandomHorizontalFlip(0.5),
                     transforms.ToTensor(),
@@ -131,7 +131,7 @@ class Spectralloader(Dataset):
                 ])
             else:
                 self.norm = transforms.Compose([
-                    # transforms.Resize((224, 224), interpolation=Image.BICUBIC),
+                    transforms.Resize((224, 224), interpolation=Image.BICUBIC),
                     transforms.ToTensor(),
                     # transforms.Normalize(mean=[0.485, 0.456, 0.406],
                     #                      std=[0.229, 0.224, 0.225])

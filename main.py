@@ -11,7 +11,7 @@ def main():
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
     mode = modes[0]
-    model = models[1]
+    model = models[0]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
@@ -28,9 +28,9 @@ def main():
 
     # ROAR
     # create roar mask
-    roar_create_mask = False
+    roar_create_mask = True
     # roar train
-    roar_train = False
+    roar_train = True
     # plot roar acc curve
     plot_roar_curve = False
     # comparison of roar images
@@ -48,7 +48,7 @@ def main():
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
     cv_it_to_calc = [0]
-    test_size = 500
+    test_size = 0.2
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
@@ -70,13 +70,13 @@ def main():
                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
     explainers = [
         # 'Original',
-        'random',
+        # 'random',
         # 'saliency',
-        # 'Integrated_Gradients',
-        'gradcam',
+        'Integrated_Gradients',
+        # 'gradcam',
         # 'guided_gradcam',
-        'LRP',
-        'noisetunnel',
+        # 'LRP',
+        # 'noisetunnel',
     ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
