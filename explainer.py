@@ -160,7 +160,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
         if bounded:
             heat_map = cut_top_per(heat_map)
 
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
     # assert (heat_map.shape == torch.Size([h, w])), "heatmap shape: " + str(
     #     heat_map.shape) + " does not match image shape: " + str(torch.Size([h, w]))
     if mode == 'plants':

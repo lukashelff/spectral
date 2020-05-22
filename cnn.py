@@ -48,7 +48,7 @@ def get_model(DEVICE, n_classes, mode, model):
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
         # adaptive average pooling is need if input size of image does not match 224x224
-        # model.avgpool = nn.MaxPool2d(1, )
+        model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
         # features = list(model.classifier.children())[:-1]  # Remove last layer and first
         # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
@@ -108,21 +108,21 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         )
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-    if scheduler_a == '_scheduler':
+    if scheduler_a == '_no_scheduler':
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
         scheduler_a += '_lr_step_size_' + str(lr_step_size) + '_lr_gamma_' + str(lr_gamma)
-        save_name = (
-                '_pretraining' +
-                '_normalization' +
-                '_resize' +
-                '_lr_' + str(learning_rate) +
-                # '_pixel_64' +
-                scheduler_a +
-                '_optimizer_' + optimizer_name +
-                '_model_' + model_type +
-                roar
-        )
-        print(save_name)
+    save_name = (
+            '_pretraining' +
+            '_no_normalization' +
+            '_resize' +
+            '_lr_' + str(learning_rate) +
+            # '_pixel_64' +
+            scheduler_a +
+            '_optimizer_' + optimizer_name +
+            '_model_' + model_type +
+            roar
+    )
+    print(save_name)
     text = 'training on ' + mode + ' DS with ' + roar + ' in cv it:' + str(cv_iteration)
     with tqdm(total=N_EPOCHS, ncols=180) as progress:
 

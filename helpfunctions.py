@@ -92,6 +92,7 @@ def figure_to_image(fig):
 def get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type):
     j = 0
     acc = 0
+    missing_val = False
     try:
         if ex == 'original':
             for j in cv_iter:
@@ -106,9 +107,15 @@ def get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type):
                 path_fin = path_s + sub_path
                 if not os.path.isfile(path_fin):
                     path_fin = path_s + sub_path_2
-                acc += pickle.load(open(path_fin, 'rb'))
+                if os.path.isfile(path_fin):
+                    acc += pickle.load(open(path_fin, 'rb'))
+                else:
+                    missing_val = True
 
-        return round(acc / len(cv_iter), 2)
+        out = round(acc / len(cv_iter), 2)
+        if missing_val:
+            out = -100
+        return out
     except ValueError:
         print(
             'accuracies for:' + ex + 'with ' + roar_per + ' removed image features in cross val iteration: ' + str(

@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -16,7 +16,7 @@ def main():
     # train and modify dataset
     # resizes all images and replaces them in folder
     resize_imagenet = False
-    retrain = True
+    retrain = False
 
     # explain image and create comparison
     # only available for plant
@@ -40,14 +40,14 @@ def main():
     # CNN default learning parameters
     # dafault training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
     N_EPOCHS = 120
-    # lr = 0.00015
-    lr = 0.001
+    lr = 0.00015
+    # lr = 0.001
     n_classes = 2
     batch_size = 20
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [0]
+    cv_it_to_calc = [0, 1, 2]
     test_size = 0.2
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -72,11 +72,11 @@ def main():
         # 'Original',
         # 'random',
         # 'saliency',
-        'Integrated_Gradients',
+        # 'Integrated_Gradients',
         # 'gradcam',
         # 'guided_gradcam',
         # 'LRP',
-        # 'noisetunnel',
+        'noisetunnel',
     ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
