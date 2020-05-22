@@ -28,11 +28,11 @@ def main():
 
     # ROAR
     # create roar mask
-    roar_create_mask = True
+    roar_create_mask = False
     # roar train
-    roar_train = True
+    roar_train = False
     # plot roar acc curve
-    plot_roar_curve = False
+    plot_roar_curve = True
     # comparison of roar images
     roar_comp = False
     roar_expl_comp = False
@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [0, 1, 2]
+    cv_it_to_calc = [0, 1]
     test_size = 0.2
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -70,11 +70,11 @@ def main():
                       'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
     explainers = [
         # 'Original',
-        # 'random',
+        'random',
         # 'saliency',
-        # 'Integrated_Gradients',
-        # 'gradcam',
-        # 'guided_gradcam',
+        'Integrated_Gradients',
+        'gradcam',
+        'guided_gradcam',
         # 'LRP',
         'noisetunnel',
     ]
