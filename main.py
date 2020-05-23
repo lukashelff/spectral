@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -32,9 +32,9 @@ def main():
     # roar train
     roar_train = False
     # plot roar acc curve
-    plot_roar_curve = True
+    plot_roar_curve = False
     # comparison of roar images
-    roar_comp = False
+    roar_comp = True
     roar_expl_comp = False
 
     # CNN default learning parameters
@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [0, 1]
+    cv_it_to_calc = [0, 1, 2]
     test_size = 0.2
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -66,16 +66,16 @@ def main():
         image_ids = [x * 500 for x in range(5)]
 
     # selection of explainer to be applied
-    all_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                      'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
+    all_explainers = ['Original', 'random', 'gradcam', 'saliency', 'guided_gradcam', 'guided_gradcam_gaussian',
+                      'LRP', 'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
     explainers = [
         # 'Original',
         'random',
         # 'saliency',
-        'Integrated_Gradients',
+        # 'Integrated_Gradients',
         'gradcam',
-        'guided_gradcam',
-        # 'LRP',
+        # 'guided_gradcam',
+        'LRP',
         'noisetunnel',
     ]
     # percentage to be removed from images
