@@ -249,7 +249,8 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
         plt.plot(roar_values + [100], acc_vals, label=ex)
     min_acc = int(min(acc_vals) / 10) * 10
     max_acc = (1 + ((int(val)) / 10)) * 10
-    plt.title(str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method')
+    plt.title(
+        str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method')
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
     plt.axis([roar_values[0], 100, min_acc, max_acc])
@@ -264,6 +265,7 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
     output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
     _, pred = torch.max(output, 1)
     image, label = ds.get_original_by_id(id)
+    org_img = np.transpose(image.squeeze().cpu().detach().numpy(), to_RGB)
     classname = ds.get_class_by_label(label)
     pred_classname = ds.get_class_by_label(pred)
     title = explainer + ' heat-map on image ' + str(
@@ -278,24 +280,45 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
     if explainer == 'Original':
         title = 'image ' + str(id) + '\nclass: ' + classname
         ax.set_title(title)
-        org_im, _ = viz.visualize_image_attr(None,
-                                             np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
-                                             method="original_image", use_pyplot=False)
-        plt.imshow(np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)))
+        org_img, _ = viz.visualize_image_attr(None, org_img, method="original_image", use_pyplot=False)
+        plt.imshow(org_img)
     else:
         ax.set_title(title)
         explained = explain_single(model, image_normalized, label, explainer, True, DEVICE, mode)
-        if explainer is not 'gradcam':
-            explained = ndi.gaussian_filter(explained, 3)
-        # ax.imshow(org_img_edged, cmap=plt.cm.binary)
-        # ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
-        #           alpha=0.4)
 
-        viz.visualize_image_attr(np.expand_dims(explained, axis=2),
-                                 np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)), sign="positive",
-                                 method="blended_heat_map",
-                                 show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
-                                 alpha_overlay=0.6)
+        # if ex is not 'gradcam':
+        #     explained = ndi.gaussian_filter(explained, 3)
+        # comment to use edged image
+        if mode == 'imagenet':
+            explained = np.expand_dims(explained, axis=2)
+            viz.visualize_image_attr(explained,
+                                     org_img,
+                                     sign="positive", method="blended_heat_map",
+                                     show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax),
+                                     cmap='viridis',
+                                     alpha_overlay=0.6)
+
+        else:
+            # Edge detection of original input image
+            org_img_edged = preprocessing.scale(np.array(org_img, dtype=float)[:, :, 1] / 255)
+            org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+            # Compute the Canny filter for two values of sigma
+            org_img_edged = feature.canny(org_img_edged, sigma=3)
+            ax.imshow(org_img_edged, cmap=plt.cm.binary)
+            ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
+                      alpha=0.4)
+
+        # if explainer is not 'gradcam':
+        #     explained = ndi.gaussian_filter(explained, 3)
+        # # ax.imshow(org_img_edged, cmap=plt.cm.binary)
+        # # ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
+        # #           alpha=0.4)
+        #
+        # viz.visualize_image_attr(np.expand_dims(explained, axis=2),
+        #                          np.transpose(org_img.squeeze().cpu().detach().numpy(), (1, 2, 0)), sign="positive",
+        #                          method="blended_heat_map",
+        #                          show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax), cmap='viridis',
+        #                          alpha_overlay=0.6)
     ax.tick_params(axis='both', which='both', length=0)
     plt.setp(ax.get_xticklabels(), visible=False)
     plt.setp(ax.get_yticklabels(), visible=False)

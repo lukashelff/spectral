@@ -11,7 +11,7 @@ def main():
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
     mode = modes[0]
-    model = models[0]
+    model = models[1]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
@@ -24,7 +24,7 @@ def main():
     # comparison for image ID
     plot_for_image_id = False
     # expain images seperate
-    explain_images_single = False
+    explain_images_single = True
 
     # ROAR
     # create roar mask
@@ -32,7 +32,7 @@ def main():
     # roar train
     roar_train = False
     # plot roar acc curve
-    plot_roar_curve = True
+    plot_roar_curve = False
     # comparison of roar images
     roar_comp = False
     roar_expl_comp = False
@@ -71,11 +71,11 @@ def main():
     explainers = [
         # 'Original',
         'random',
-        # 'saliency',
+        'saliency',
         'Integrated_Gradients',
         'gradcam',
         'guided_gradcam',
-        # 'LRP',
+        'LRP',
         'noisetunnel',
     ]
     # percentage to be removed from images
