@@ -229,9 +229,13 @@ class Spectralloader(Dataset):
             for (k, label) in ids_and_labels:
                 if k == id:
                     data[id] = {}
+                    plt.imshow(image)
+                    im = Image.fromarray((image * 255).astype(np.uint8))
                     # conversion error in float to uint8
-                    data[id]['image'] = Image.fromarray((image * 255).astype(np.uint8))
+                    data[id]['image'] = im
                     data[id]['label'] = label
+                    plt.imshow(im)
+                    plt.show()
                     ids.append(k)
 
         if self.mode == 'imagenet':

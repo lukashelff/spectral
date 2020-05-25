@@ -369,8 +369,8 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                 plt.imshow(org_img)
             else:
                 explained = explain_single(model, image_normalized, label, ex, True, DEVICE, mode)
-                # if ex is not 'gradcam':
-                #     explained = ndi.gaussian_filter(explained, 3)
+                if ex is not 'gradcam':
+                    explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
                 if mode == 'imagenet':
                     explained = np.expand_dims(explained, axis=2)
