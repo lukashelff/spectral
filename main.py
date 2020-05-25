@@ -11,7 +11,7 @@ def main():
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
     mode = modes[0]
-    model = models[0]
+    model = models[1]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
