@@ -16,13 +16,13 @@ def main():
     # train and modify dataset
     # resizes all images and replaces them in folder
     resize_imagenet = False
-    retrain = False
+    retrain = True
 
     # explain image and create comparison
     # only available for plant
     plot_classes, plot_categories = False, False
     # comparison for image ID
-    plot_for_image_id = True
+    plot_for_image_id = False
     # expain images seperate
     explain_images_single = False
 
@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [3,4]
+    cv_it_to_calc = [3, 4]
     test_size = 0.2
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']

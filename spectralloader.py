@@ -111,8 +111,6 @@ class Spectralloader(Dataset):
         self.mode = mode
         self.train = train
         self.classes = []
-        self.data, self.ids = self.load_images_for_labels(root, ids_and_labels, train)
-        gc.disable()
         self.percentage = None
         self.mask = None
         self.explainer = None
@@ -122,6 +120,7 @@ class Spectralloader(Dataset):
         if self.mode == 'plants':
             if self.train == 'train':
                 self.norm = transforms.Compose([
+                    transforms.ToPILImage(),
                     transforms.Resize((224, 224), interpolation=Image.BICUBIC),
                     # transforms.RandomRotation(20),
                     # transforms.RandomHorizontalFlip(0.5),
@@ -131,6 +130,7 @@ class Spectralloader(Dataset):
                 ])
             else:
                 self.norm = transforms.Compose([
+                    transforms.ToPILImage(),
                     transforms.Resize((224, 224), interpolation=Image.BICUBIC),
                     transforms.ToTensor(),
                     # transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -158,6 +158,8 @@ class Spectralloader(Dataset):
         self.tensor_to_pil = transforms.Compose([
             transforms.ToPILImage()
         ])
+        self.data, self.ids = self.load_images_for_labels(root, ids_and_labels, train)
+        gc.disable()
 
         # old normalization
         # transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262]),
@@ -182,7 +184,9 @@ class Spectralloader(Dataset):
                 _, label = self.data[id]
                 self.data[id] = (roar_link, label)
             else:
-                self.data[id]['image'] = self.tensor_to_pil(val)
+                # self.data[id]['image'] = self.tensor_to_pil(val)
+                self.data[id]['image'] = val
+
         except ValueError:
             print('image with id: ' + str(id) + ' not in dataset')
 
@@ -200,7 +204,8 @@ class Spectralloader(Dataset):
             image = self.pil_to_tensor(im)
         else:
             image, label = self.data[id]['image'], self.data[id]['label']
-            image = self.pil_to_tensor(image)
+            # image = self.pil_to_tensor(image)
+            image = image
         return image, label
 
     def get_by_id(self, id):
@@ -210,10 +215,8 @@ class Spectralloader(Dataset):
                 im = Image.open(image_path).convert('RGB')
                 image = self.norm(im)
             else:
-
                 image, label = self.data[id]['image'], self.data[id]['label']
                 image = self.norm(image)
-
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
@@ -229,9 +232,11 @@ class Spectralloader(Dataset):
             for (k, label) in ids_and_labels:
                 if k == id:
                     data[id] = {}
-                    im = Image.fromarray((image * 160).astype(np.uint8), 'RGB')
-                    im.save('./data/plants/test/' + id + '.png')
-                    # conversion error in float to uint8
+                    # im = Image.fromarray((image * 160).astype(np.uint8), 'RGB')
+                    im = torch.from_numpy(np.transpose(image/1.5, to_learning))
+                    # im = self.tensor_to_pil(im)
+                    # im.save('./data/plants/test/' + id + '.png')
+                    # conversion error in float to uint8 255 replaced with 160 because of range 0-1,6
                     data[id]['image'] = im
                     data[id]['label'] = label
                     ids.append(k)
