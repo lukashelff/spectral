@@ -70,7 +70,9 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
     elif explainer == 'guided_gradcam':
         gc = GuidedGradCam(model, last_layer)
         attr_gc = attribute_image_features(gc, input)
+        # heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
         heat_map = cut_and_shape(np.transpose(attr_gc.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
+        # heat_map = heat[0, :, :] + heat[1, :, :] + heat[2, :, :]
         if bounded:
             heat_map = cut_top_per(heat_map)
 

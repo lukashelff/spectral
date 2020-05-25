@@ -68,8 +68,8 @@ def main():
         image_ids = [x * 500 for x in range(5)]
 
     # selection of explainer to be applied
-    all_explainers = ['gradcam', 'guided_gradcam', 'guided_gradcam_gaussian',
-                      'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
+    all_explainers = ['Original', 'random', 'gradcam', 'saliency', 'guided_gradcam', 'guided_gradcam_gaussian',
+                      'LRP', 'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
     explainers = [
         'Original',
         'random',
