@@ -212,11 +212,10 @@ class Spectralloader(Dataset):
         try:
             if self.mode == 'imagenet':
                 image_path, label = self.data[id]
-                im = Image.open(image_path).convert('RGB')
-                image = self.norm(im)
+                image = Image.open(image_path).convert('RGB')
             else:
                 image, label = self.data[id]['image'], self.data[id]['label']
-                image = self.norm(image)
+            image = self.norm(image)
             return image, label
         except ValueError:
             print('image with id: ' + id + ' not in dataset')
@@ -233,7 +232,8 @@ class Spectralloader(Dataset):
                 if k == id:
                     data[id] = {}
                     # im = Image.fromarray((image * 160).astype(np.uint8), 'RGB')
-                    im = torch.from_numpy(np.transpose(image/1.5, to_learning))
+                    image[image > 1] = 1
+                    im = torch.from_numpy(np.transpose(image, to_learning))
                     # im = self.tensor_to_pil(im)
                     # im.save('./data/plants/test/' + id + '.png')
                     # conversion error in float to uint8 255 replaced with 160 because of range 0-1,6

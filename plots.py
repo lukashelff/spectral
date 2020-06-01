@@ -2,10 +2,10 @@ import cv2
 import matplotlib.image as mpimg
 import torch.nn.functional as F
 from matplotlib.pyplot import figure
-
+import seaborn as sns
 from explainer import *
 from helpfunctions import get_cross_val_acc
-
+import pandas as pd
 
 def evaluate(model, val_dl, k, explainers, image_class, path_root, subpath_healthy, subpath_diseased,
              subpath_classification, DEVICE, plot_diseased, plot_healthy, plot_classes):
@@ -230,33 +230,46 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar, mo
 
 # crossval acc for every removed percentage of each explainer
 def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
+    sns.set(style="darkgrid")
     # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
-    val = get_cross_val_acc('original', 0, cv_iter, mode, model_type)
+    orginal_mean_acc, original_accs = get_cross_val_acc('original', 0, cv_iter, mode, model_type)
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
-    plt.plot([roar_values[0], 100], [val, val], 'r--', label='accuracy with 0% removed = ' + str(val) + '%')
-    # plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
+    plt.plot([roar_values[0], 100], [orginal_mean_acc, orginal_mean_acc], 'r--', label='accuracy with 0% removed = ' + str(orginal_mean_acc) + '%')
+    plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
+    d = {}
     for c, ex in enumerate(roar_explainers):
         acc_vals = []
+        acc_matrix = []
         for roar_per in roar_values:
-            acc = get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type)
-            print(acc)
+            acc, accs = get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type)
             acc_vals.append(acc)
+            acc_matrix.append(accs)
         if mode == 'plants':
             acc_vals.append(50)
+            acc_matrix.append([50 for _ in range(len(cv_iter))])
         else:
             acc_vals.append(0.5)
+            acc_matrix.append([0.5 for _ in range(len(cv_iter))])
+        d[ex] = acc_matrix
         plt.plot(roar_values + [100], acc_vals, label=ex)
+    pdacc = pd.DataFrame(d)
+    # sns.lineplot(x='of the image features removed from image', y='model accuracy', data=pdacc)
     min_acc = int(min(acc_vals) / 10) * 10
-    max_acc = (1 + ((int(val)) / 10)) * 10
-    plt.title(
-        str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method')
-    plt.xlabel('% of the image features removed from image')
-    plt.ylabel('model accuracy')
-    plt.axis([roar_values[0], 100, min_acc, max_acc])
-    plt.legend(loc='lower left')
+    max_acc = (1 + ((int(orginal_mean_acc)) / 10)) * 10
+
+    # sns.lineplot(hue="saliency methods", style="event",
+    #              data=acc_matrix)
+
+
+    # plt.title(
+    #     str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method')
+    # plt.xlabel('% of the image features removed from image')
+    # plt.ylabel('model accuracy')
+    # plt.axis([roar_values[0], 100, min_acc, max_acc])
+    # plt.legend(loc='lower left')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison')
-    plt.show()
+    # plt.show()
     plt.close(fig)
 
 
@@ -279,15 +292,15 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
     # org_img_edged = feature.canny(org_img_edged, sigma=3)
     if explainer == 'Original':
         title = 'image ' + str(id) + '\nclass: ' + classname
-        ax.set_title(title)
-        org_img, _ = viz.visualize_image_attr(None, org_img, method="original_image", use_pyplot=False)
+        # ax.set_title(title)
+        # org_img, _ = viz.visualize_image_attr(None, org_img, method="original_image", use_pyplot=False)
         plt.imshow(org_img)
     else:
         ax.set_title(title)
         explained = explain_single(model, image_normalized, label, explainer, True, DEVICE, mode)
 
-        # if ex is not 'gradcam':
-        #     explained = ndi.gaussian_filter(explained, 3)
+        if explainer is not 'gradcam':
+            explained = ndi.gaussian_filter(explained, 3)
         # comment to use edged image
         if mode == 'imagenet':
             explained = np.expand_dims(explained, axis=2)
@@ -305,7 +318,8 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
             # Compute the Canny filter for two values of sigma
             org_img_edged = feature.canny(org_img_edged, sigma=3)
             ax.imshow(org_img_edged, cmap=plt.cm.binary)
-            ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
+            ax.imshow(explained, cmap='viridis',
+                      # vmin=np.min(explained), vmax=np.max(explained),
                       alpha=0.4)
 
         # if explainer is not 'gradcam':
@@ -335,12 +349,13 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
     title = 'comparison of saliency methods'
     len_ids = len(ids)
     len_explainer = len(explainers)
-    w, h = 9 * len_explainer + 2, 10 * len_ids + 5
+    w, h = 9 * len_explainer + 2, 8.5 * len_ids + 2
 
     fig = plt.figure(figsize=(w, h))
     decription = ''
     # fig.subplots_adjust(top=5, bottom=1, wspace=0.1, hspace=0.1)
     fig.suptitle(title, fontsize=80)
+    class_labels = []
 
     for c_i, i in enumerate(ids):
         n_classes = 200
@@ -387,7 +402,8 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                     # Compute the Canny filter for two values of sigma
                     org_img_edged = feature.canny(org_img_edged, sigma=3)
                     ax.imshow(org_img_edged, cmap=plt.cm.binary)
-                    ax.imshow(explained, cmap='viridis', vmin=np.min(explained), vmax=np.max(explained),
+                    ax.imshow(explained, cmap='viridis',
+                              # vmin=np.min(explained), vmax=np.max(explained),
                               alpha=0.4)
             ax.tick_params(axis='both', which='both', length=0)
             plt.setp(ax.get_xticklabels(), visible=False)
@@ -404,7 +420,9 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                     'image class ' + str(label) + '\n' + corect_pred + ' classified'
                     , fontsize=40)
         del image
-        decription += 'class ' + str(label) + ' = ' + classname + '\n'
+        if label not in class_labels:
+            decription += 'class ' + str(label) + ' = ' + classname + '\n'
+            class_labels.append(label)
     fig.text(0.02, 0, decription, fontsize=40)
     rect = (0, 0.08, 1, 0.95)
     fig.tight_layout(rect=rect, h_pad=8, w_pad=8)

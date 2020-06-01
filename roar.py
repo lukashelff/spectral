@@ -8,7 +8,7 @@ ids_and_labels_imagenet = [(x * 500, x) for x in range(8)]
 # ids_and_labels_imagenet = [(x * 1, x) for x in range(8)]
 ids_roar = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
 # ids_roar_exp = [0,2,3,5,7]
-ids_roar_exp = [0,2]
+ids_roar_exp = [0, 2]
 ids_and_labels_plants = [('3_Z18_4_1_1', 1), ('3_Z17_1_0_0', 1), ('3_Z16_2_1_1', 1), ('3_Z15_2_1_2', 1),
                          ('3_Z8_4_0_0', 1), ('3_Z8_4_1_2', 1), ('3_Z1_3_1_1', 0), ('3_Z2_1_0_2', 0)]
 root = '/home/schramowski/datasets/deepplant/data/parsed_data/Z/VNIR/'
@@ -148,10 +148,10 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values, model_type):
                 sub_path = str(roar_per) + '%_of_' + ex + '.sav'
                 path = './data/' + mode + '/' + 'plots/values/' + sub_path
                 if roar_per == 0:
-                    acc = get_cross_val_acc('original', roar_per, cv_iter, mode, model_type)
+                    acc, _ = get_cross_val_acc('original', roar_per, cv_iter, mode, model_type)
                 else:
                     all_ds.apply_roar_single_image(roar_per, mask, id, 'comp', ex)
-                    acc = get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type)
+                    acc, _ = get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type)
                 image, label = all_ds.get_original_by_id(id)
                 # show_image(image, 'modified image')
                 # create ROAR plot

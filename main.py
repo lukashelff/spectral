@@ -5,13 +5,13 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
-    mode = modes[0]
-    model = models[1]
+    mode = modes[1]
+    model = models[0]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
@@ -47,17 +47,21 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [3, 4]
-    test_size = 0.2
+    # cv_it_to_calc = [0]
+    test_size = 0.25
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
     image_ids = ['3_Z18_4_1_1', '3_Z17_1_0_0', '3_Z16_2_1_1', '3_Z15_2_1_2', '3_Z8_4_0_0', '3_Z8_4_1_2', '3_Z1_3_1_1',
                  '3_Z2_1_0_2']
+    image_ids = ['3_Z17_1_0_0',
+                 '3_Z16_2_1_1',
+                 '3_Z8_4_0_0',
+                 '3_Z1_3_1_1']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
 
     if mode == 'imagenet':
         if resize_imagenet:
-            val_format()
+            # val_format()
             upscale_imagenet()
         n_classes = 200
         N_EPOCHS = 30
@@ -68,16 +72,25 @@ def main():
         image_ids = [x * 500 for x in range(5)]
 
     # selection of explainer to be applied
-    all_explainers = ['Original', 'random', 'gradcam', 'saliency', 'guided_gradcam', 'guided_gradcam_gaussian',
-                      'LRP', 'noisetunnel', 'noisetunnel_gaussian', 'Integrated_Gradients', 'Noise Tunnel stev 2']
+    all_explainers = ['Original',
+                      'random',
+                      'gradcam',
+                      'saliency',
+                      'guided_gradcam',
+                      'guided_gradcam_gaussian',
+                      'LRP',
+                      'noisetunnel',
+                      'noisetunnel_gaussian',
+                      'Integrated_Gradients',
+                      'Noise Tunnel stev 2']
     explainers = [
         'Original',
-        'random',
-        'saliency',
-        'Integrated_Gradients',
-        'gradcam',
-        'guided_gradcam',
-        'LRP',
+        # 'random',
+        # 'saliency',
+        # 'Integrated_Gradients',
+        # 'gradcam',
+        # 'guided_gradcam',
+        # 'LRP',
         # 'noisetunnel',
     ]
     # percentage to be removed from images

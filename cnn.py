@@ -11,6 +11,7 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torchvision import models
 from tqdm import tqdm
+import matplotlib
 
 from helpfunctions import *
 from spectralloader import Spectralloader
@@ -48,7 +49,7 @@ def get_model(DEVICE, n_classes, mode, model):
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
         # adaptive average pooling is need if input size of image does not match 224x224
-        model.avgpool = nn.MaxPool2d(1, )
+        # model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
         # features = list(model.classifier.children())[:-1]  # Remove last layer and first
         # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
@@ -81,12 +82,13 @@ def get_model(DEVICE, n_classes, mode, model):
 def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv_iteration, mode, model_type):
     lr_step_size = 7
     lr_gamma = 0.1
+    scheduler_a = '_scheduler'
     if mode == 'plants':
+        scheduler_a = '_no_scheduler'
         lr_step_size = 40
         lr_gamma = 0.1
     optimizer_name = 'adam'
     # set scheduler to use scheduler
-    scheduler_a = '_no_scheduler'
     ####################
     ################
     # print(model_name)
@@ -113,7 +115,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         scheduler_a += '_lr_step_size_' + str(lr_step_size) + '_lr_gamma_' + str(lr_gamma)
     save_name = (
             '_pretraining' +
-            '_no_normalization' +
+            '_normalization' +
             '_resize' +
             '_lr_' + str(learning_rate) +
             # '_pixel_64' +
@@ -211,18 +213,23 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         title = roar.replace('_', ' ') + ' image features removed'
     else:
         title = roar + ' model 0% removed'
+    font = {'family': 'normal',
+            'weight': 'bold',
+            'size': 30}
 
+    matplotlib.rc('font', **font)
     fig = plt.figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     if mode != 'imagenet':
         plt.plot(train_acc, color='skyblue', label='train acc')
         plt.plot(valid_acc, color='orange', label='valid_acc')
     plt.plot(train_balanced_acc, color='darkblue', label='train_balanced_acc')
     plt.plot(valid_balanced_acc, color='red', label='valid_balanced_acc')
-    plt.title(title +
-              ' with lr ' + str(learning_rate) + ', lr_step_size: ' +
-              str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
-              ', optimizer: ' + optimizer_name + ' on model: ' + model_type +
-              '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
+    # plt.title(title +
+    #           ' with lr ' + str(learning_rate) + ', lr_step_size: ' +
+    #           str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
+    #           ', optimizer: ' + optimizer_name + ' on model: ' + model_type +
+    #           '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
+    plt.title('VGG-16')
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
     min_acc = int(min(np.concatenate((train_balanced_acc, valid_balanced_acc, train_acc, valid_acc))) / 10) * 10
@@ -232,7 +239,10 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
 
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy' +
                 save_name +
-                '.png')
+                '.png',
+                dpi=200
+                )
+    plt.close(fig)
     # plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
     plt.plot(valid_loss, color='orange', label='valid_loss')

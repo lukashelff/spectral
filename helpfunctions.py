@@ -3,6 +3,7 @@ import pickle
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
+
 import numpy as np
 
 from torchvision.transforms import transforms
@@ -90,6 +91,8 @@ def figure_to_image(fig):
 
 
 def get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type):
+    print('roar acc with ' + str(roar_per) + '% image features removed of ' + ex)
+    acc_list = []
     j = 0
     acc = 0
     missing_val = False
@@ -98,7 +101,9 @@ def get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type):
             for j in cv_iter:
                 sub_path = ex + '_cv_it_' + str(j) + '.sav'
                 path = './data/' + mode + '/' + 'plots/values/' + model_type + '/' + sub_path
-                acc += pickle.load(open(path, 'rb'))
+                cur_acc = pickle.load(open(path, 'rb'))
+                acc += cur_acc
+                acc_list.append(cur_acc)
         else:
             for j in cv_iter:
                 sub_path = str(roar_per) + '%_of_' + ex + '_cv_it_' + str(j) + '.sav'
@@ -108,14 +113,17 @@ def get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type):
                 if not os.path.isfile(path_fin):
                     path_fin = path_s + sub_path_2
                 if os.path.isfile(path_fin):
-                    acc += pickle.load(open(path_fin, 'rb'))
+                    cur_acc = pickle.load(open(path_fin, 'rb'))
+                    acc += cur_acc
+                    acc_list.append(cur_acc)
                 else:
+                    acc_list.append(None)
                     missing_val = True
-
+        print(acc_list)
         out = round(acc / len(cv_iter), 2)
         if missing_val:
             out = -100
-        return out
+        return out, acc_list
     except ValueError:
         print(
             'accuracies for:' + ex + 'with ' + roar_per + ' removed image features in cross val iteration: ' + str(
