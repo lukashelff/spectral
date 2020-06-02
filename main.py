@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']

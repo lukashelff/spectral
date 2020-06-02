@@ -215,7 +215,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         title = roar + ' model 0% removed'
     font = {'family': 'normal',
             'weight': 'bold',
-            'size': 30}
+            'size': 20}
 
     matplotlib.rc('font', **font)
     fig = plt.figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
@@ -229,7 +229,7 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     #           str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
     #           ', optimizer: ' + optimizer_name + ' on model: ' + model_type +
     #           '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
-    plt.title('VGG-16')
+    plt.title(model_type)
     plt.ylabel('model accuracy')
     plt.xlabel('training epoch')
     min_acc = int(min(np.concatenate((train_balanced_acc, valid_balanced_acc, train_acc, valid_acc))) / 10) * 10
@@ -252,7 +252,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/loss' +
                 save_name +
-                '.png')
+                '.png',
+                dpi=200
+                )
     plt.close(fig)
     path_values = './data/' + mode + '/' + 'plots/values/' + model_type + '/'
     # add accuracy values
