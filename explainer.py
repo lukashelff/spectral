@@ -88,7 +88,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
         nt = NoiseTunnel(ig)
         attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0,
                                               nt_type='smoothgrad_sq',
-                                              n_samples=5,
+                                              n_samples=4,
                                               # stdevs=0.2
                                               )
         heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))

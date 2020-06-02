@@ -5,22 +5,22 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
-    mode = modes[1]
-    model = models[0]
+    mode = modes[0]
+    model = models[1]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
     resize_imagenet = False
-    retrain = True
+    retrain = False
 
     # explain image and create comparison
     # only available for plant
-    plot_classes, plot_categories = False, False
+    plot_classes, plot_categories = True, False
     # comparison for image ID
     plot_for_image_id = False
     # expain images seperate
@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    # cv_it_to_calc = [0]
+    cv_it_to_calc = [2]
     test_size = 0.25
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -86,12 +86,12 @@ def main():
     explainers = [
         'Original',
         # 'random',
-        # 'saliency',
-        # 'Integrated_Gradients',
-        # 'gradcam',
-        # 'guided_gradcam',
+        'saliency',
+        'Integrated_Gradients',
+        'gradcam',
+        'guided_gradcam',
         # 'LRP',
-        # 'noisetunnel',
+        'noisetunnel',
     ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
@@ -139,7 +139,7 @@ def main():
 
     # only plants
     # create comparison for explained plants images -> TP,FP,TN,FN comparison; class comparison healthy/diseased
-    if plot_classes or plot_categories:
+    if plot_categories:
         """ create comparison of diffrent classes or categories
 
                         Args:False
@@ -158,6 +158,7 @@ def main():
         print('creating explainer plots for specific classes')
         plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_categories, plot_classes,
                                   explainers, mode)
+
 
     # plot comparison of explained Images for specified IDs and explainers
     if plot_for_image_id:
@@ -178,6 +179,23 @@ def main():
         #     plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
         # else:
         create_comparison_saliency(original_trained_model, image_ids, all_ds, explainers, DEVICE, mode, model)
+
+    # plot TP, FP, TP,FP
+    if plot_classes:
+        """ create comparison of explained roar images for TP, FP, TP,FP, do not execute with imagenet dataset
+
+                Args:
+                    explainers (list): List of saliency methods to be evaluated
+                    image_ids (list): List of IDs to be evaluated
+                    DEVICE (string): device to run on
+                    mode (string): mode imagenet or plants
+                """
+        print('loading whole dataset')
+        all_ds = Spectralloader(all_data, root, mode, 'all')
+        original_model = get_model(DEVICE, n_classes, mode, model)
+        original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
+        print('creating explainer plots for specified images')
+        class_comparison_saliency(original_trained_model, all_ds, explainers, DEVICE, mode, model)
 
     # create a mask for specified IDS and explainers for given range
     # containing one heatmap per specified specified images
@@ -261,6 +279,7 @@ def main():
         """
         print('creating ROAR explanation plot')
         roar_comparison_explained(mode, DEVICE, explainers, roar_values, model)
+
 
     # create single plots to explain a image
     if explain_images_single:

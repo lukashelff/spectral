@@ -12,6 +12,9 @@ from torch.utils.data import DataLoader
 from torchvision import models
 from tqdm import tqdm
 import matplotlib
+from matplotlib import rc
+import matplotlib.font_manager
+import matplotlib as mpl
 
 from helpfunctions import *
 from spectralloader import Spectralloader
@@ -110,12 +113,12 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         )
     else:
         optimizer = torch.optim.SGD(get_trainable(model.parameters()), lr=learning_rate, momentum=0.9)
-    if scheduler_a == '_no_scheduler':
+    if scheduler_a == '_scheduler':
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
         scheduler_a += '_lr_step_size_' + str(lr_step_size) + '_lr_gamma_' + str(lr_gamma)
     save_name = (
             '_pretraining' +
-            '_normalization' +
+            '_no_normalization' +
             '_resize' +
             '_lr_' + str(learning_rate) +
             # '_pixel_64' +
@@ -213,11 +216,16 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
         title = roar.replace('_', ' ') + ' image features removed'
     else:
         title = roar + ' model 0% removed'
-    font = {'family': 'normal',
-            'weight': 'bold',
-            'size': 20}
+    font = {
+            'size': 15,
+            # 'family': 'serif',
+            # 'serif': ['Computer Modern']
+            'family': 'sans-serif',
+            'serif': ['Computer Modern Sans serif']
+            }
 
-    matplotlib.rc('font', **font)
+    rc('font', **font)
+    # rc('text', usetex=True)
     fig = plt.figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     if mode != 'imagenet':
         plt.plot(train_acc, color='skyblue', label='train acc')
@@ -229,9 +237,9 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     #           str(lr_step_size) + ', lr_gamma: ' + str(lr_gamma) +
     #           ', optimizer: ' + optimizer_name + ' on model: ' + model_type +
     #           '\nfinal bal acc: ' + str(round(valid_balanced_acc[N_EPOCHS - 1], 2)) + '%')
-    plt.title(model_type)
-    plt.ylabel('model accuracy')
-    plt.xlabel('training epoch')
+    plt.title(model_type, size=25)
+    plt.ylabel('model accuracy', size=20)
+    plt.xlabel('training epoch', size=20)
     min_acc = int(min(np.concatenate((train_balanced_acc, valid_balanced_acc, train_acc, valid_acc))) / 10) * 10
     max_acc = (1 + int(max(np.concatenate((train_balanced_acc, valid_balanced_acc, train_acc, valid_acc))) / 10)) * 10
     plt.axis([0, N_EPOCHS - 1, min_acc, max_acc])
@@ -243,12 +251,20 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
                 dpi=200
                 )
     plt.close(fig)
-    # plt.show()
+    font = {
+            'size': 10,
+            # 'family': 'serif',
+            # 'serif': ['Computer Modern']
+            'family': 'sans-serif',
+            'serif': ['Computer Modern Sans serif']
+            }
+    rc('font', **font)
+    plt.show()
     plt.plot(train_loss, color='red', label='train_loss')
     plt.plot(valid_loss, color='orange', label='valid_loss')
-    plt.title('model loss ' + title)
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
+    plt.title('loss', size=20)
+    plt.ylabel('loss', size=15)
+    plt.xlabel('epoch', size=15)
     plt.legend(loc='lower right')
     plt.savefig('./data/' + mode + '/' + 'plots/loss' +
                 save_name +
