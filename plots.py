@@ -438,7 +438,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
 def class_comparison_saliency(model_path, ds, explainers, DEVICE, mode, model_type):
     title = 'class comparison'
     len_ids = 4
-    classes = ['TP', 'FP', 'TN', 'FN']
+    classes = ['TP', 'FN', 'TN', 'FP']
 
     len_explainer = len(explainers)
     w, h = 9 * len_explainer + 2, 8.5 * len_ids + 2
@@ -463,7 +463,6 @@ def class_comparison_saliency(model_path, ds, explainers, DEVICE, mode, model_ty
         output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
         _, pred = torch.max(output.data, 1)
         labels.append((label, pred.item()))
-        i += 1
         labs.append(label)
         preds.append(pred.item())
         i += 1
@@ -473,15 +472,30 @@ def class_comparison_saliency(model_path, ds, explainers, DEVICE, mode, model_ty
 
         if im_class == 'TP':
             s_label, s_pred = 1, 1
-        elif im_class == 'FP':
-            s_label, s_pred = 0, 1
+        elif im_class == 'FN':
+            s_label, s_pred = 1, 0
         elif im_class == 'TN':
             s_label, s_pred = 0, 0
         else:
-            s_label, s_pred = 1, 0
+            s_label, s_pred = 0, 1
         if (s_label, s_pred) in labels:
-            index = labels.index((s_label, s_pred))
-            label, pred = labels[index]
+
+            # get last image from DS which belong to the mentioned class
+            index = -1
+            for i in range(0, ds.__len__()):
+                image_normalized, label = ds.__getitem__(i)
+                output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
+                _, pred = torch.max(output.data, 1)
+                pred = pred.item()
+                if (s_label, s_pred) == (label, pred):
+                    index = i
+
+            # index = labels.index((s_label, s_pred))
+            # label, pred = labels[index]
+            image_normalized, label = ds.__getitem__(index)
+            output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
+            _, pred = torch.max(output.data, 1)
+            pred = pred.item()
 
             id = ds.get_id_by_index(index)
             classname = ds.get_class_by_label(label)

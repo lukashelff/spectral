@@ -391,18 +391,6 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
         original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it, mode, model_type)
-        labs = []
-        preds = []
-        i = 0
-        while i < val_ds.__len__():
-            image_normalized, label = val_ds.__getitem__(i)
-            output = original_model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
-            _, pred = torch.max(output.data, 1)
-            i += 1
-            labs.append(label)
-            preds.append(pred.item())
-            i += 1
-        print('balanced acc: ' + str(round(balanced_accuracy_score(labs, preds) * 100, 2)))
         torch.save(original_model.state_dict(), trained_roar_models)
 
     else:
