@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.utils.data as data
 import torchvision.datasets as t_datasets
 import torchvision.transforms as transforms
-from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import balanced_accuracy_score, classification_report
 from torch.autograd import Variable
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
@@ -101,6 +101,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
     valid_loss = np.zeros(N_EPOCHS)
     valid_acc = np.zeros(N_EPOCHS)
     valid_balanced_acc = np.zeros(N_EPOCHS)
+    valid_tpr = np.zeros(N_EPOCHS)
+    valid_tnr = np.zeros(N_EPOCHS)
 
     model = get_model(DEVICE, n_classes, mode, model_type)
     criterion = nn.CrossEntropyLoss()
@@ -195,6 +197,8 @@ def train(n_classes, N_EPOCHS, learning_rate, train_dl, val_dl, DEVICE, roar, cv
             valid_balanced_acc[epoch] = round(balanced_accuracy_score(all_y, pred) * 100, 2)
             valid_loss[epoch] = round(total_loss / n_samples, 2)
             valid_acc[epoch] = round(n_correct / n_samples * 100, 2)
+            # valid_tpr = classification_report(all_y, pred)
+            # valid_tnr =
             progress.update(1)
             progress.set_description(text + ' | ' +
                                      # f"  train loss: {train_loss[epoch]:9.3f} |"
@@ -387,6 +391,18 @@ def train_parallel(roar_val, path_mask, DEVICE, explainer, val_ds, train_ds, bat
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, )
         val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=4, )
         original_model = train(n_classes, N_EPOCHS, lr, train_dl, val_dl, DEVICE, "original", cv_it, mode, model_type)
+        labs = []
+        preds = []
+        i = 0
+        while i < val_ds.__len__():
+            image_normalized, label = val_ds.__getitem__(i)
+            output = original_model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
+            _, pred = torch.max(output.data, 1)
+            i += 1
+            labs.append(label)
+            preds.append(pred.item())
+            i += 1
+        print('balanced acc: ' + str(round(balanced_accuracy_score(labs, preds) * 100, 2)))
         torch.save(original_model.state_dict(), trained_roar_models)
 
     else:

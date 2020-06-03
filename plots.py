@@ -364,6 +364,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
             n_classes = 2
         model = get_model(DEVICE, n_classes, mode, model_type)
         model.load_state_dict(torch.load(model_path, map_location=DEVICE))
+        model.eval()
         image_normalized, label = ds.get_by_id(i)
         output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
         _, pred = torch.max(output, 1)
@@ -448,17 +449,25 @@ def class_comparison_saliency(model_path, ds, explainers, DEVICE, mode, model_ty
     fig.suptitle(title, fontsize=80)
     class_labels = []
     labels = []
-    index = 0
     n_classes = 200
     if mode is 'plants':
         n_classes = 2
     model = get_model(DEVICE, n_classes, mode, model_type)
     model.load_state_dict(torch.load(model_path, map_location=DEVICE))
-    while index < ds.__len__():
-        image_normalized, label = ds.__getitem__(index)
+    model.eval()
+    labs = []
+    preds = []
+    i = 0
+    while i < ds.__len__():
+        image_normalized, label = ds.__getitem__(i)
         output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
-        _, pred = torch.max(output, 1)
-        labels.append((label, pred))
+        _, pred = torch.max(output.data, 1)
+        labels.append((label, pred.item()))
+        i += 1
+        labs.append(label)
+        preds.append(pred.item())
+        i += 1
+    print('balanced acc: ' + str(round(balanced_accuracy_score(labs, preds) * 100, 2)))
 
     for counter, im_class in enumerate(classes):
 

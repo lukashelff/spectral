@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -53,8 +53,8 @@ def main():
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
     image_ids = ['3_Z18_4_1_1', '3_Z17_1_0_0', '3_Z16_2_1_1', '3_Z15_2_1_2', '3_Z8_4_0_0', '3_Z8_4_1_2', '3_Z1_3_1_1',
                  '3_Z2_1_0_2']
-    image_ids = ['3_Z17_1_0_0',
-                 '3_Z16_2_1_1',
+    image_ids = ['3_Z18_4_1_1',
+                 '3_Z15_2_1_2',
                  '3_Z8_4_0_0',
                  '3_Z1_3_1_1']
     train_labels, valid_labels, all_data, labels = load_labels(mode)
@@ -86,7 +86,7 @@ def main():
     explainers = [
         'Original',
         # 'random',
-        'saliency',
+        # 'saliency',
         'Integrated_Gradients',
         'gradcam',
         'guided_gradcam',
@@ -172,8 +172,6 @@ def main():
                 """
         print('loading whole dataset')
         all_ds = Spectralloader(all_data, root, mode, 'all')
-        original_model = get_model(DEVICE, n_classes, mode, model)
-        original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
         print('creating explainer plots for specified images')
         # if mode == 'plants':
         #     plot_explained_images(original_model, all_ds, DEVICE, explainers, image_ids, 'original', mode)
@@ -192,9 +190,7 @@ def main():
                 """
         print('loading whole dataset')
         all_ds = Spectralloader(all_data, root, mode, 'all')
-        original_model = get_model(DEVICE, n_classes, mode, model)
-        original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
-        print('creating explainer plots for specified images')
+        print('creating explainer plots for images of different classes')
         class_comparison_saliency(original_trained_model, all_ds, explainers, DEVICE, mode, model)
 
     # create a mask for specified IDS and explainers for given range
@@ -294,6 +290,7 @@ def main():
         all_ds = Spectralloader(all_data, root, mode, 'all')
         original_model = get_model(DEVICE, n_classes, mode, model)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
+        original_model.eval()
         for ex in explainers:
             for i in image_ids:
                 plot_single_image(original_model, i, all_ds, ex, DEVICE, mode, True)
