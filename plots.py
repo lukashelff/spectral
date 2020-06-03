@@ -439,9 +439,17 @@ def class_comparison_saliency(model_path, ds, explainers, DEVICE, mode, model_ty
     title = 'class comparison'
     len_ids = 4
     classes = ['TP', 'FN', 'TN', 'FP']
+    font = {
+        'size': 15,
+        # 'family': 'serif',
+        # 'serif': ['Computer Modern']
+        'family': 'sans-serif',
+        'serif': ['Computer Modern Sans serif']
+    }
 
+    rc('font', **font)
     len_explainer = len(explainers)
-    w, h = 9 * len_explainer + 2, 8.5 * len_ids + 2
+    w, h = 9.5 * len_explainer + 2, 9 * len_ids + 2
 
     fig = plt.figure(figsize=(w, h))
     decription = ''
@@ -544,8 +552,9 @@ def class_comparison_saliency(model_path, ds, explainers, DEVICE, mode, model_ty
                     ax.set_title(ex, fontsize=40)
                 if c_ex == 0:
                     ax.set_ylabel(
-                        im_class + ', image ' + id +
-                        '\nimage class ' + classname + '\nprediction: ' + pred_classname
+                        # 'image classified as ' +
+                        im_class +
+                        '\ntruth: ' + classname + '\nprediction: ' + pred_classname
                         # 'image class ' + str(label) + '\n' + corect_pred + ' classified'
                         , fontsize=40)
     rect = (0, 0.08, 1, 0.95)

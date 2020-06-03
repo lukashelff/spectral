@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [0]
+    cv_it_to_calc = [1]
     test_size = 0.25
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -189,15 +189,15 @@ def main():
                     mode (string): mode imagenet or plants
                 """
         print('loading whole dataset')
-        # i = 0
-        # sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
-        # for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
-        #     if i in cv_it_to_calc:
-        #         train_data = [all_data[i] for i in train_index]
-        #         valid_data = [all_data[i] for i in test_index]
-        #     i += 1
-        # val_ds = Spectralloader(train_data, root, mode, 'val')
-        val_ds = Spectralloader(valid_labels, root, mode, 'val')
+        i = 0
+        sss = StratifiedShuffleSplit(n_splits=cv_iterations_total, test_size=test_size, random_state=0)
+        for train_index, test_index in sss.split(np.zeros(len(labels)), labels):
+            if i in cv_it_to_calc:
+                train_data = [all_data[i] for i in train_index]
+                valid_data = [all_data[i] for i in test_index]
+            i += 1
+        val_ds = Spectralloader(valid_data, root, mode, 'val')
+        # val_ds = Spectralloader(valid_labels, root, mode, 'val')
         # all_ds = Spectralloader(all_data, root, mode, 'all')
 
         print('creating explainer plots for images of different classes')
