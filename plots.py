@@ -231,31 +231,39 @@ def plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, roar, mo
 
 # crossval acc for every removed percentage of each explainer
 def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
-    sns.set(style="darkgrid")
+    # sns.set(style="darkgrid")
     # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
     orginal_mean_acc, original_accs = get_cross_val_acc('original', 0, cv_iter, mode, model_type)
+    font = {
+        'size': 15,
+        # 'family': 'serif',
+        # 'serif': ['Computer Modern']
+        'family': 'sans-serif',
+        'serif': ['Computer Modern Sans serif']
+    }
+
+    rc('font', **font)
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     plt.plot([roar_values[0], 100], [orginal_mean_acc, orginal_mean_acc], 'r--',
              label='accuracy with 0% removed = ' + str(orginal_mean_acc) + '%')
     plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
-    d = {}
+    # d = {}
     for c, ex in enumerate(roar_explainers):
         acc_vals = []
-        acc_matrix = []
+        # acc_matrix = []
         for roar_per in roar_values:
             acc, accs = get_cross_val_acc(ex, roar_per, cv_iter, mode, model_type)
             acc_vals.append(acc)
-            acc_matrix.append(accs)
+            # acc_matrix.append(accs)
         if mode == 'plants':
             acc_vals.append(50)
-            acc_matrix.append([50 for _ in range(len(cv_iter))])
+            # acc_matrix.append([50 for _ in range(len(cv_iter))])
         else:
             acc_vals.append(0.5)
-            acc_matrix.append([0.5 for _ in range(len(cv_iter))])
-        d[ex] = acc_matrix
+        #     acc_matrix.append([0.5 for _ in range(len(cv_iter))])
+        # d[ex] = acc_matrix
         plt.plot(roar_values + [100], acc_vals, label=ex)
-    pdacc = pd.DataFrame(d)
     # sns.lineplot(x='of the image features removed from image', y='model accuracy', data=pdacc)
     min_acc = int(min(acc_vals) / 10) * 10
     max_acc = (1 + ((int(orginal_mean_acc)) / 10)) * 10
@@ -264,12 +272,14 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
     #              data=acc_matrix)
 
     plt.title(
-        str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method')
-    plt.xlabel('% of the image features removed from image')
-    plt.ylabel('model accuracy')
+        # str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method'
+        'VGG-16', size=30
+    )
+    plt.xlabel('% of the image features removed from image', size=20)
+    plt.ylabel('model accuracy', size=20)
     plt.axis([roar_values[0], 100, min_acc, max_acc])
     plt.legend(loc='lower left')
-    plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison', dpi=200)
+    plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison_' + model_type, dpi=200)
     # plt.show()
     plt.close(fig)
 
@@ -347,7 +357,7 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
 
 
 def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, model_type):
-    title = 'comparison of saliency methods'
+    title = 'comparison of saliency methods on a healthy plant'
     len_ids = len(ids)
     len_explainer = len(explainers)
     w, h = 9 * len_explainer + 2, 8.5 * len_ids + 2

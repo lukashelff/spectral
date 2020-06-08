@@ -353,21 +353,60 @@ class Spectralloader(Dataset):
                             mask = pickle.load(f)
                     # only take percentile of values with duplicated zeros deleted
                     c, h, w = im.shape
-                    number_of_re_pixel = round(h * w * percentage / 100)
-                    ind = np.argpartition(mask.flatten(), -number_of_re_pixel)[-number_of_re_pixel:]
+                    # fast remove but not random selected values if values are equal
+                    if explainer != 'guided_gradcam':
+                        number_of_re_pixel = round(h * w * percentage / 100)
+                        ind = np.argpartition(mask.flatten(), -number_of_re_pixel)[-number_of_re_pixel:]
 
-                    for index in ind:
-                        i_h = index // w
-                        i_w = index - i_h * w
-                        if method == "mean":
-                            im[0][i_h][i_w] = mean
-                            im[1][i_h][i_w] = mean
-                            im[2][i_h][i_w] = mean
-                        else:
-                            im[0][i_h][i_w] = 238 / max_i
-                            im[1][i_h][i_w] = 173 / max_i
-                            im[2][i_h][i_w] = 14 / max_i
-                    self.update_data(id, torch.from_numpy(im), roar_link)
+                        for index in ind:
+                            i_h = index // w
+                            i_w = index - i_h * w
+                            if method == "mean":
+                                im[0][i_h][i_w] = mean
+                                im[1][i_h][i_w] = mean
+                                im[2][i_h][i_w] = mean
+                            else:
+                                im[0][i_h][i_w] = 238 / max_i
+                                im[1][i_h][i_w] = 173 / max_i
+                                im[2][i_h][i_w] = 14 / max_i
+                        self.update_data(id, torch.from_numpy(im), roar_link)
+                    else:
+                        # use for random pixel if all have val 0
+                        mask_flat = mask.flatten()
+                        percentile = np.percentile(mask_flat, 100 - percentage)
+                        bigger = 0
+                        indices_of_same_values = []
+
+                        for i in range(0, w):
+                            for j in range(0, h):
+                                if mask[j][i] > percentile:
+                                    bigger += 1
+                                    if method == "mean":
+                                        im[0][j][i] = mean
+                                        im[1][j][i] = mean
+                                        im[2][j][i] = mean
+                                    else:
+                                        im[0][j][i] = 238 / max_i
+                                        im[1][j][i] = 173 / max_i
+                                        im[2][j][i] = 14 / max_i
+                                if mask[j][i] == percentile:
+                                    indices_of_same_values.append([j, i])
+                        if len(indices_of_same_values) > 5:
+                            missing = max(int(0.01 * percentage * w * h - bigger), 0)
+                            selection = random.sample(indices_of_same_values, missing)
+                            for i in selection:
+                                if method == "mean":
+                                    im[0][i[0]][i[1]] = mean
+                                    im[1][i[0]][i[1]] = mean
+                                    im[2][i[0]][i[1]] = mean
+                                else:
+                                    im[0][i[0]][i[1]] = 238 / max_i
+                                    im[1][i[0]][i[1]] = 173 / max_i
+                                    im[2][i[0]][i[1]] = 14 / max_i
+                        self.update_data(id, torch.from_numpy(im), roar_link)
+                    del im
+            # print('init: ' + str(round(t2, 3)) + ' modify: ' + str(round(t3, 3)) + ' update: ' + str(round(t4, 3)))
+            # print('used time to modify: ' + str(round(time.time() - start_time, 3)))
         except ValueError:
             print('No roar img or mask for id: ' + str(id))
 

@@ -5,13 +5,13 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
     models = ['VGG', 'ResNet']
-    mode = modes[0]
-    model = models[1]
+    mode = modes[1]
+    model = models[0]
 
     # train and modify dataset
     # resizes all images and replaces them in folder
@@ -20,9 +20,9 @@ def main():
 
     # explain image and create comparison
     # only available for plant
-    plot_classes, plot_categories = True, False
+    plot_classes, plot_categories = False, False
     # comparison for image ID
-    plot_for_image_id = False
+    plot_for_image_id = True
     # expain images seperate
     explain_images_single = False
 
@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [1]
+    cv_it_to_calc = [0]
     test_size = 0.25
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -57,6 +57,12 @@ def main():
                  '3_Z15_2_1_2',
                  '3_Z8_4_0_0',
                  '3_Z1_3_1_1']
+    # image_ids = [
+    #     # '1_Z16_2_1_1',
+    #     '2_Z1_3_1_1',
+    #     '3_Z1_3_1_1',
+    #     '4_Z1_3_1_1'
+    # ]
     train_labels, valid_labels, all_data, labels = load_labels(mode)
 
     if mode == 'imagenet':
@@ -72,30 +78,32 @@ def main():
         image_ids = [x * 500 for x in range(5)]
 
     # selection of explainer to be applied
-    all_explainers = ['Original',
-                      'random',
-                      'gradcam',
-                      'saliency',
-                      'guided_gradcam',
-                      'guided_gradcam_gaussian',
-                      'LRP',
-                      'noisetunnel',
-                      'noisetunnel_gaussian',
-                      'Integrated_Gradients',
-                      'Noise Tunnel stev 2']
+    # explainers = [
+    #     # 'Original',
+    #     'random',
+    #     'gradcam',
+    #     # 'saliency',
+    #     'guided_gradcam',
+    #     'guided_gradcam_gaussian',
+    #     # 'LRP',
+    #     'noisetunnel',
+    #     # 'noisetunnel_gaussian',
+    #     'Integrated_Gradients',
+    #     # 'Noise Tunnel stev 2'
+    # ]
     explainers = [
-        'Original',
+        # 'Original',
         # 'random',
         # 'saliency',
         'Integrated_Gradients',
+        'noisetunnel',
         'gradcam',
         'guided_gradcam',
-        # 'LRP',
-        'noisetunnel',
+        'LRP',
     ]
     # percentage to be removed from images
     roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99]
-    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
+    roar_values = [10, 20, 30, 40, 50, 60, 70, 80, 90]
     roar_values = [10, 30, 70, 90]
 
     # paths
@@ -158,7 +166,6 @@ def main():
         print('creating explainer plots for specific classes')
         plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_categories, plot_classes,
                                   explainers, mode)
-
 
     # plot comparison of explained Images for specified IDs and explainers
     if plot_for_image_id:
@@ -285,7 +292,6 @@ def main():
         """
         print('creating ROAR explanation plot')
         roar_comparison_explained(mode, DEVICE, explainers, roar_values, model)
-
 
     # create single plots to explain a image
     if explain_images_single:
