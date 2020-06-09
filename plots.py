@@ -254,8 +254,9 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
             acc_vals.append(0.5)
             acc_matrix.append([0.5 for _ in range(len(cv_iter))])
         d[ex] = acc_matrix
-        plt.plot(roar_values + [100], acc_vals, label=ex)
-    pdacc = pd.DataFrame(d)
+        plt.plot(roar_values
+                 + [100]
+                 , acc_vals, label=ex)
     # sns.lineplot(x='of the image features removed from image', y='model accuracy', data=pdacc)
     min_acc = int(min(acc_vals) / 10) * 10
     max_acc = (1 + ((int(orginal_mean_acc)) / 10)) * 10
@@ -264,12 +265,14 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
     #              data=acc_matrix)
 
     plt.title(
-        str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method')
+        'VGG-16'
+        # str(max(cv_iter)) + ' cross val accuracy by increasing the removed image features of each saliency method'
+        )
     plt.xlabel('% of the image features removed from image')
     plt.ylabel('model accuracy')
     plt.axis([roar_values[0], 100, min_acc, max_acc])
     plt.legend(loc='lower left')
-    plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison', dpi=200)
+    plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison_' + model_type, dpi=200)
     # plt.show()
     plt.close(fig)
 

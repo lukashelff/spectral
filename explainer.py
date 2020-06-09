@@ -88,7 +88,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
         nt = NoiseTunnel(ig)
         attr_ig_nt = attribute_image_features(nt, input, baselines=input * 0,
                                               nt_type='smoothgrad_sq',
-                                              n_samples=4,
+                                              n_samples=2,
                                               # stdevs=0.2
                                               )
         heat_map = cut_and_shape(np.transpose(attr_ig_nt.squeeze(0).cpu().detach().numpy(), (1, 2, 0)))
@@ -138,7 +138,7 @@ def explain_single(model, image, ori_label, explainer, bounded, DEVICE, mode):
         # print("Layerwise_Relevance_Propagation")
         # train_imagenet(model,None,None,50,DEVICE,'imagenet')
         # import from local lib
-        # investigator.py del layers remove for VGG only necessary for ResNet
+        # investigator.py del layers remove for VGG_old only necessary for ResNet
         import innvestigator
         import settings as set
         original_trained_model = './data/imagenet/models/trained_model_original.pt'

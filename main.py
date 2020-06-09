@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -20,7 +20,7 @@ def main():
 
     # explain image and create comparison
     # only available for plant
-    plot_classes, plot_categories = True, False
+    plot_classes, plot_categories = False, False
     # comparison for image ID
     plot_for_image_id = False
     # expain images seperate
@@ -34,8 +34,8 @@ def main():
     # plot roar acc curve
     plot_roar_curve = False
     # comparison of roar images
-    roar_comp = False
-    roar_expl_comp = False
+    roar_comp = True
+    roar_expl_comp = True
 
     # CNN default learning parameters
     # dafault training Values for plant dataset, resnet18 with lr = 0.00015, Epochs = 120, batchsize = 20
@@ -47,7 +47,7 @@ def main():
     cv_iterations_total = 5
     # cross-validation iterations to be calculated
     cv_it_to_calc = [0, 1, 2, 3, 4]
-    cv_it_to_calc = [1]
+    # cv_it_to_calc = [0]
     test_size = 0.25
     image_ids = ['Z18_4_1_1', 'Z17_1_0_0', 'Z16_2_1_1', 'Z15_2_1_2', 'Z8_4_0_0', 'Z8_4_1_2', 'Z1_3_1_1', 'Z2_1_0_2']
     image_ids = ['3_Z18_4_1_1', '3_Z15_2_1_2', '3_Z1_3_1_1', '3_Z8_4_0_0']
@@ -84,13 +84,13 @@ def main():
                       'Integrated_Gradients',
                       'Noise Tunnel stev 2']
     explainers = [
-        'Original',
-        # 'random',
+        # 'Original',
+        'random',
         # 'saliency',
         'Integrated_Gradients',
         'gradcam',
-        'guided_gradcam',
-        # 'LRP',
+        # 'guided_gradcam',
+        'LRP',
         'noisetunnel',
     ]
     # percentage to be removed from images
@@ -159,7 +159,6 @@ def main():
         plot_explained_categories(original_model, val_dl, DEVICE, plot_categories, plot_categories, plot_classes,
                                   explainers, mode)
 
-
     # plot comparison of explained Images for specified IDs and explainers
     if plot_for_image_id:
         """ create comparison of explained roar images for id
@@ -218,6 +217,7 @@ def main():
         all_ds = Spectralloader(all_data, root, mode, 'all')
         original_model = get_model(DEVICE, n_classes, mode, model)
         original_model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
+        original_model.eval()
         input_cmd = sys.argv
         # whole mask start:0 end 105000
         mask_range_start = 0
@@ -232,6 +232,19 @@ def main():
                     mask_range_start, mask_range_end,
                     replace_existing=True)
         print('mask for ROAR created')
+        # comparison of modified roar Images
+
+    if roar_comp:
+        """ roar comparison
+
+        Args:
+            roar_explainers (list): List of saliency methods to be evaluated
+            roar_values (list): List of percentages to be removed from the image
+            mode (string): mode imagenet or plants
+            cv_iterations_total (number): number of crossval iterations -> must be trained before
+        """
+        print('creating ROAR comparison plot')
+        roar_comparison(mode, explainers, cv_it_to_calc, roar_values, model)
 
     # ROAR remove and retrain applied to all specified explainers and remove percentages
     if roar_train:
@@ -260,19 +273,6 @@ def main():
        """
         plot_dev_acc(roar_values, explainers, cv_it_to_calc, mode, model)
 
-    # comparison of modified roar Images
-    if roar_comp:
-        """ roar comparison
-
-        Args:
-            roar_explainers (list): List of saliency methods to be evaluated
-            roar_values (list): List of percentages to be removed from the image
-            mode (string): mode imagenet or plants
-            cv_iterations_total (number): number of crossval iterations -> must be trained before
-        """
-        print('creating ROAR comparison plot')
-        roar_comparison(mode, explainers, cv_it_to_calc, roar_values, model)
-
     # interpretation/explaination of modified roar Images
     if roar_expl_comp:
         """ create comparison of explained roar images
@@ -285,7 +285,6 @@ def main():
         """
         print('creating ROAR explanation plot')
         roar_comparison_explained(mode, DEVICE, explainers, roar_values, model)
-
 
     # create single plots to explain a image
     if explain_images_single:

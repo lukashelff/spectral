@@ -120,19 +120,31 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values, model_type):
     else:
         image_ids = ids_imagenet
         ids_and_image_labels = ids_and_labels_imagenet
+    font = {
+        'size': 15,
+        # 'family': 'serif',
+        # 'serif': ['Computer Modern']
+        'family': 'sans-serif',
+        'serif': ['Computer Modern Sans serif']
+    }
 
+    rc('font', **font)
     print('plotting images with removed values')
-    w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 10
+    w, h = 9.5 * len(roar_explainers) + 2, 9 * len(roar_values) + 2
     for k in ids_roar_exp:
         fig = plt.figure(figsize=(w, h))
         fig.subplots_adjust(top=0.92)
-        fig.suptitle("image " + str(image_ids[k]) + " modificed according to ROAR framework", fontsize=80)
+        fig.suptitle(
+            # "image " + str(image_ids[k]) + " modificed according to ROAR framework"
+        'ROAR: Remove and Retrain'
+            , fontsize=80)
         print('modifing image: ' + str(image_ids[k]))
         if not os.path.exists(path_exp + subpath):
             os.makedirs(path_exp + subpath)
         for c_ex, ex in enumerate(roar_explainers):
             # loading heatmap of corresponding explainer
             if mode == 'plants':
+                print(path_exp + subpath_heatmaps + '_' + model_type + '_' + ex + '.pkl')
                 with open(path_exp + subpath_heatmaps + '_' + model_type + '_' + ex + '.pkl', 'rb') as f:
                     mask = pickle.load(f)
             else:
