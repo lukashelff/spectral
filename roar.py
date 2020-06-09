@@ -43,7 +43,7 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values, mod
     }
 
     rc('font', **font)
-    w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 10
+    w, h = 9 * len(explainers), 7 * len(roar_expl_im_values) + 10
     for k in ids_roar_exp:
         if mode == 'plants':
             id = str(3) + '_' + ids_roar[k]
@@ -149,23 +149,24 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values, model_type):
     }
 
     rc('font', **font)
-    w, h = 8 * len(roar_explainers), 7 * len(roar_values) + 5
+    w, h = 7 * len(roar_explainers), 7 * len(roar_values) + 5
     for k in ids_roar_exp:
+        all_ds = Spectralloader([ids_and_image_labels[k]], root, mode, 'specific')
+
         fig = plt.figure(figsize=(w, h))
         fig.suptitle(
             'ROAR: RemOve And Retrain',
             # "image " + str(image_ids[k]) + " modificed according to ROAR framework",
             size=80)
-        ax = fig.add_subplot(111)
-        ax.spines['top'].set_color('none')
-        ax.spines['bottom'].set_color('none')
-        ax.spines['left'].set_color('none')
-        ax.spines['right'].set_color('none')
-        ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
-
-        ax.set_ylabel('% Removed', size=60)
+        # ax = fig.add_subplot(111)
+        # ax.spines['top'].set_color('none')
+        # ax.spines['bottom'].set_color('none')
+        # ax.spines['left'].set_color('none')
+        # ax.spines['right'].set_color('none')
+        # ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
+        #
+        # ax.set_ylabel('% Removed', size=60)
         fig.subplots_adjust(top=0.92)
-        all_ds = Spectralloader([ids_and_image_labels[k]], root, mode, 'specific')
 
         print('modifing image: ' + str(image_ids[k]))
         if not os.path.exists(path_exp + subpath):
@@ -204,10 +205,11 @@ def roar_comparison(mode, roar_explainers, cv_iter, roar_values, model_type):
                     ax.set_title(ex + '\n' + str(round(acc, 2)) + '%', fontsize=40)
                 else:
                     ax.set_title(str(round(acc, 2)) + '%', fontsize=40)
-                plt.imshow(np.transpose(image, (1, 2, 0)))
+                ax.imshow(np.transpose(image, (1, 2, 0)))
                 plt.setp(ax.get_xticklabels(), visible=False)
                 plt.setp(ax.get_yticklabels(), visible=False)
+            plt.grid(b=False)
         rect = (0, 0.08, 1, 0.95)
-        fig.tight_layout(rect=rect, h_pad=8, w_pad=8)
+        fig.tight_layout(rect=rect, h_pad=5, w_pad=5)
         fig.savefig(path_exp + subpath + 'comparison_roar_images' + str(id) + '.png')
         fig.clear()

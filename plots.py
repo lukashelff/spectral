@@ -234,7 +234,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
     # sns.set(style="darkgrid")
     # roar_explainers += ['random']
     colors = ['g', 'b', 'c', 'm', 'y', 'k', ]
-    orginal_mean_acc, original_accs = get_cross_val_acc('original', 0, cv_iter, mode, model_type)
+    orginal_mean_acc, _ = get_cross_val_acc('original', 0, cv_iter, mode, model_type)
     font = {
         'size': 15,
         # 'family': 'serif',
@@ -247,7 +247,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
     fig = figure(num=None, figsize=(10, 9), dpi=80, facecolor='w', edgecolor='k')
     plt.plot([roar_values[0], 100], [orginal_mean_acc, orginal_mean_acc], 'r--',
              label='accuracy with 0% removed = ' + str(orginal_mean_acc) + '%')
-    plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
+    # plt.plot([roar_values[0], roar_values[-1]], [50, 50], 'k')
     # d = {}
     for c, ex in enumerate(roar_explainers):
         acc_vals = []
@@ -278,7 +278,7 @@ def plot_dev_acc(roar_values, roar_explainers, cv_iter, mode, model_type):
     plt.xlabel('% of the image features removed from image', size=20)
     plt.ylabel('model accuracy', size=20)
     plt.axis([roar_values[0], 100, min_acc, max_acc])
-    plt.legend(loc='lower left')
+    plt.legend(loc='upper right')
     plt.savefig('./data/' + mode + '/' + 'plots/accuracy_roar_comparison_' + model_type, dpi=200)
     # plt.show()
     plt.close(fig)

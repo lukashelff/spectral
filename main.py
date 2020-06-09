@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:ß" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -57,6 +57,7 @@ def main():
                  '3_Z15_2_1_2',
                  '3_Z8_4_0_0',
                  '3_Z1_3_1_1']
+    # comparison by time
     # image_ids = [
     #     # '1_Z16_2_1_1',
     #     '2_Z1_3_1_1',
@@ -93,7 +94,7 @@ def main():
     # ]
     explainers = [
         # 'Original',
-        # 'random',
+        'random',
         # 'saliency',
         'Integrated_Gradients',
         'noisetunnel',

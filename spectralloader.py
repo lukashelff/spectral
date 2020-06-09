@@ -177,7 +177,7 @@ class Spectralloader(Dataset):
     def update_data(self, id, val, roar_link):
         try:
             if self.mode == 'imagenet':
-                show_image(val, 'original')
+                # show_image(val, 'original')
                 # do not create new image if exist
                 im = self.tensor_to_pil(val)
                 im.save(roar_link)
