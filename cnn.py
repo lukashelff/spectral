@@ -52,7 +52,7 @@ def get_model(DEVICE, n_classes, mode, model):
         freeze_all(model.parameters())
         num_features = model.classifier[6].in_features
         # adaptive average pooling is need if input size of image does not match 224x224
-        # model.avgpool = nn.MaxPool2d(1, )
+        model.avgpool = nn.MaxPool2d(1, )
         model.classifier[6] = nn.Linear(num_features, n_classes)
         # features = list(model.classifier.children())[:-1]  # Remove last layer and first
         # features.extend([nn.Linear(num_features, n_classes)])  # Add our layer with n_classes outputs
