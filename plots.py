@@ -357,12 +357,12 @@ def plot_single_image(model, id, ds, explainer, DEVICE, mode, set_title):
 
 
 def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, model_type):
-    title = 'comparison of saliency methods on a healthy plant'
+    title = 'comparison of saliency methods'
     len_ids = len(ids)
     len_explainer = len(explainers)
     w, h = 9 * len_explainer + 2, 10 * len_ids + 2
     font = {
-        'size': 20,
+        'size': 40,
         # 'family': 'serif',
         # 'serif': ['Computer Modern']
         'family': 'sans-serif',
@@ -374,38 +374,37 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
     decription = ''
     # fig.subplots_adjust(top=5, bottom=1, wspace=0.1, hspace=0.1)
     fig.suptitle(title, fontsize=80)
-    class_labels = []
-
-    for c_i, i in enumerate(ids):
+    if mode is 'plants':
+        n_classes = 2
+    else:
         n_classes = 200
-        if mode is 'plants':
-            n_classes = 2
-        model = get_model(DEVICE, n_classes, mode, model_type)
-        model.load_state_dict(torch.load(model_path, map_location=DEVICE))
+    class_labels = []
+    model_org = get_model(DEVICE, n_classes, mode, model_type)
+    model_org.load_state_dict(torch.load(model_path, map_location=DEVICE))
+    for c_i, i in enumerate(ids):
+        model = deepcopy(model_org)
         model.eval()
         image_normalized, label = ds.get_by_id(i)
         output = model(torch.unsqueeze(image_normalized, 0).to(DEVICE))
         _, pred = torch.max(output, 1)
-        image, label = ds.get_original_by_id(i)
+        image, _ = ds.get_original_by_id(i)
         classname = ds.get_class_by_label(label)
         pred_classname = ds.get_class_by_label(pred)
-        image, label = ds.get_original_by_id(i)
-        model.eval()
+        org_img = np.transpose(image.squeeze().cpu().detach().numpy(), to_RGB)
+        del image
 
         for c_ex, ex in enumerate(explainers):
-
+            print(ex)
             ax = fig.add_subplot(len_ids, len_explainer, (c_ex + 1) + c_i * len_explainer)
-            org_img = np.transpose(image.squeeze().cpu().detach().numpy(), to_RGB)
-
             if ex == 'Original':
                 org_im, _ = viz.visualize_image_attr(None,
-                                                     np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0)),
+                                                     org_img,
                                                      method="original_image", use_pyplot=False)
                 plt.imshow(org_img)
             else:
                 explained = explain_single(model, image_normalized, label, ex, True, DEVICE, mode)
-                # if ex is not 'gradcam':
-                #     explained = ndi.gaussian_filter(explained, 3)
+                if ex is not 'gradcam':
+                    explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
                 if mode == 'imagenet':
                     explained = np.expand_dims(explained, axis=2)
@@ -439,7 +438,7 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                     # 'image class ' + classname + '\nprediction: ' + pred_classname
                     'image class ' + str(label) + '\n' + corect_pred + ' classified'
                     , fontsize=40)
-        del image
+        del model
         if label not in class_labels:
             decription += 'class ' + str(label) + ' = ' + classname + '\n'
             class_labels.append(label)

@@ -76,7 +76,7 @@ def main():
         batch_size = 200
         cv_iterations_total = 1
         cv_it_to_calc = [0]
-        image_ids = [x * 500 for x in range(4)]
+        image_ids = [x * 500 for x in range(5)]
 
     # selection of explainer to be applied
     # explainers = [
