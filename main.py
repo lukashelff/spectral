@@ -5,7 +5,7 @@ from spectralloader import *
 
 
 def main():
-    DEVICE = torch.device("cuda:ß" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # plant or imagenet DS
     modes = ['plants', 'imagenet']
@@ -20,7 +20,7 @@ def main():
 
     # explain image and create comparison
     # only available for plant
-    plot_classes, plot_categories = True, False
+    plot_classes, plot_categories = False, False
     # comparison for image ID
     plot_for_image_id = True
     # expain images seperate
@@ -76,7 +76,7 @@ def main():
         batch_size = 200
         cv_iterations_total = 1
         cv_it_to_calc = [0]
-        image_ids = [x * 500 for x in range(5)]
+        image_ids = [x * 500 for x in range(4)]
 
     # selection of explainer to be applied
     # explainers = [
@@ -93,8 +93,8 @@ def main():
     #     # 'Noise Tunnel stev 2'
     # ]
     explainers = [
-        # 'Original',
-        'random',
+        'Original',
+        # 'random',
         # 'saliency',
         'Integrated_Gradients',
         'noisetunnel',

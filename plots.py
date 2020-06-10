@@ -360,8 +360,16 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
     title = 'comparison of saliency methods on a healthy plant'
     len_ids = len(ids)
     len_explainer = len(explainers)
-    w, h = 9 * len_explainer + 2, 8.5 * len_ids + 2
+    w, h = 9 * len_explainer + 2, 10 * len_ids + 2
+    font = {
+        'size': 20,
+        # 'family': 'serif',
+        # 'serif': ['Computer Modern']
+        'family': 'sans-serif',
+        'serif': ['Computer Modern Sans serif']
+    }
 
+    rc('font', **font)
     fig = plt.figure(figsize=(w, h))
     decription = ''
     # fig.subplots_adjust(top=5, bottom=1, wspace=0.1, hspace=0.1)
@@ -396,8 +404,8 @@ def create_comparison_saliency(model_path, ids, ds, explainers, DEVICE, mode, mo
                 plt.imshow(org_img)
             else:
                 explained = explain_single(model, image_normalized, label, ex, True, DEVICE, mode)
-                if ex is not 'gradcam':
-                    explained = ndi.gaussian_filter(explained, 3)
+                # if ex is not 'gradcam':
+                #     explained = ndi.gaussian_filter(explained, 3)
                 # comment to use edged image
                 if mode == 'imagenet':
                     explained = np.expand_dims(explained, axis=2)

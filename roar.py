@@ -27,6 +27,7 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values, mod
     # roar_expl_im_values = [0, 10, 20, 30, 50, 70, 90, 100]
     path_exp = './data/' + mode + '/' + 'exp/'
     trained_roar_models = './data/' + mode + '/'  'models/' + model_type + 'trained_model_roar'
+    roar_expl_im_values = [0] + roar_expl_im_values
     if mode == 'imagenet':
         n_classes = n_classes_imagenet
         ids_and_labels = ids_and_labels_imagenet
@@ -43,7 +44,7 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values, mod
     }
 
     rc('font', **font)
-    w, h = 9 * len(explainers), 7 * len(roar_expl_im_values) + 10
+    w, h = 8 * len(explainers), 7 * len(roar_expl_im_values) + 3
     for k in ids_roar_exp:
         if mode == 'plants':
             id = str(3) + '_' + ids_roar[k]
@@ -90,37 +91,54 @@ def roar_comparison_explained(mode, DEVICE, explainers, roar_expl_im_values, mod
                 all_ds_copy = deepcopy(all_ds)
                 if i == 0:
                     model = get_model(DEVICE, n_classes, mode, model_type)
-                    original_trained_model = './data/' + mode + '/' + 'models/trained_model_original.pt'
+                    original_trained_model = './data/' + mode + '/' + 'models/VGGtrained_model_original.pt'
                     model.load_state_dict(torch.load(original_trained_model, map_location=DEVICE))
+                    model.eval()
+
                 else:
                     model = get_model(DEVICE, n_classes, mode, model_type)
                     model.load_state_dict(
                         torch.load(trained_roar_models + '_' + ex + '_' + str(i) + '.pt', map_location=DEVICE))
+                    model.eval()
                     all_ds_copy.apply_roar_single_image(i, mask, id, 'mean', ex)
                 # plot_explained_images(model, all_ds, DEVICE, explainers, image_ids, str(i) + "%removed")
                 image, label = all_ds_copy.get_original_by_id(id)
                 model = model.to(DEVICE)
                 image = image.to(DEVICE)
-                activation_map = explain_single(model, image, label, ex, True, DEVICE, mode)
-                if ex is not 'gradcam':
-                    activation_map = ndi.gaussian_filter(activation_map, 3)
-
-                org = np.transpose(image.squeeze().cpu().detach().numpy(), (1, 2, 0))
-                org_img_edged = preprocessing.scale(np.array(org, dtype=float)[:, :, 1])
-                org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
-                # Compute the Canny filter for two values of sigma
-                org_img_edged = feature.canny(org_img_edged, sigma=3)
                 ax = fig.add_subplot(len(roar_expl_im_values) + 1, len(explainers),
                                      (c_ex + 1) + (c_r + 1) * len(explainers))
+                explained = explain_single(model, image, label, ex, True, DEVICE, mode)
+                org_img = np.transpose(image.squeeze().cpu().detach().numpy(), to_RGB)
+
+                if ex is not 'gradcam':
+                    explained = ndi.gaussian_filter(explained, 3)
+
+                if mode == 'imagenet':
+                    explained = np.expand_dims(explained, axis=2)
+                    viz.visualize_image_attr(explained,
+                                             org_img,
+                                             sign="positive", method="blended_heat_map",
+                                             show_colorbar=False, use_pyplot=False, plt_fig_axis=(fig, ax),
+                                             cmap='viridis',
+                                             alpha_overlay=0.6)
+                else:
+                    # Edge detection of original input image
+                    org_img_edged = preprocessing.scale(np.array(org_img, dtype=float)[:, :, 1] / 255)
+                    org_img_edged = ndi.gaussian_filter(org_img_edged, 4)
+                    # Compute the Canny filter for two values of sigma
+                    org_img_edged = feature.canny(org_img_edged, sigma=3)
+                    ax.imshow(org_img_edged, cmap=plt.cm.binary)
+                    ax.imshow(explained, cmap='viridis',
+                              # vmin=np.min(explained), vmax=np.max(explained),
+                              alpha=0.4)
                 ax.tick_params(axis='both', which='both', length=0)
                 if c_ex == 0:
-                    ax.set_ylabel(str(i) + '%', fontsize=40)
-                ax.imshow(org_img_edged, cmap=plt.cm.binary)
-                ax.imshow(activation_map, cmap='viridis', alpha=0.4)
+                    ax.set_ylabel(str(i) + '%', size=40)
                 plt.setp(ax.get_xticklabels(), visible=False)
                 plt.setp(ax.get_yticklabels(), visible=False)
+                plt.grid(b=False)
         rect = (0, 0.08, 1, 0.95)
-        fig.tight_layout(rect=rect, h_pad=8, w_pad=8)
+        fig.tight_layout(rect=rect, h_pad=4, w_pad=4)
         fig.savefig(path_exp + subpath + model_type + '/comparison_explained_roar_image_' + str(id) + '.png')
         fig.clear()
 
